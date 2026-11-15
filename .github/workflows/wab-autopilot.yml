@@ -1,0 +1,92 @@
+name: Wab Autopilot
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wab-autopilot
+  cancel-in-progress: false
+
+jobs:
+  pulse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Validate configuration
+        env:
+          SUPABASE_URL: ${{ secrets.WAB_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.WAB_SUPABASE_SERVICE_ROLE_KEY }}
+          WAB_AUTOSYNC_URL: ${{ secrets.WAB_AUTOSYNC_URL }}
+          WAB_AUTOSYNC_SECRET: ${{ secrets.WAB_AUTOSYNC_SECRET }}
+        run: |
+          set -euo pipefail
+          for name in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY WAB_AUTOSYNC_URL WAB_AUTOSYNC_SECRET; do
+            if [[ -z "${!name}" ]]; then
+              echo "Missing GitHub Actions secret: $name"
+              exit 1
+            fi
+          done
+          if [[ "$WAB_AUTOSYNC_SECRET" == "replace-*" || ${#WAB_AUTOSYNC_SECRET} -lt 32 ]]; then
+            echo "WAB_AUTOSYNC_SECRET must be a unique random secret of at least 32 characters."
+            exit 1
+          fi
+
+      - name: Schedule and process background work
+        env:
+          SUPABASE_URL: ${{ secrets.WAB_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.WAB_SUPABASE_SERVICE_ROLE_KEY }}
+          WAB_AUTOSYNC_URL: ${{ secrets.WAB_AUTOSYNC_URL }}
+          WAB_AUTOSYNC_SECRET: ${{ secrets.WAB_AUTOSYNC_SECRET }}
+        run: |
+          set -euo pipefail
+          base="${SUPABASE_URL%/}"
+          auth=(-H "apikey: $SUPABASE_SERVICE_ROLE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY")
+
+          echo "Enqueue due nightly/monthly work"
+          curl --silent --show-error --fail-with-body --retry 3 --retry-all-errors \
+            "${auth[@]}" -H "Content-Type: application/json" \
+            -X POST "$base/rest/v1/rpc/schedule_heartbeat" -d '{}'
+          echo
+
+          for fn in sheets-poller onedrive-poller; do
+            echo "Polling $fn"
+            curl --silent --show-error --fail-with-body --retry 3 --retry-all-errors \
+              "${auth[@]}" -H "Content-Type: application/json" \
+              -X POST "$base/functions/v1/$fn" -d '{}'
+            echo
+          done
+
+          echo "Syncing connected read-only providers"
+          curl --silent --show-error --fail-with-body --retry 3 --retry-all-errors \
+            -H "Authorization: Bearer $WAB_AUTOSYNC_SECRET" \
+            -H "Content-Type: application/json" \
+            -X POST "$WAB_AUTOSYNC_URL" -d '{}' | tee /tmp/wab-autosync.json
+          sync_failed=0
+          if ! jq -e '.ok == true' /tmp/wab-autosync.json >/dev/null; then
+            echo "One or more provider syncs failed; continuing to process unrelated queued work."
+            sync_failed=1
+          fi
+
+          echo "Draining pending jobs (maximum 100 per pulse)"
+          for attempt in $(seq 1 100); do
+            result=$(curl --silent --show-error --fail-with-body --retry 2 --retry-all-errors \
+              "${auth[@]}" -H "Content-Type: application/json" \
+              -X POST "$base/functions/v1/agent-runner" -d '{"trigger":"heartbeat"}')
+            if jq -e '.message == "no jobs"' >/dev/null <<<"$result"; then
+              echo "Queue empty after $((attempt - 1)) job(s)."
+              break
+            fi
+            if [[ "$attempt" == 100 ]]; then
+              echo "Queue still has work after 100 jobs; it will continue on the next pulse."
+            fi
+          done
+
+          if [[ "$sync_failed" == 1 ]]; then
+            echo "Provider sync failures were recorded on the affected connections."
+            exit 1
+          fi

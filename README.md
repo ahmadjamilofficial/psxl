@@ -40,6 +40,7 @@
 - [How it works](#-how-it-works)
 - [AI Pipeline](#-ai-pipeline)
 - [Live integrations](#-live-integrations)
+- [Always-on Autopilot](#-always-on-autopilot)
 - [Tax Engine](#-tax-engine)
 - [Pricing](#-pricing)
 - [Roadmap](#-roadmap)
@@ -108,7 +109,7 @@ Every mutation (parse, post, reconcile, compute) writes a `sha256(prev_hash + pa
 1. **Sign in** with email or Google. The first login provisions an organisation, profile, and Basic ($0) subscription.
 2. **Ask Wab** (`/app/parser`) is the workspace. Attach or drop PDFs, images, CSV, or XLSX. The model reads the files and can query the live ledger through tools.
 3. **Ledger / tax / audit trail** are the books of record. FIFO tax math never comes from the LLM.
-4. **Integrations** connect wallets, exchanges, brokerage APIs, bank statement feeds, and CSV imports. A provider is marked Connected only after a live API test succeeds; sync then upserts real balances and transactions.
+4. **Integrations** connect wallets, exchanges, brokerage APIs, bank statement feeds, and CSV imports. A provider is marked Connected only after a live API test succeeds; manual sync is immediate, while background sync requires the Autopilot scheduler below.
 5. **Billing** is Basic $0, Standard $9/mo or $45/yr, Pro $25/mo or $90/yr, plus a dedicated 7-day Standard trial. Checkout is Kelviq; paid windows are counted in strict 30/365-day clocks.
 6. **Team** invites create a join link. The invitee signs up or signs in with `?invite=token` and is moved onto the organisation with the chosen role.
 
@@ -126,6 +127,7 @@ Every mutation (parse, post, reconcile, compute) writes a `sha256(prev_hash + pa
 │  Auth · Postgres + RLS      │   │  /api/chat                 │
 │  Storage (trade documents)  │   │  /api/integrations/action  │
 │  Realtime                   │   │  /api/webhooks/kelviq      │
+│                             │   │  /api/agent/autosync       │
 └──────────────┬──────────────┘   └────────────┬───────────────┘
                │                               │
                │              ┌────────────────▼───────────────┐
@@ -242,6 +244,8 @@ KELVIQ_WEBHOOK_SECRET=
 # Integrations (encrypt provider secrets; service role optional but recommended)
 WAB_CREDENTIAL_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
+# Set the same unique random value in the WAB_AUTOSYNC_SECRET GitHub Actions secret.
+WAB_AUTOSYNC_SECRET=
 
 # Google OAuth Client ID
 VITE_GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
@@ -310,6 +314,21 @@ SQL migrations live in `supabase/migrations/` (including integrations and team i
 | CSV import | Deterministic parse of pasted statements |
 
 A connection is **Connected** only after the adapter's live `test()` succeeds. Sync then writes accounts and transactions; it never fabricates rows.
+
+## Always-on Autopilot
+
+The repository includes `.github/workflows/wab-autopilot.yml`. Once enabled on the default branch, it runs every 15 minutes: enqueue due agent work, poll connected Sheets/OneDrive sources, sync up to 40 connected read-only provider connections per pulse, and drain up to 100 queued jobs. GitHub may delay scheduled workflows, so this is periodic background processing—not a real-time or guaranteed-uptime service. The app-open heartbeat remains a best-effort fallback.
+
+To activate it, first apply the autonomous-agent SQL migrations, deploy `agent-runner`, `sheets-poller`, and `onedrive-poller`, and deploy the Wab server route. Then add these **GitHub Actions repository secrets** (Settings → Secrets and variables → Actions):
+
+| Secret | Value |
+|---|---|
+| `WAB_SUPABASE_URL` | Your Supabase project URL, e.g. `https://<project-ref>.supabase.co` |
+| `WAB_SUPABASE_SERVICE_ROLE_KEY` | Supabase service-role key; store only as a GitHub secret, never in source or client variables |
+| `WAB_AUTOSYNC_URL` | Deployed Wab server URL ending in `/api/agent/autosync` |
+| `WAB_AUTOSYNC_SECRET` | A unique random secret of at least 32 characters; set the exact same value as a server-only environment variable on the Wab host |
+
+Also configure `WAB_CREDENTIAL_KEY` on the Wab server so connected provider credentials can be decrypted. The workflow can be smoke-tested with **Actions → Wab Autopilot → Run workflow**. Keep the workflow disabled until all four secrets and server-side credentials are configured. Failed syncs are recorded on the connection; automatic retry stops after three consecutive failures to avoid hammering revoked credentials. Re-test the connection to reset it.
 
 ---
 

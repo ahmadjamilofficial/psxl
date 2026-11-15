@@ -45,9 +45,11 @@ import { Route as AppSourcesRouteImport } from './routes/app.sources'
 import { Route as AppTaxRouteImport } from './routes/app.tax'
 import { Route as AppTimelineRouteImport } from './routes/app.timeline'
 import { Route as ApiAgentApproveRouteImport } from './routes/api/agent/approve'
+import { Route as ApiAgentAutosyncRouteImport } from './routes/api/agent/autosync'
 import { Route as ApiAgentHeartbeatRouteImport } from './routes/api/agent/heartbeat'
 import { Route as ApiDocumentsUploadRouteImport } from './routes/api/documents/upload'
 import { Route as ApiIntegrationsActionRouteImport } from './routes/api/integrations/action'
+import { Route as ApiTeamInviteEmailRouteImport } from './routes/api/team/invite-email'
 import { Route as ApiWebhooksEmailRouteImport } from './routes/api/webhooks/email'
 import { Route as ApiWebhooksKelviqRouteImport } from './routes/api/webhooks/kelviq'
 import { Route as AppParserIndexRouteImport } from './routes/app.parser.index'
@@ -237,6 +239,11 @@ const ApiAgentApproveRoute = ApiAgentApproveRouteImport.update({
   path: '/api/agent/approve',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAgentAutosyncRoute = ApiAgentAutosyncRouteImport.update({
+  id: '/api/agent/autosync',
+  path: '/api/agent/autosync',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAgentHeartbeatRoute = ApiAgentHeartbeatRouteImport.update({
   id: '/api/agent/heartbeat',
   path: '/api/agent/heartbeat',
@@ -250,6 +257,11 @@ const ApiDocumentsUploadRoute = ApiDocumentsUploadRouteImport.update({
 const ApiIntegrationsActionRoute = ApiIntegrationsActionRouteImport.update({
   id: '/api/integrations/action',
   path: '/api/integrations/action',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTeamInviteEmailRoute = ApiTeamInviteEmailRouteImport.update({
+  id: '/api/team/invite-email',
+  path: '/api/team/invite-email',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiWebhooksEmailRoute = ApiWebhooksEmailRouteImport.update({
@@ -330,9 +342,11 @@ export interface FileRoutesByFullPath {
   '/app/timeline': typeof AppTimelineRoute
   '/app/': typeof AppIndexRoute
   '/api/agent/approve': typeof ApiAgentApproveRoute
+  '/api/agent/autosync': typeof ApiAgentAutosyncRoute
   '/api/agent/heartbeat': typeof ApiAgentHeartbeatRoute
   '/api/documents/upload': typeof ApiDocumentsUploadRoute
   '/api/integrations/action': typeof ApiIntegrationsActionRoute
+  '/api/team/invite-email': typeof ApiTeamInviteEmailRoute
   '/api/webhooks/email': typeof ApiWebhooksEmailRoute
   '/api/webhooks/kelviq': typeof ApiWebhooksKelviqRoute
   '/app/parser/$threadId': typeof AppParserThreadIdRoute
@@ -377,9 +391,11 @@ export interface FileRoutesByTo {
   '/app/timeline': typeof AppTimelineRoute
   '/app': typeof AppIndexRoute
   '/api/agent/approve': typeof ApiAgentApproveRoute
+  '/api/agent/autosync': typeof ApiAgentAutosyncRoute
   '/api/agent/heartbeat': typeof ApiAgentHeartbeatRoute
   '/api/documents/upload': typeof ApiDocumentsUploadRoute
   '/api/integrations/action': typeof ApiIntegrationsActionRoute
+  '/api/team/invite-email': typeof ApiTeamInviteEmailRoute
   '/api/webhooks/email': typeof ApiWebhooksEmailRoute
   '/api/webhooks/kelviq': typeof ApiWebhooksKelviqRoute
   '/app/parser/$threadId': typeof AppParserThreadIdRoute
@@ -427,9 +443,11 @@ export interface FileRoutesById {
   '/app/timeline': typeof AppTimelineRoute
   '/app/': typeof AppIndexRoute
   '/api/agent/approve': typeof ApiAgentApproveRoute
+  '/api/agent/autosync': typeof ApiAgentAutosyncRoute
   '/api/agent/heartbeat': typeof ApiAgentHeartbeatRoute
   '/api/documents/upload': typeof ApiDocumentsUploadRoute
   '/api/integrations/action': typeof ApiIntegrationsActionRoute
+  '/api/team/invite-email': typeof ApiTeamInviteEmailRoute
   '/api/webhooks/email': typeof ApiWebhooksEmailRoute
   '/api/webhooks/kelviq': typeof ApiWebhooksKelviqRoute
   '/app/parser/$threadId': typeof AppParserThreadIdRoute
@@ -478,9 +496,11 @@ export interface FileRouteTypes {
     | '/app/timeline'
     | '/app/'
     | '/api/agent/approve'
+    | '/api/agent/autosync'
     | '/api/agent/heartbeat'
     | '/api/documents/upload'
     | '/api/integrations/action'
+    | '/api/team/invite-email'
     | '/api/webhooks/email'
     | '/api/webhooks/kelviq'
     | '/app/parser/$threadId'
@@ -525,9 +545,11 @@ export interface FileRouteTypes {
     | '/app/timeline'
     | '/app'
     | '/api/agent/approve'
+    | '/api/agent/autosync'
     | '/api/agent/heartbeat'
     | '/api/documents/upload'
     | '/api/integrations/action'
+    | '/api/team/invite-email'
     | '/api/webhooks/email'
     | '/api/webhooks/kelviq'
     | '/app/parser/$threadId'
@@ -574,9 +596,11 @@ export interface FileRouteTypes {
     | '/app/timeline'
     | '/app/'
     | '/api/agent/approve'
+    | '/api/agent/autosync'
     | '/api/agent/heartbeat'
     | '/api/documents/upload'
     | '/api/integrations/action'
+    | '/api/team/invite-email'
     | '/api/webhooks/email'
     | '/api/webhooks/kelviq'
     | '/app/parser/$threadId'
@@ -606,9 +630,11 @@ export interface RootRouteChildren {
   ApiMarketDataRoute: typeof ApiMarketDataRoute
   ApiSheetsImportRoute: typeof ApiSheetsImportRoute
   ApiAgentApproveRoute: typeof ApiAgentApproveRoute
+  ApiAgentAutosyncRoute: typeof ApiAgentAutosyncRoute
   ApiAgentHeartbeatRoute: typeof ApiAgentHeartbeatRoute
   ApiDocumentsUploadRoute: typeof ApiDocumentsUploadRoute
   ApiIntegrationsActionRoute: typeof ApiIntegrationsActionRoute
+  ApiTeamInviteEmailRoute: typeof ApiTeamInviteEmailRoute
   ApiWebhooksEmailRoute: typeof ApiWebhooksEmailRoute
   ApiWebhooksKelviqRoute: typeof ApiWebhooksKelviqRoute
   ApiAuthGoogleCallbackRoute: typeof ApiAuthGoogleCallbackRoute
@@ -871,6 +897,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAgentApproveRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/agent/autosync': {
+      id: '/api/agent/autosync'
+      path: '/api/agent/autosync'
+      fullPath: '/api/agent/autosync'
+      preLoaderRoute: typeof ApiAgentAutosyncRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/agent/heartbeat': {
       id: '/api/agent/heartbeat'
       path: '/api/agent/heartbeat'
@@ -890,6 +923,13 @@ declare module '@tanstack/react-router' {
       path: '/api/integrations/action'
       fullPath: '/api/integrations/action'
       preLoaderRoute: typeof ApiIntegrationsActionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/team/invite-email': {
+      id: '/api/team/invite-email'
+      path: '/api/team/invite-email'
+      fullPath: '/api/team/invite-email'
+      preLoaderRoute: typeof ApiTeamInviteEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/webhooks/email': {
@@ -1028,9 +1068,11 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMarketDataRoute: ApiMarketDataRoute,
   ApiSheetsImportRoute: ApiSheetsImportRoute,
   ApiAgentApproveRoute: ApiAgentApproveRoute,
+  ApiAgentAutosyncRoute: ApiAgentAutosyncRoute,
   ApiAgentHeartbeatRoute: ApiAgentHeartbeatRoute,
   ApiDocumentsUploadRoute: ApiDocumentsUploadRoute,
   ApiIntegrationsActionRoute: ApiIntegrationsActionRoute,
+  ApiTeamInviteEmailRoute: ApiTeamInviteEmailRoute,
   ApiWebhooksEmailRoute: ApiWebhooksEmailRoute,
   ApiWebhooksKelviqRoute: ApiWebhooksKelviqRoute,
   ApiAuthGoogleCallbackRoute: ApiAuthGoogleCallbackRoute,

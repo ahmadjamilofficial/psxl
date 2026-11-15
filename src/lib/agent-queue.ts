@@ -54,10 +54,23 @@ export async function enqueueJob(
     throw new Error(`enqueueJob failed: ${error.message}`);
   }
 
-  // Trigger the runner Edge Function immediately (fire-and-forget)
-  supabase.functions
-    .invoke("agent-runner", { body: { job_id: data.id } })
-    .catch((e: unknown) => console.warn("[Wab] agent-runner invoke failed:", e));
+  // Ask the authenticated server heartbeat to wake the privileged worker. Never
+  // invoke the cross-organization service-role worker directly from the browser.
+  void supabase.auth
+    .getSession()
+    .then(async ({ data: { session } }) => {
+      if (!session?.access_token) return;
+      const response = await fetch("/api/agent/heartbeat", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: "{}",
+      });
+      if (!response.ok) throw new Error(`Heartbeat request failed (${response.status})`);
+    })
+    .catch((e: unknown) => console.warn("[Wab] agent worker wake-up failed:", e));
 
   return data as AgentJob;
 }

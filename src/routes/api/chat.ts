@@ -18,6 +18,7 @@ import {
   markProviderUnhealthy,
   resolveAgentModel,
   selectWorkingModel,
+  type ResolvedModel,
 } from "@/lib/audit-agent.server";
 import { serverEnv, supabaseServerConfig } from "@/lib/env.server";
 import { pickCascadeForPlan, planOf } from "@/lib/plans";
@@ -381,7 +382,7 @@ export const Route = createFileRoute("/api/chat")({
           // Provider env comes from the Worker runtime, process.env or Vite's env.
           const env = (globalThis as { __VERCEL_ENV__?: Record<string, unknown> }).__VERCEL_ENV__;
 
-          let resolved;
+          let resolved: ResolvedModel | null;
           try {
             resolved = await resolveAgentModel(env);
           } catch (e) {
@@ -424,12 +425,12 @@ export const Route = createFileRoute("/api/chat")({
             );
           }
 
-          resolved = selected.model;
+          const workingModel = selected.model;
           console.log("[Wab Chat] AI Model Resolved:", {
-            provider: resolved.provider,
-            modelId: resolved.modelId,
+            provider: workingModel.provider,
+            modelId: workingModel.modelId,
           });
-          let model = resolved.model;
+          let model = workingModel.model;
 
           const supabase = createClient<Database>(url, key, {
             global: { headers: { Authorization: authorization } },
@@ -450,7 +451,9 @@ export const Route = createFileRoute("/api/chat")({
           // A missing or inactive subscription row means the org is on the Free plan.
           const { data: subData } = await supabase
             .from("subscriptions")
-            .select("plan, status, trial_end_at, charge_period, current_period_end, created_at, cancel_at_period_end")
+            .select(
+              "plan, status, trial_end_at, charge_period, current_period_end, created_at, cancel_at_period_end",
+            )
             .eq("org_id", thread.org_id)
             .maybeSingle();
 
@@ -483,22 +486,22 @@ export const Route = createFileRoute("/api/chat")({
           const monthlyTxLimit = limits.transactionsPerMonth; // null = unlimited
           const canDelegate = limits.features.specialistAgents;
 
-          const healthyCascade = resolved.cascade.filter((entry) =>
-            (resolved.attempts ?? []).some(
+          const healthyCascade = workingModel.cascade.filter((entry) =>
+            workingModel.attempts.some(
               (a) => a.ok && a.provider === entry.provider && a.modelId === entry.modelId,
             ),
           );
-          const cascadeFallback = healthyCascade[0] ?? resolved.cascade[0];
+          const cascadeFallback = healthyCascade[0] ?? workingModel.cascade[0];
           if (cascadeFallback) {
             const picked = pickCascadeForPlan(healthyCascade, plan, cascadeFallback);
-            resolved = {
-              ...resolved,
+            const selectedModel: ResolvedModel = {
+              ...workingModel,
               modelId: picked.modelId,
               model: picked.model,
               provider: picked.provider,
               providerOptions: picked.providerOptions,
             };
-            model = resolved.model;
+            model = selectedModel.model;
           }
 
           // Track usage for analytics (but don't block on it)
@@ -652,7 +655,9 @@ export const Route = createFileRoute("/api/chat")({
               execute: async ({ ticker }) => {
                 let query = supabase
                   .from("transactions")
-                  .select("id,ticker,action,quantity,price,fees,wht,trade_date,ref_id,broker,exchange,status,confidence_score")
+                  .select(
+                    "id,ticker,action,quantity,price,fees,wht,trade_date,ref_id,broker,exchange,status,confidence_score",
+                  )
                   .eq("org_id", thread.org_id)
                   .order("trade_date", { ascending: false })
                   .order("created_at", { ascending: false })
@@ -661,7 +666,8 @@ export const Route = createFileRoute("/api/chat")({
                 const { data, error } = await query;
                 if (error) throw new Error(error.message);
                 const trade = data?.[0];
-                if (!trade) return { found: false, note: "No trade records were found in the ledger." };
+                if (!trade)
+                  return { found: false, note: "No trade records were found in the ledger." };
                 const quantity = Number(trade.quantity);
                 const price = Number(trade.price);
                 const fees = Number(trade.fees ?? 0);
@@ -689,7 +695,10 @@ export const Route = createFileRoute("/api/chat")({
                     fees,
                     withholding_tax: wht,
                     total_charges: totalCharges,
-                    net_cash_impact: trade.action === "SELL" ? grossValue - totalCharges : grossValue + totalCharges,
+                    net_cash_impact:
+                      trade.action === "SELL"
+                        ? grossValue - totalCharges
+                        : grossValue + totalCharges,
                   },
                   note: "Net cash impact is gross value adjusted by fees and withholding tax; BUY adds charges, SELL subtracts charges. This is ledger-derived, not a live market valuation.",
                 };
@@ -777,6 +786,7 @@ export const Route = createFileRoute("/api/chat")({
                 ref_id: z.string().nullable(),
                 broker: z.string().nullable(),
                 exchange: z.string().nullable(),
+                confidence_score: z.number().min(0).max(1).optional(),
               }),
               execute: async (input) => {
                 const action = input.action.toUpperCase();
@@ -800,6 +810,12 @@ export const Route = createFileRoute("/api/chat")({
                 }
                 if (input.quantity <= 0 || input.price <= 0)
                   throw new Error("Quantity and price must be positive");
+                if (
+                  !/^\d{4}-\d{2}-\d{2}$/.test(input.trade_date) ||
+                  Number.isNaN(Date.parse(input.trade_date))
+                )
+                  throw new Error("Trade date must be a valid YYYY-MM-DD date from the source");
+                const confidence = input.confidence_score ?? 0.5;
                 const payload = {
                   org_id: thread.org_id,
                   ticker: input.ticker.toUpperCase(),
@@ -809,11 +825,12 @@ export const Route = createFileRoute("/api/chat")({
                   fees: input.fees ?? 0,
                   wht: input.wht ?? 0,
                   trade_date: input.trade_date,
-                  ref_id: input.ref_id ?? `AI-${Date.now()}`,
+                  ref_id: input.ref_id ?? "",
                   broker: input.broker ?? "",
                   exchange: input.exchange ?? "PSX",
-                  confidence_score: 0.95,
-                  status: "posted" as const,
+                  confidence_score: confidence,
+                  status: (confidence >= 0.75 ? "posted" : "needs_review") as
+                    "posted" | "needs_review",
                   source: { via: "wab_agent", thread_id: thread.id },
                 };
                 const { data, error } = await supabase
@@ -1310,7 +1327,9 @@ export const Route = createFileRoute("/api/chat")({
                 // Step 1: Get relevant transactions
                 let txQuery = supabase
                   .from("transactions")
-                  .select("id,ticker,action,quantity,price,fees,wht,trade_date,ref_id,broker,exchange,status,confidence_score")
+                  .select(
+                    "id,ticker,action,quantity,price,fees,wht,trade_date,ref_id,broker,exchange,status,confidence_score",
+                  )
                   .eq("org_id", thread.org_id)
                   .order("trade_date", { ascending: false })
                   .limit(50);
@@ -1323,7 +1342,9 @@ export const Route = createFileRoute("/api/chat")({
                 // Step 2: Get existing flags
                 const { data: flagData } = await supabase
                   .from("reconciliation_flags")
-                  .select("id,flag_type,severity,ticker,ref_id,expected,actual,description,suggested_resolution,status")
+                  .select(
+                    "id,flag_type,severity,ticker,ref_id,expected,actual,description,suggested_resolution,status",
+                  )
                   .eq("org_id", thread.org_id)
                   .eq("status", "open")
                   .limit(20);
@@ -1331,7 +1352,7 @@ export const Route = createFileRoute("/api/chat")({
                 // Step 3: Detect duplicates in the retrieved transactions
                 const seen = new Map<string, number>();
                 const duplicates: typeof txData = [];
-                for (const tx of (txData ?? [])) {
+                for (const tx of txData ?? []) {
                   const key = `${tx.ticker}|${tx.action}|${tx.quantity}|${tx.price}|${tx.trade_date}`;
                   const count = (seen.get(key) ?? 0) + 1;
                   seen.set(key, count);
@@ -1339,7 +1360,9 @@ export const Route = createFileRoute("/api/chat")({
                 }
 
                 // Step 4: Find low-confidence records
-                const lowConfidence = (txData ?? []).filter((tx) => (tx.confidence_score ?? 1) < 0.75);
+                const lowConfidence = (txData ?? []).filter(
+                  (tx) => (tx.confidence_score ?? 1) < 0.75,
+                );
 
                 return {
                   investigation: {
@@ -1366,13 +1389,16 @@ export const Route = createFileRoute("/api/chat")({
             }),
             // ── get_financial_health: overall org health snapshot ─────────────
             get_financial_health: tool({
-              description: "Get a complete financial health snapshot including portfolio value, reconciliation status, active issues, and risk indicators.",
+              description:
+                "Get a complete financial health snapshot including portfolio value, reconciliation status, active issues, and risk indicators.",
               inputSchema: z.object({}),
               execute: async () => {
                 const [txResult, flagResult] = await Promise.all([
                   supabase
                     .from("transactions")
-                    .select("id,ticker,action,quantity,price,fees,wht,trade_date,status,confidence_score")
+                    .select(
+                      "id,ticker,action,quantity,price,fees,wht,trade_date,status,confidence_score",
+                    )
                     .eq("org_id", thread.org_id)
                     .order("trade_date", { ascending: false })
                     .limit(500),
@@ -1393,9 +1419,18 @@ export const Route = createFileRoute("/api/chat")({
                 const criticalFlags = flags.filter((f) => f.severity === "bad");
                 const warnFlags = flags.filter((f) => f.severity === "warn");
 
-                const totalBuyValue = buys.reduce((s, t) => s + Number(t.price) * Number(t.quantity), 0);
-                const totalSellValue = sells.reduce((s, t) => s + Number(t.price) * Number(t.quantity), 0);
-                const totalFees = txs.reduce((s, t) => s + Number(t.fees ?? 0) + Number(t.wht ?? 0), 0);
+                const totalBuyValue = buys.reduce(
+                  (s, t) => s + Number(t.price) * Number(t.quantity),
+                  0,
+                );
+                const totalSellValue = sells.reduce(
+                  (s, t) => s + Number(t.price) * Number(t.quantity),
+                  0,
+                );
+                const totalFees = txs.reduce(
+                  (s, t) => s + Number(t.fees ?? 0) + Number(t.wht ?? 0),
+                  0,
+                );
 
                 const uniqueTickers = [...new Set(txs.map((t) => t.ticker))];
 
@@ -1420,7 +1455,13 @@ export const Route = createFileRoute("/api/chat")({
                     open_warning_flags: warnFlags.length,
                     total_open_flags: flags.length,
                     critical_issues: criticalFlags.map((f) => f.description).slice(0, 5),
-                    health_score: Math.max(0, 100 - criticalFlags.length * 20 - warnFlags.length * 5 - needsReview.length * 2),
+                    health_score: Math.max(
+                      0,
+                      100 -
+                        criticalFlags.length * 20 -
+                        warnFlags.length * 5 -
+                        needsReview.length * 2,
+                    ),
                   },
                 };
               },
@@ -1446,10 +1487,11 @@ export const Route = createFileRoute("/api/chat")({
             }
             if (value && typeof value === "object") {
               const entries = Object.entries(value as Record<string, unknown>)
-                .filter(([key]) =>
-                  key !== "reasoning_content" &&
-                  key !== "reasoningContent" &&
-                  key !== "reasoning",
+                .filter(
+                  ([key]) =>
+                    key !== "reasoning_content" &&
+                    key !== "reasoningContent" &&
+                    key !== "reasoning",
                 )
                 .map(([key, nested]) => [key, stripGroqReasoningFields(nested)]);
               return Object.fromEntries(entries);
@@ -1461,9 +1503,10 @@ export const Route = createFileRoute("/api/chat")({
             if (message.role !== "assistant") {
               return stripGroqReasoningFields(message) as typeof message;
             }
-            const { providerMetadata: _providerMetadata, ...assistantMessage } = message as typeof message & {
-              providerMetadata?: unknown;
-            };
+            const { providerMetadata: _providerMetadata, ...assistantMessage } =
+              message as typeof message & {
+                providerMetadata?: unknown;
+              };
             const withoutReasoningParts = {
               ...assistantMessage,
               content: Array.isArray(assistantMessage.content)

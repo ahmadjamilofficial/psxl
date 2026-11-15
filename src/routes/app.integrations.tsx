@@ -205,9 +205,11 @@ function IntegrationsPage() {
         </div>
         <h1 className="mt-2 text-2xl font-bold">Integrations</h1>
         <p className="mt-1 max-w-2xl text-sm" style={{ color: "var(--ink-2)" }}>
-          Connect a provider once and WAB synchronizes it continuously. Credentials are encrypted
-          server-side and never returned to this browser. A provider is only marked Connected after
-          it confirms the connection itself.
+          Connect a supported read-only provider once. Manual sync is available immediately;
+          background refresh runs every 15 minutes only after the deployment's Wab Autopilot
+          workflow and required secrets are configured. Credentials are encrypted server-side and
+          never returned to this browser. A provider is only marked Connected after it confirms the
+          connection itself.
         </p>
       </header>
 
@@ -290,7 +292,8 @@ function IntegrationsPage() {
                           className="mt-2 text-xs font-medium"
                           style={{ color: "var(--color-accent)" }}
                         >
-                          Connected — live feed is on. Last sync {formatWhen(c.last_sync_at)}
+                          Connected. Manual sync is ready; background refresh depends on Wab
+                          Autopilot being configured. Last sync {formatWhen(c.last_sync_at)}
                           {c.last_sync_status ? ` (${c.last_sync_status})` : ""}.
                         </p>
                       )}

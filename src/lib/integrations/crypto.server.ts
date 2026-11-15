@@ -9,24 +9,12 @@
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from "node:crypto";
 import { serverEnv } from "../env.server";
 
-const DEV_FALLBACK_KEY = "wab.local-dev.credential-key.v1";
-
 /**
- * The key material for credential encryption. Prefers the configured secret;
- * local development falls back to a fixed passphrase so wallet/exchange
- * connections can be tested without provisioning a secret. Never used when a
- * real deployment is running (import.meta.env.DEV is compiled out of prod).
+ * Credential encryption must never use a shared fallback key. Local and
+ * production environments both require an explicitly configured secret.
  */
 function keyMaterial(): string | undefined {
-  const configured = serverEnv("WAB_CREDENTIAL_KEY");
-  if (configured) return configured;
-  if (import.meta.env.DEV) {
-    console.warn(
-      "[Wab] WAB_CREDENTIAL_KEY is unset — using the local development key for credential storage.",
-    );
-    return DEV_FALLBACK_KEY;
-  }
-  return undefined;
+  return serverEnv("WAB_CREDENTIAL_KEY");
 }
 
 const ALGORITHM = "aes-256-gcm";

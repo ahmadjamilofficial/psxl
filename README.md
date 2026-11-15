@@ -403,29 +403,6 @@ The engine is a pure function with zero side effects — fully unit-testable and
 
 Checkout is Kelviq. Switching back to Basic is in-app (no blank checkout). Paid access uses a strict 30-day or 365-day clock and can be restored if that window is still valid.
 
----
-
-## Roadmap
-
-- [x] Multimodal statement parser (PDF, image, CSV)
-- [x] FIFO tax engine (multi-jurisdiction)
-- [x] Immutable hash-chained audit log
-- [x] Supabase Auth + Google OAuth
-- [x] Multi-tenant RLS isolation
-- [x] Tax-loss harvesting suggestions
-- [x] Gemini / Groq / OpenAI chat with file attachments
-- [x] Live wallet, Binance, Alpaca, bank, and CSV integrations
-- [x] Team invite links
-- [x] Theme toggle (light/dark)
-- [x] Improved favicon
-- [ ] Additional licensed open-banking aggregators
-- [ ] Regulatory update webhooks
-- [ ] Mobile app (React Native)
-- [ ] Additional jurisdiction profiles
-- [ ] Batch import via email parsing
-
----
-
 ## Contributing
 
 Pull requests are welcome. For major changes, please open an issue first.

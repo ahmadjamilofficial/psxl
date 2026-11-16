@@ -3,6 +3,7 @@ import {
   convertToModelMessages,
   createUIMessageStream,
   createUIMessageStreamResponse,
+  generateText,
   stepCountIs,
   streamText,
   tool,
@@ -571,6 +572,10 @@ export const Route = createFileRoute("/api/chat")({
             }
           };
 
+          // Hard cap specialist generations across this entire user turn,
+          // including repeated calls to either delegation tool.
+          let specialistWorkersRemaining = 4;
+
           const tools = {
             plan_task: tool({
               description:
@@ -586,6 +591,8 @@ export const Route = createFileRoute("/api/chat")({
                     "Running reconciliation",
                     "Verifying evidence",
                     "Checking calculations",
+                    "Delegating specialist agents",
+                    "Synthesizing findings",
                     "Preparing findings",
                   ])
                   .nullable(),
@@ -618,14 +625,132 @@ export const Route = createFileRoute("/api/chat")({
                     model_used: "not_available_on_free_plan",
                   };
                 }
-                const sub = streamText({
-                  model,
-                  providerOptions: resolved.providerOptions as never,
-                  system: `${SPECIALISTS[agent]}\n\nReturn compact markdown (under 400 words): findings, figures, evidence references, and a confidence rating (high/medium/low). Never expose hidden reasoning.`,
-                  prompt: `Objective:\n${objective}\n\nData and context:\n${context.slice(0, 40000)}`,
+                if (specialistWorkersRemaining < 1) {
+                  return {
+                    agent,
+                    status: "unavailable",
+                    findings:
+                      "The per-request specialist limit has been reached. Continue with direct evidence and ledger tools.",
+                    model_used: chosenModel.modelId,
+                  };
+                }
+                specialistWorkersRemaining -= 1;
+                try {
+                  const sub = await generateText({
+                    model,
+                    providerOptions: chosenModel.providerOptions as never,
+                    system: `${SPECIALISTS[agent]}\n\nYou are read-only. Work only from the supplied data. Return compact markdown under 350 words with findings, evidence references, and confidence; never expose hidden reasoning.`,
+                    prompt: `Objective:\n${objective}\n\nData and context:\n${context.slice(0, 12000)}`,
+                    maxOutputTokens: 500,
+                    maxRetries: 1,
+                    abortSignal: AbortSignal.timeout(25_000),
+                  });
+                  return {
+                    agent,
+                    status: "completed",
+                    findings: sub.text.trim(),
+                    model_used: chosenModel.modelId,
+                  };
+                } catch (error) {
+                  console.warn("[Wab Chat] specialist worker failed:", {
+                    agent,
+                    error: error instanceof Error ? error.message : "unknown",
+                  });
+                  return {
+                    agent,
+                    status: "unavailable",
+                    findings:
+                      "This specialist could not complete its review. Verify this area directly before drawing a conclusion.",
+                    model_used: chosenModel.modelId,
+                  };
+                }
+              },
+            }),
+            delegate_agents: tool({
+              description:
+                "For a genuinely complex audit, delegate 2–4 independent read-only subtasks to specialist agents concurrently. A hard budget allows at most four specialist generations total per user turn across all delegation calls. Give every worker a distinct objective and its evidence. Workers cannot call tools or change data. Do not use this for simple questions or dependent steps; verify and synthesize their findings yourself.",
+              inputSchema: z.object({
+                tasks: z
+                  .array(
+                    z.object({
+                      agent: z.enum([
+                        "extraction",
+                        "analysis",
+                        "reconciliation",
+                        "compliance",
+                        "evidence",
+                        "research",
+                        "calculation",
+                        "quality",
+                      ]),
+                      objective: z.string().min(1).max(400),
+                      context: z.string().max(12000),
+                    }),
+                  )
+                  .min(2)
+                  .max(4),
+              }),
+              execute: async ({ tasks }) => {
+                if (!canDelegate) {
+                  return {
+                    delegated: false,
+                    reason: "Specialist agents are not enabled on this plan.",
+                    completed: 0,
+                    total: 0,
+                    results: [],
+                  };
+                }
+                if (specialistWorkersRemaining < 2) {
+                  return {
+                    delegated: false,
+                    reason:
+                      "The per-request specialist limit has been reached; continue with direct evidence and ledger tools.",
+                    completed: 0,
+                    total: 0,
+                    results: [],
+                  };
+                }
+                const dispatchedTasks = tasks.slice(0, specialistWorkersRemaining);
+                specialistWorkersRemaining -= dispatchedTasks.length;
+                const outcomes = await Promise.allSettled(
+                  dispatchedTasks.map(async ({ agent, objective, context }) => {
+                    const worker = await generateText({
+                      model,
+                      providerOptions: chosenModel.providerOptions as never,
+                      system: `${SPECIALISTS[agent]}\n\nYou are a read-only worker. You cannot access tools or perform actions. Work only from the explicit context below. Distinguish observed evidence from assumptions. Return compact markdown under 350 words with findings and confidence; do not reveal hidden reasoning.`,
+                      prompt: `Objective (only this subtask):\n${objective}\n\nEvidence supplied by the lead agent:\n${context.slice(0, 12000)}`,
+                      maxOutputTokens: 500,
+                      maxRetries: 1,
+                      abortSignal: AbortSignal.timeout(25_000),
+                    });
+                    return { agent, objective, findings: worker.text.trim() };
+                  }),
+                );
+                const results = outcomes.map((outcome, index) => {
+                  if (outcome.status === "fulfilled") {
+                    return { ...outcome.value, status: "completed" as const };
+                  }
+                  console.warn("[Wab Chat] specialist worker failed:", {
+                    agent: dispatchedTasks[index]?.agent,
+                    error: outcome.reason instanceof Error ? outcome.reason.message : "unknown",
+                  });
+                  return {
+                    agent: dispatchedTasks[index]!.agent,
+                    objective: dispatchedTasks[index]!.objective,
+                    status: "unavailable" as const,
+                    findings:
+                      "This specialist could not complete its subtask. Verify this area directly before drawing a conclusion.",
+                  };
                 });
-                const findings = await sub.text;
-                return { agent, findings, model_used: resolved.modelId };
+                return {
+                  delegated: true,
+                  model_used: chosenModel.modelId,
+                  completed: results.filter((result) => result.status === "completed").length,
+                  total: results.length,
+                  requested: tasks.length,
+                  truncated: dispatchedTasks.length < tasks.length,
+                  results,
+                };
               },
             }),
             calculate: tool({
@@ -953,6 +1078,8 @@ export const Route = createFileRoute("/api/chat")({
                   "Running reconciliation",
                   "Verifying evidence",
                   "Checking calculations",
+                  "Delegating specialist agents",
+                  "Synthesizing findings",
                   "Preparing findings",
                 ]),
                 detail: z.string().nullable(),
@@ -1538,7 +1665,8 @@ You are a fast, precise financial audit agent for PSX and NSE traders. You are c
 ━━ SPEED AND EFFICIENCY (most important) ━━
 - Answer greetings, definitions and general questions directly with NO tools.
 - Use the fewest tools possible. Call independent read tools together in one step. Never call the same tool twice with the same input.
-- Only use delegate_agent for large multi-document audits that truly need a specialist. Never delegate simple questions.
+- Answer simple questions with no plan, no delegation, and the minimum necessary tools. For non-trivial work, plan first and report meaningful stage changes.
+- For complex audits only, use delegate_agents to send 2–4 distinct, independent read-only subtasks in parallel. Publish the "Delegating specialist agents" progress stage before dispatch, wait for the results, then publish "Synthesizing findings" and verify important claims against ledger/tool data. Provide a precise scope and relevant evidence to each worker. Do not delegate the same question twice, do not fan out dependent steps, and continue safely if one specialist is unavailable; disclose incomplete review instead of implying every agent succeeded. Keep deterministic calculations and every ledger write in the lead agent's typed tools.
 - Keep answers concise, polished, and easy to scan—ChatGPT-style conversational formatting. Use Markdown with clean paragraph spacing, meaningful headings only when useful, bold key figures/labels, and compact tables for financial metrics/comparisons. Prefer clear human-readable labels over raw JSON keys or tool output. Avoid wall-of-text responses, excessive headings, repetitive summaries, and unrequested technical dumps. For a single metric lookup, lead with the answer and provide a small organized metric table plus source/caveat. Use the structured report sections only for real audits/analysis; otherwise answer in a few short paragraphs or a table.
 - Always finish with a complete written answer.
 - After every tool call you MUST continue and write a plain-English answer in the same turn. Never stop after tools. Never leave the user with only JSON, raw tool output, or a silent tool card.

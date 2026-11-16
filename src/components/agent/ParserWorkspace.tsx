@@ -293,7 +293,9 @@ function narrateToolOutput(name: string, output: unknown): string {
   // Render latest-trade metrics as a compact user-facing report, not raw tool fields.
   if (name === "get_latest_trade_metrics") {
     if (rec["found"] !== true) {
-      return typeof rec["note"] === "string" ? rec["note"] : "No latest trade was found in your ledger.";
+      return typeof rec["note"] === "string"
+        ? rec["note"]
+        : "No latest trade was found in your ledger.";
     }
     const trade = (rec["trade"] ?? {}) as Record<string, unknown>;
     const metrics = (rec["metrics"] ?? {}) as Record<string, unknown>;
@@ -428,16 +430,33 @@ function ToolCard({
           <span className="ml-auto text-xs" style={{ color: "var(--ink-3)" }}>
             {steps.length} steps
           </span>
-          <ChevronDown size={13} style={{ color: "var(--ink-3)", transform: open ? "rotate(180deg)" : "none" }} />
+          <ChevronDown
+            size={13}
+            style={{ color: "var(--ink-3)", transform: open ? "rotate(180deg)" : "none" }}
+          />
         </button>
-        <div className="grid transition-[grid-template-rows] duration-200" style={{ gridTemplateRows: open ? "1fr" : "0fr" }}>
+        <div
+          className="grid transition-[grid-template-rows] duration-200"
+          style={{ gridTemplateRows: open ? "1fr" : "0fr" }}
+        >
           <div className="min-h-0 overflow-hidden">
-            {out["objective"] != null && <p className="px-3.5 pb-2 text-xs font-medium">{String(out["objective"])}</p>}
+            {out["objective"] != null && (
+              <p className="px-3.5 pb-2 text-xs font-medium">{String(out["objective"])}</p>
+            )}
             {steps.length > 0 && (
               <ol className="space-y-1.5 px-3.5 pb-3">
                 {steps.map((step, i) => (
-                  <li key={i} className="flex items-start gap-2 text-xs" style={{ color: "var(--ink-2)" }}>
-                    <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full text-[10px]" style={{ background: "var(--accent-10)", color: "var(--color-accent)" }}>{i + 1}</span>
+                  <li
+                    key={i}
+                    className="flex items-start gap-2 text-xs"
+                    style={{ color: "var(--ink-2)" }}
+                  >
+                    <span
+                      className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full text-[10px]"
+                      style={{ background: "var(--accent-10)", color: "var(--color-accent)" }}
+                    >
+                      {i + 1}
+                    </span>
                     {step}
                   </li>
                 ))}
@@ -455,7 +474,8 @@ function ToolCard({
     const stage = String(input["stage"] ?? output["stage"] ?? "Working on your request");
     const detailValue = input["detail"] ?? output["detail"];
     const detail = typeof detailValue === "string" ? detailValue : "";
-    const progressRunning = running || part.state === "input-streaming" || part.state === "input-available";
+    const progressRunning =
+      running || part.state === "input-streaming" || part.state === "input-available";
     return (
       <motion.div
         initial={{ opacity: 0, y: 4 }}
@@ -466,7 +486,11 @@ function ToolCard({
         aria-live="polite"
       >
         {progressRunning ? (
-          <Loader2 size={14} className="mt-0.5 shrink-0 animate-spin" style={{ color: "var(--color-accent)" }} />
+          <Loader2
+            size={14}
+            className="mt-0.5 shrink-0 animate-spin"
+            style={{ color: "var(--color-accent)" }}
+          />
         ) : isError ? (
           <X size={14} className="mt-0.5 shrink-0" style={{ color: "var(--bad)" }} />
         ) : (
@@ -474,9 +498,15 @@ function ToolCard({
         )}
         <div className="min-w-0 flex-1">
           <p className="text-xs font-medium">{stage}</p>
-          {detail && <p className="mt-0.5 text-xs leading-relaxed" style={{ color: "var(--ink-3)" }}>{detail}</p>}
+          {detail && (
+            <p className="mt-0.5 text-xs leading-relaxed" style={{ color: "var(--ink-3)" }}>
+              {detail}
+            </p>
+          )}
         </div>
-        <span className="shrink-0 text-[10px]" style={{ color: "var(--ink-3)" }}>{progressRunning ? "In progress" : isError ? "Failed" : "Done"}</span>
+        <span className="shrink-0 text-[10px]" style={{ color: "var(--ink-3)" }}>
+          {progressRunning ? "In progress" : isError ? "Failed" : "Done"}
+        </span>
       </motion.div>
     );
   }
@@ -518,6 +548,86 @@ function ToolCard({
           )}
         </div>
       </motion.div>
+    );
+  }
+
+  if (rawName === "delegate_agents" && isDone && part.output) {
+    const out = part.output as Record<string, unknown>;
+    const delegated = out["delegated"] === true;
+    const results = Array.isArray(out["results"])
+      ? (out["results"] as Array<Record<string, unknown>>)
+      : [];
+    const completed = typeof out["completed"] === "number" ? out["completed"] : 0;
+    const total = typeof out["total"] === "number" ? out["total"] : results.length;
+    const complete = delegated && total > 0 && completed === total && out["truncated"] !== true;
+    const heading = !delegated
+      ? "Specialists not started"
+      : total === 0
+        ? "No specialists started"
+        : complete
+          ? "Specialist review complete"
+          : completed > 0
+            ? "Partial specialist review"
+            : "Specialist review incomplete";
+    return (
+      <div
+        className="my-2 overflow-hidden rounded-2xl"
+        style={{ border: "1px solid var(--hairline)", background: "var(--accent-3)" }}
+      >
+        <div className="flex items-center gap-2 px-3.5 py-2.5 text-xs">
+          {complete ? (
+            <Check size={14} style={{ color: "var(--ok)" }} />
+          ) : (
+            <AlertTriangle size={14} style={{ color: "var(--warn)" }} />
+          )}
+          <span className="font-semibold">{heading}</span>
+          <span className="ml-auto" style={{ color: "var(--ink-3)" }}>
+            {total > 0 ? `${completed}/${total} complete` : "No work run"}
+          </span>
+        </div>
+        {!delegated && typeof out["reason"] === "string" && (
+          <p className="px-3.5 pb-3 text-xs leading-relaxed" style={{ color: "var(--ink-2)" }}>
+            {out["reason"]}
+          </p>
+        )}
+        {out["truncated"] === true && (
+          <p className="px-3.5 pb-3 text-xs leading-relaxed" style={{ color: "var(--warn)" }}>
+            The per-request specialist limit was reached; some requested reviews were not started.
+          </p>
+        )}
+        {results.length > 0 && (
+          <div
+            className="space-y-2 border-t px-3.5 py-3"
+            style={{ borderColor: "var(--hairline)" }}
+          >
+            {results.map((result, index) => (
+              <div key={`${String(result["agent"] ?? "agent")}-${index}`}>
+                <div className="flex items-center gap-2 text-xs">
+                  {result["status"] === "completed" ? (
+                    <Check size={12} style={{ color: "var(--ok)" }} />
+                  ) : (
+                    <AlertTriangle size={12} style={{ color: "var(--warn)" }} />
+                  )}
+                  <span className="font-medium capitalize">
+                    {String(result["agent"] ?? "Specialist")}
+                  </span>
+                  <span className="ml-auto" style={{ color: "var(--ink-3)" }}>
+                    {String(result["status"] ?? "finished")}
+                  </span>
+                </div>
+                {typeof result["findings"] === "string" && (
+                  <p
+                    className="ml-5 mt-1 whitespace-pre-wrap text-xs leading-relaxed"
+                    style={{ color: "var(--ink-2)" }}
+                  >
+                    {result["findings"]}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     );
   }
 
@@ -793,7 +903,9 @@ function Chat({
               )
             : undefined;
         await sendMessage({
-          text: pendingText || "If the attached file is a broker statement or trade confirmation, extract every transaction row with source-grounded ticker, action, quantity, price, fees, withholding tax, trade date, reference, broker, and exchange, then post valid rows to my ledger using insert_transaction. Do not guess missing fields; report any rows you cannot safely post. If it is not a trade statement, analyse it without posting.",
+          text:
+            pendingText ||
+            "If the attached file is a broker statement or trade confirmation, extract every transaction row with source-grounded ticker, action, quantity, price, fees, withholding tax, trade date, reference, broker, and exchange, then post valid rows to my ledger using insert_transaction. Do not guess missing fields; report any rows you cannot safely post. If it is not a trade statement, analyse it without posting.",
           ...(aiFiles ? { files: dataTransferFiles(aiFiles) } : {}),
         });
       })();
@@ -929,10 +1041,15 @@ function Chat({
               className="flex w-full max-w-[48rem] items-center gap-2 px-4 py-1"
               role="status"
               aria-live="polite"
-              aria-label="Wab is thinking"
+              aria-label="Wab is preparing a response"
             >
-              <span className="wab-thinking-label text-sm font-medium tracking-wide">
-                Thinking
+              <span className="text-sm font-medium" style={{ color: "var(--ink-2)" }}>
+                Wab is working
+              </span>
+              <span className="wab-thinking-dots" aria-hidden="true">
+                <span />
+                <span />
+                <span />
               </span>
             </div>
           )}

@@ -7,6 +7,7 @@ import {
   streamText,
   tool,
   type UIMessage,
+  type UIMessageChunk,
 } from "ai";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
@@ -14,8 +15,8 @@ import type { Database } from "@/integrations/supabase/types";
 import {
   describeAttempts,
   isCapacityError,
-  isProviderError,
   markProviderUnhealthy,
+  orderModelCascade,
   resolveAgentModel,
   selectWorkingModel,
   type ResolvedModel,
@@ -431,6 +432,7 @@ export const Route = createFileRoute("/api/chat")({
             modelId: workingModel.modelId,
           });
           let model = workingModel.model;
+          let chosenModel: ResolvedModel = workingModel;
 
           const supabase = createClient<Database>(url, key, {
             global: { headers: { Authorization: authorization } },
@@ -501,6 +503,7 @@ export const Route = createFileRoute("/api/chat")({
               provider: picked.provider,
               providerOptions: picked.providerOptions,
             };
+            chosenModel = selectedModel;
             model = selectedModel.model;
           }
 
@@ -1624,19 +1627,13 @@ NEW TOOLS ADDED:
             }
           };
 
-          const startIdx = Math.max(
-            0,
-            resolved.cascade.findIndex(
-              (e) => e.provider === resolved.provider && e.modelId === resolved.modelId,
-            ),
-          );
-          const failoverQueue = [
-            ...resolved.cascade.slice(startIdx),
-            ...resolved.cascade.slice(0, startIdx),
-          ].filter(
-            (entry, index, arr) =>
-              arr.findIndex((e) => e.provider === entry.provider && e.modelId === entry.modelId) ===
-              index,
+          // Prefer models that passed the live probe. In particular, do not
+          // send a complex tool request first to a provider already known to be
+          // unavailable just because it appeared earlier in configuration.
+          const failoverQueue = orderModelCascade(
+            resolved.cascade,
+            workingModel.attempts,
+            chosenModel,
           );
 
           // One place that turns any failure into a safe, categorised message.
@@ -1665,6 +1662,13 @@ NEW TOOLS ADDED:
             execute: async ({ writer }) => {
               let lastError: unknown;
               for (const entry of failoverQueue) {
+                let candidate:
+                  | {
+                      result: ReturnType<typeof streamText<typeof tools>>;
+                      iterator: AsyncIterator<UIMessageChunk>;
+                      first: IteratorResult<UIMessageChunk>;
+                    }
+                  | undefined;
                 try {
                   const result = streamText({
                     model: entry.model,
@@ -1680,37 +1684,43 @@ NEW TOOLS ADDED:
                   });
                   const iterator = ui[Symbol.asyncIterator]();
                   const first = await iterator.next();
-                  const chunk = first.value as { type?: string; errorText?: string } | undefined;
-                  if (chunk?.type === "error") {
-                    const err = new Error(chunk.errorText ?? "Provider returned an error");
-                    if (isCapacityError(err) || isProviderError(err)) {
-                      markProviderUnhealthy(entry.provider, entry.modelId, err.message);
-                      lastError = err;
-                      console.warn(
-                        `[Wab Chat] ${entry.provider}/${entry.modelId} busy, trying next provider`,
-                      );
-                      continue;
-                    }
-                    throw err;
-                  }
-
-                  console.log("[Wab Chat] streaming with", entry.provider, entry.modelId);
-                  writer.merge(replayIteratorStream(first, iterator));
-                  await result.response;
-                  return;
+                  candidate = { result, iterator, first };
                 } catch (error) {
                   lastError = error;
-                  if (!isCapacityError(error) && !isProviderError(error)) throw error;
                   markProviderUnhealthy(
                     entry.provider,
                     entry.modelId,
                     error instanceof Error ? error.message : String(error),
                   );
                   console.warn(
-                    `[Wab Chat] ${entry.provider}/${entry.modelId} failed, trying next:`,
+                    `[Wab Chat] ${entry.provider}/${entry.modelId} failed before stream start; trying next provider:`,
                     error instanceof Error ? error.message : error,
                   );
+                  continue;
                 }
+
+                if (!candidate) continue;
+
+                const chunk = candidate.first.value as
+                  { type?: string; errorText?: string } | undefined;
+                if (chunk?.type === "error") {
+                  const err = new Error(chunk.errorText ?? "Provider returned an error");
+                  lastError = err;
+                  markProviderUnhealthy(entry.provider, entry.modelId, err.message);
+                  console.warn(
+                    `[Wab Chat] ${entry.provider}/${entry.modelId} rejected the request before stream start; trying next provider:`,
+                    err.message,
+                  );
+                  await candidate.iterator.return?.();
+                  continue;
+                }
+
+                console.log("[Wab Chat] streaming with", entry.provider, entry.modelId);
+                writer.merge(replayIteratorStream(candidate.first, candidate.iterator));
+                // Once output starts, do not replay on another provider: a tool
+                // may already have changed user data, and replay could duplicate it.
+                await candidate.result.response;
+                return;
               }
               throw lastError instanceof Error
                 ? lastError

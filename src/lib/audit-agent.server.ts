@@ -64,11 +64,7 @@ const GEMINI_CHAT_MODEL = "gemini-3.8-flash";
 
 function geminiModelId(env?: EnvBag): string {
   const configured = serverEnv("GEMINI_MODEL", env);
-  if (
-    configured &&
-    configured.startsWith("gemini-3") &&
-    !RETIRED_GEMINI_IDS.has(configured)
-  ) {
+  if (configured && configured.startsWith("gemini-3") && !RETIRED_GEMINI_IDS.has(configured)) {
     return configured;
   }
   return GEMINI_CHAT_MODEL;
@@ -168,9 +164,12 @@ export async function resolveAgentModel(env?: EnvBag): Promise<ResolvedModel | n
       if (typeof body === "string") {
         try {
           const payload = JSON.parse(body) as Record<string, unknown>;
-          if (typeof payload.model === "string" && payload.model.startsWith("openai/gpt-oss-")) {
-            payload.include_reasoning = false;
-            delete payload.reasoning_format;
+          if (
+            typeof payload["model"] === "string" &&
+            payload["model"].startsWith("openai/gpt-oss-")
+          ) {
+            payload["include_reasoning"] = false;
+            delete payload["reasoning_format"];
           }
           return fetch(input, { ...init, body: JSON.stringify(payload) });
         } catch {
@@ -227,6 +226,33 @@ export interface ProviderAttempt {
   message?: string;
 }
 
+/**
+ * Build a stream order from probe results. The selected model goes first,
+ * followed by other healthy models in configured priority order; models that
+ * already failed their probe are kept only as last-resort fallbacks.
+ */
+export function orderModelCascade<T extends Pick<ProviderAttempt, "provider" | "modelId">>(
+  cascade: T[],
+  attempts: ProviderAttempt[],
+  preferred?: Pick<ProviderAttempt, "provider" | "modelId">,
+): T[] {
+  const isSame = (
+    entry: Pick<ProviderAttempt, "provider" | "modelId">,
+    other: Pick<ProviderAttempt, "provider" | "modelId">,
+  ) => entry.provider === other.provider && entry.modelId === other.modelId;
+  const isHealthy = (entry: T) => attempts.some((attempt) => attempt.ok && isSame(attempt, entry));
+  const preferredEntry = preferred
+    ? cascade.find((entry) => isSame(entry, preferred) && isHealthy(entry))
+    : undefined;
+  const isPreferred = (entry: T) => preferredEntry !== undefined && isSame(entry, preferredEntry);
+
+  return [
+    ...(preferredEntry ? [preferredEntry] : []),
+    ...cascade.filter((entry) => isHealthy(entry) && !isPreferred(entry)),
+    ...cascade.filter((entry) => !isHealthy(entry) && !isPreferred(entry)),
+  ];
+}
+
 interface ProbeResult {
   ok: boolean;
   until: number;
@@ -237,7 +263,7 @@ interface ProbeResult {
 /** Per-isolate memory so a dead provider is not re-probed on every message. */
 const probeCache = new Map<string, ProbeResult>();
 const HEALTHY_TTL_MS = 15 * 60_000; // 15 min — don't re-probe a working provider too often
-const UNHEALTHY_TTL_MS = 60_000;    // 1 min — retry a failing provider more quickly
+const UNHEALTHY_TTL_MS = 60_000; // 1 min — retry a failing provider more quickly
 const CAPACITY_TTL_MS = 5 * 60_000; // 5 min — skip models that are overloaded
 
 export function isCapacityError(error: unknown): boolean {

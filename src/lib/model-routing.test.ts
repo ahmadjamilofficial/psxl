@@ -1,6 +1,37 @@
 // ─── Model Routing Unit Tests ─────────────────────────────────────────────────
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { getModelRoutingTable } from "./model-routing";
+import { orderModelCascade } from "./audit-agent.server";
+
+describe("orderModelCascade", () => {
+  const cascade = [
+    { provider: "lovable", modelId: "primary" },
+    { provider: "groq", modelId: "fast" },
+    { provider: "openai", modelId: "backup" },
+  ];
+
+  it("tries the selected healthy model first and other healthy models before known failures", () => {
+    const ordered = orderModelCascade(
+      cascade,
+      [
+        { provider: "lovable", modelId: "primary", ok: false, message: "probe failed" },
+        { provider: "groq", modelId: "fast", ok: true },
+        { provider: "openai", modelId: "backup", ok: true },
+      ],
+      { provider: "openai", modelId: "backup" },
+    );
+
+    expect(ordered.map((entry) => entry.modelId)).toEqual(["backup", "fast", "primary"]);
+  });
+
+  it("keeps configured order when no probe results are available", () => {
+    expect(orderModelCascade(cascade, []).map((entry) => entry.modelId)).toEqual([
+      "primary",
+      "fast",
+      "backup",
+    ]);
+  });
+});
 
 describe("getModelRoutingTable", () => {
   it("returns a table with all expected task types", () => {

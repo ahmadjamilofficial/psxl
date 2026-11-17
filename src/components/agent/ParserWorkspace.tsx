@@ -945,6 +945,22 @@ function Chat({
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
+      <header
+        className="flex shrink-0 items-center justify-between gap-3 border-b px-4 py-2.5 sm:px-6"
+        style={{ borderColor: "var(--hairline)", background: "var(--surface)" }}
+      >
+        <ChatSidebar activeId={threadId} />
+        <div
+          className="hidden items-center gap-2 text-[11px] sm:flex"
+          style={{ color: "var(--ink-3)" }}
+        >
+          <span
+            className="size-1.5 rounded-full"
+            style={{ background: isStreaming ? "var(--color-accent)" : "var(--ok)" }}
+          />
+          {isStreaming ? "Wab is working" : "Ready when you are"}
+        </div>
+      </header>
       {/* ── Messages ─────────────────────────────────────────────────────── */}
       <Conversation className="min-h-0 flex-1">
         <ConversationScrollOnSend messages={messages} />
@@ -1287,17 +1303,14 @@ export function ParserWorkspace({ threadId }: { threadId: string }) {
   }
 
   return (
-    <div className="flex h-full min-h-0">
-      <ChatSidebar activeId={threadId} />
-      <div className="min-h-0 min-w-0 flex-1">
-        <Chat
-          key={threadId}
-          threadId={threadId}
-          initial={initial}
-          transport={transport}
-          plan={plan}
-        />
-      </div>
+    <div className="h-full min-h-0">
+      <Chat
+        key={threadId}
+        threadId={threadId}
+        initial={initial}
+        transport={transport}
+        plan={plan}
+      />
     </div>
   );
 }

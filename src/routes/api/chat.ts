@@ -32,6 +32,36 @@ type ChatBody = { id?: unknown; messages?: unknown };
 
 const text = (value: unknown) => (typeof value === "string" ? value.trim() : "");
 
+function isSimpleGreeting(messages: unknown[]): boolean {
+  const last = [...messages]
+    .reverse()
+    .find(
+      (message) =>
+        message && typeof message === "object" && (message as { role?: unknown }).role === "user",
+    ) as { parts?: unknown[] } | undefined;
+  if (
+    !last?.parts ||
+    last.parts.some(
+      (part) => part && typeof part === "object" && (part as { type?: string }).type === "file",
+    )
+  )
+    return false;
+  const value = last.parts
+    .map((part) =>
+      part && typeof part === "object" && (part as { type?: string }).type === "text"
+        ? ((part as { text?: string }).text ?? "")
+        : "",
+    )
+    .join(" ")
+    .trim();
+  return /^(hi|hello|hey|helo|good morning|good afternoon|good evening|yo|salaam|assalamualaikum)[!.\s]*$/i.test(
+    value,
+  );
+}
+
+const DETERMINISTIC_GREETING =
+  "Hi — I’m Wab, your financial operations copilot. Ask me about your ledger, upload a broker statement, or connect a source and I’ll help you investigate it.";
+
 function replayIteratorStream<T>(
   first: IteratorResult<T>,
   iterator: AsyncIterator<T>,
@@ -371,6 +401,61 @@ export const Route = createFileRoute("/api/chat")({
             return new Response("A thread id and messages are required", { status: 400 });
           }
 
+          // Greetings should remain available even if every external provider is down.
+          if (isSimpleGreeting(body.messages)) {
+            const greetingConfig = supabaseServerConfig();
+            if (!greetingConfig)
+              return new Response("Database configuration is missing", { status: 500 });
+            const greetingDb = createClient<Database>(greetingConfig.url, greetingConfig.key, {
+              global: { headers: { Authorization: authorization } },
+              auth: { persistSession: false, autoRefreshToken: false },
+            });
+            const { data: greetingAuth, error: greetingAuthError } =
+              await greetingDb.auth.getUser();
+            if (greetingAuthError || !greetingAuth.user)
+              return new Response("Unauthorized", { status: 401 });
+            const { data: greetingThread, error: greetingThreadError } = await greetingDb
+              .from("chat_threads")
+              .select("id, org_id")
+              .eq("id", body.id)
+              .eq("user_id", greetingAuth.user.id)
+              .single();
+            if (greetingThreadError || !greetingThread)
+              return new Response("Thread not found", { status: 404 });
+            const greetingStream = createUIMessageStream({
+              originalMessages: body.messages as UIMessage[],
+              execute: ({ writer }) => {
+                writer.write({ type: "text-start", id: "wab-greeting" });
+                writer.write({
+                  type: "text-delta",
+                  id: "wab-greeting",
+                  delta: DETERMINISTIC_GREETING,
+                });
+                writer.write({ type: "text-end", id: "wab-greeting" });
+              },
+              onEnd: async ({ messages }) => {
+                const seen = new Map<string, UIMessage>();
+                messages.forEach((message) => seen.set(message.id, message));
+                await greetingDb.from("chat_messages").upsert(
+                  Array.from(seen.values()).map((message, position) => ({
+                    thread_id: greetingThread.id,
+                    org_id: greetingThread.org_id,
+                    user_id: greetingAuth.user.id,
+                    ai_message_id: message.id,
+                    role: message.role,
+                    parts: message.parts as never,
+                    position,
+                  })),
+                  { onConflict: "thread_id,ai_message_id" },
+                );
+                await greetingDb
+                  .from("chat_threads")
+                  .update({ title: "Hello", updated_at: new Date().toISOString() })
+                  .eq("id", greetingThread.id);
+              },
+            });
+            return createUIMessageStreamResponse({ stream: greetingStream });
+          }
           const supabaseConfig = supabaseServerConfig();
           const approvalSecret = serverEnv("TOOL_APPROVAL_SECRET") ?? "wab-tool-approval";
           if (!supabaseConfig)

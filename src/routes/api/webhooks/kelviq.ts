@@ -1,3 +1,4 @@
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
@@ -12,19 +13,21 @@ export const Route = createFileRoute("/api/webhooks/kelviq")({
     handlers: {
       POST: async ({ request }) => {
         try {
-          const body = (await request.json()) as KelviqWebhookEvent;
-
-          // Verify webhook secret if configured
-          const signature = request.headers.get("x-kelviq-signature");
-          if (KELVIQ_WEBHOOK_SECRET && signature) {
-            // TODO: Implement signature verification when Kelviq provides documentation
-            // const expectedSignature = crypto.createHmac('sha256', KELVIQ_WEBHOOK_SECRET)
-            //   .update(JSON.stringify(body))
-            //   .digest('hex');
-            // if (signature !== expectedSignature) {
-            //   return new Response("Invalid signature", { status: 401 });
-            // }
+          const rawBody = await request.text();
+          const body = JSON.parse(rawBody) as KelviqWebhookEvent;
+          const signature = request.headers.get("x-kelviq-signature") ?? "";
+          if (KELVIQ_WEBHOOK_SECRET) {
+            const supplied = signature.replace(/^sha256=/i, "").trim();
+            const expected = createHmac("sha256", KELVIQ_WEBHOOK_SECRET)
+              .update(rawBody)
+              .digest("hex");
+            const valid =
+              supplied.length === expected.length &&
+              timingSafeEqual(Buffer.from(supplied), Buffer.from(expected));
+            if (!valid) return new Response("Invalid signature", { status: 401 });
           }
+          if (!body.id || !body.type)
+            return new Response("Invalid webhook payload", { status: 400 });
 
           const supabaseUrl =
             process.env["SUPABASE_URL"] ??
@@ -93,73 +96,22 @@ async function processKelviqEvent(
   switch (eventType) {
     case "checkout.completed":
     case "subscription.created": {
-      // New subscription created
-      const planIdentifier = data.plan_identifier as string;
-      const customerId = data.customer_id as string;
-      const subscriptionId = data.subscription_id as string;
-
-      // Map Kelviq plan identifiers to our plans
-      const plan = mapKelviqPlan(planIdentifier);
-
-      // Get org_id from metadata
-      const orgId = data.metadata?.["org_id"] as string;
-
-      if (!orgId) {
-        return;
-      }
-
-      if (plan === "free") {
-        await supabase
-          .from("subscriptions")
-          .update({
-            status: "cancelled",
-            cancelled_at: new Date().toISOString(),
-            plan: "standard",
-          })
-          .eq("org_id", orgId);
-        await supabase.from("profiles").update({ plan: "free" } as never).eq("org_id", orgId);
-        break;
-      }
-
-      // Create or update subscription
-      const { error: subError } = await supabase.from("subscriptions").upsert(
-        {
-          org_id: orgId,
-          kelviq_customer_id: customerId,
-          kelviq_subscription_id: subscriptionId,
-          plan,
-          status: "active",
-          charge_period: (data.charge_period as string) || "MONTHLY",
-          trial_end_at: data.trial_end ? new Date(data.trial_end as string).toISOString() : null,
-          current_period_end: data.current_period_end
-            ? new Date(data.current_period_end as string).toISOString()
-            : null,
-          metadata: data.metadata as never,
-        },
-        {
-          onConflict: "kelviq_subscription_id",
-        },
-      );
-
-      if (subError) {
-        // Silent error handling
-      }
-
-      // Update user's profile plan
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({ plan } as never)
-        .eq("org_id", orgId);
-
-      if (profileError) {
-        // Silent error handling
-      }
+      // Checkout/subscription creation is intent, not payment. Entitlements
+      // activate only after Kelviq confirms payment below.
       break;
     }
 
     case "subscription.updated": {
-      // Subscription updated (plan change, etc.)
+      // A provider update is not itself proof of payment. Only mutate a row
+      // that was previously activated by payment.succeeded/invoice.paid.
       const subscriptionId = data.subscription_id as string;
+      const { data: existingSubscription } = await supabase
+        .from("subscriptions")
+        .select("org_id, metadata")
+        .eq("kelviq_subscription_id", subscriptionId)
+        .maybeSingle();
+      const metadata = (existingSubscription?.metadata ?? {}) as Record<string, unknown>;
+      if (!existingSubscription || !metadata["payment_confirmed_at"]) break;
       const planIdentifier = data.plan_identifier as string;
       const plan = mapKelviqPlan(planIdentifier);
 
@@ -173,22 +125,22 @@ async function processKelviqEvent(
           })
           .eq("kelviq_subscription_id", subscriptionId);
       } else {
-      const { error: updateError } = await supabase
-        .from("subscriptions")
-        .update({
-          plan,
-          status: (data.status as string) || "active",
-          current_period_end: data.current_period_end
-            ? new Date(data.current_period_end as string).toISOString()
-            : null,
-          cancel_at_period_end: (data.cancel_at_period_end as boolean) || false,
-          metadata: data.metadata as never,
-        })
-        .eq("kelviq_subscription_id", subscriptionId);
+        const { error: updateError } = await supabase
+          .from("subscriptions")
+          .update({
+            plan,
+            status: (data.status as string) || "active",
+            current_period_end: data.current_period_end
+              ? new Date(data.current_period_end as string).toISOString()
+              : null,
+            cancel_at_period_end: (data.cancel_at_period_end as boolean) || false,
+            metadata: data.metadata as never,
+          })
+          .eq("kelviq_subscription_id", subscriptionId);
 
-      if (updateError) {
-        // Silent error handling
-      }
+        if (updateError) {
+          // Silent error handling
+        }
       }
 
       // Update user's profile plan
@@ -250,22 +202,33 @@ async function processKelviqEvent(
 
     case "payment.succeeded":
     case "invoice.paid": {
-      // Payment succeeded - update subscription status if needed
-      const subscriptionId = data.subscription_id as string;
-
-      const { error: paymentError } = await supabase
-        .from("subscriptions")
-        .update({
+      const subscriptionId = data.subscription_id as string | undefined;
+      const orgId = data.metadata?.["org_id"] as string | undefined;
+      const plan = mapKelviqPlan(data.plan_identifier as string | undefined);
+      if (!subscriptionId || !orgId || plan === "free") break;
+      const { error: paymentError } = await supabase.from("subscriptions").upsert(
+        {
+          org_id: orgId,
+          kelviq_customer_id: (data.customer_id as string | undefined) ?? null,
+          kelviq_subscription_id: subscriptionId,
+          plan,
           status: "active",
+          charge_period: (data.charge_period as string) || "MONTHLY",
           current_period_end: data.current_period_end
             ? new Date(data.current_period_end as string).toISOString()
             : null,
-        })
-        .eq("kelviq_subscription_id", subscriptionId);
-
-      if (paymentError) {
-        // Silent error handling
-      }
+          metadata: {
+            ...(data.metadata ?? {}),
+            payment_confirmed_at: new Date().toISOString(),
+          } as never,
+        },
+        { onConflict: "org_id" },
+      );
+      if (paymentError) throw paymentError;
+      await supabase
+        .from("profiles")
+        .update({ plan } as never)
+        .eq("org_id", orgId);
       break;
     }
 

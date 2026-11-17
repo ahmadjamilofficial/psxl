@@ -90,24 +90,12 @@ export function ChatSidebar({ activeId }: { activeId: string }) {
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
         aria-haspopup="listbox"
-        className="flex min-w-0 max-w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-left transition-colors hover:bg-[var(--accent-5)]"
+        className="inline-flex max-w-[min(72vw,280px)] items-center gap-1.5 rounded-lg border px-2 py-1.5 text-left transition-colors hover:bg-[var(--accent-5)]"
+        style={{ borderColor: "var(--hairline)" }}
       >
-        <span
-          className="flex size-7 shrink-0 items-center justify-center rounded-lg"
-          style={{ background: "var(--accent-8)", color: "var(--color-accent)" }}
-        >
-          <MessageSquare size={14} strokeWidth={1.8} />
-        </span>
-        <span className="min-w-0">
-          <span
-            className="block text-[10px] font-semibold uppercase tracking-[0.14em]"
-            style={{ color: "var(--ink-3)" }}
-          >
-            Conversation
-          </span>
-          <span className="block max-w-[min(52vw,340px)] truncate text-sm font-semibold">
-            {active?.title || "New chat"}
-          </span>
+        <MessageSquare size={14} strokeWidth={1.8} style={{ color: "var(--color-accent)" }} />
+        <span className="max-w-[min(52vw,220px)] truncate text-xs font-semibold">
+          {active?.title || "New chat"}
         </span>
         <ChevronDown
           size={15}

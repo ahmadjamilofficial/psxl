@@ -117,6 +117,14 @@ function TxFormModal({
 }) {
   const [form, setForm] = useState(initial);
 
+  // Most entries belong to the user's primary broker. Preselect it for new
+  // records while keeping edit forms untouched.
+  useEffect(() => {
+    if (mode === "add" && !form.broker && brokers.length > 0) {
+      setForm((current) => ({ ...current, broker: brokers[0]!.broker_name }));
+    }
+  }, [brokers, form.broker, mode]);
+
   const set = (k: keyof typeof form, v: string | number): void =>
     setForm((f) => ({ ...f, [k]: v }));
 
@@ -193,7 +201,10 @@ function TxFormModal({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="max-h-[calc(100dvh-8rem)] overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
+        <form
+          onSubmit={handleSubmit}
+          className="max-h-[calc(100dvh-8rem)] overflow-y-auto px-4 py-4 sm:px-6 sm:py-5"
+        >
           <div className="grid grid-cols-2 gap-4">
             {/* Ticker */}
             <div className="col-span-2 sm:col-span-1">
@@ -380,7 +391,45 @@ function TxFormModal({
                 autoComplete="off"
               />
               <datalist id="wab-global-exchanges">
-                {["PSX", "NSE", "BSE", "NYSE", "NASDAQ", "AMEX", "TSX", "LSE", "AIM", "Euronext", "XETRA", "FWB", "SIX", "BME", "MIL", "TSE", "HKEX", "SSE", "SZSE", "KRX", "ASX", "NZX", "SGX", "SET", "IDX", "Bursa Malaysia", "Tadawul", "ADX", "DFM", "QSE", "KSE", "JSE", "Bovespa", "NYSE Arca", "OTC"] .map((exchange) => <option key={exchange} value={exchange} />)}
+                {[
+                  "PSX",
+                  "NSE",
+                  "BSE",
+                  "NYSE",
+                  "NASDAQ",
+                  "AMEX",
+                  "TSX",
+                  "LSE",
+                  "AIM",
+                  "Euronext",
+                  "XETRA",
+                  "FWB",
+                  "SIX",
+                  "BME",
+                  "MIL",
+                  "TSE",
+                  "HKEX",
+                  "SSE",
+                  "SZSE",
+                  "KRX",
+                  "ASX",
+                  "NZX",
+                  "SGX",
+                  "SET",
+                  "IDX",
+                  "Bursa Malaysia",
+                  "Tadawul",
+                  "ADX",
+                  "DFM",
+                  "QSE",
+                  "KSE",
+                  "JSE",
+                  "Bovespa",
+                  "NYSE Arca",
+                  "OTC",
+                ].map((exchange) => (
+                  <option key={exchange} value={exchange} />
+                ))}
               </datalist>
             </div>
 
@@ -787,9 +836,7 @@ function ImportPanel({
 
     try {
       const results: (TransactionInput & { _raw?: string })[] = [];
-      const spreadsheetFiles = files.filter((file) =>
-        /\.(csv|xlsx|xls)$/i.test(file.name),
-      );
+      const spreadsheetFiles = files.filter((file) => /\.(csv|xlsx|xls)$/i.test(file.name));
       const textFiles = files.filter((file) => !/\.(csv|xlsx|xls)$/i.test(file.name));
 
       // CSV and Excel imports are deterministic: no AI provider/key/quota is
@@ -809,16 +856,21 @@ function ImportPanel({
           exchange: ["exchange", "market"],
         };
         const numberValue = (value: unknown): number => {
-          const cleaned = String(value ?? "").replace(/[,\s]/g, "").replace(/[^0-9.\-]/g, "");
+          const cleaned = String(value ?? "")
+            .replace(/[,\s]/g, "")
+            .replace(/[^0-9.\-]/g, "");
           const parsed = Number(cleaned);
           return Number.isFinite(parsed) ? parsed : 0;
         };
         const dateValue = (value: unknown): string => {
-          if (value instanceof Date && !Number.isNaN(value.getTime())) return value.toISOString().slice(0, 10);
+          if (value instanceof Date && !Number.isNaN(value.getTime()))
+            return value.toISOString().slice(0, 10);
           const raw = String(value ?? "").trim();
           if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
           const parsed = new Date(raw);
-          return Number.isNaN(parsed.getTime()) ? new Date().toISOString().slice(0, 10) : parsed.toISOString().slice(0, 10);
+          return Number.isNaN(parsed.getTime())
+            ? new Date().toISOString().slice(0, 10)
+            : parsed.toISOString().slice(0, 10);
         };
 
         for (const file of spreadsheetFiles) {
@@ -834,7 +886,10 @@ function ImportPanel({
             for (const source of rows) {
               const normalized = new Map(
                 Object.entries(source).map(([key, value]) => [
-                  key.toLowerCase().replace(/[_\-]+/g, " ").trim(),
+                  key
+                    .toLowerCase()
+                    .replace(/[_\-]+/g, " ")
+                    .trim(),
                   value,
                 ]),
               );
@@ -844,11 +899,15 @@ function ImportPanel({
                 }
                 return "";
               };
-              const ticker = String(pick("ticker") ?? "").trim().toUpperCase();
+              const ticker = String(pick("ticker") ?? "")
+                .trim()
+                .toUpperCase();
               const quantity = numberValue(pick("quantity"));
               const price = numberValue(pick("price"));
               if (!ticker || quantity <= 0 || price <= 0) continue;
-              const rawAction = String(pick("action") ?? "BUY").trim().toUpperCase();
+              const rawAction = String(pick("action") ?? "BUY")
+                .trim()
+                .toUpperCase();
               const action = /^(S|SELL|SALE|SOLD)$/.test(rawAction)
                 ? "SELL"
                 : /^(D|DIV|DIVIDEND)$/.test(rawAction)
@@ -882,16 +941,23 @@ function ImportPanel({
               "You extract brokerage transactions. Reply with ONLY a JSON array, no prose.",
             userPrompt: `Extract ALL transactions from this financial document as a JSON array. Each object must have: ticker, action (BUY/SELL/DIV), quantity, price, fees, wht, trade_date (YYYY-MM-DD), ref_id, broker, exchange.\n\n${content.slice(0, 50000)}`,
           });
-          const clean = raw.replace(/\`\`\`[a-z]*\n?/g, "").replace(/\`\`\`/g, "").trim();
+          const clean = raw
+            .replace(/\`\`\`[a-z]*\n?/g, "")
+            .replace(/\`\`\`/g, "")
+            .trim();
           let rows: unknown[] = [];
           try {
             rows = JSON.parse(clean) as unknown[];
           } catch {
-            throw new Error(`${file.name}: AI returned invalid transaction data. Try CSV or Excel format.`);
+            throw new Error(
+              `${file.name}: AI returned invalid transaction data. Try CSV or Excel format.`,
+            );
           }
           for (const row of rows) {
             const r = row as Record<string, unknown>;
-            const ticker = String(r["ticker"] ?? "").trim().toUpperCase();
+            const ticker = String(r["ticker"] ?? "")
+              .trim()
+              .toUpperCase();
             const quantity = Number(r["quantity"] ?? 0);
             const price = Number(r["price"] ?? 0);
             if (!ticker || quantity <= 0 || price <= 0) continue;
@@ -945,7 +1011,9 @@ function ImportPanel({
         saved++;
       } catch (cause) {
         failedRows.push(row);
-        failures.push(`Row ${index + 1} (${row.ticker || "unknown ticker"}): ${cause instanceof Error ? cause.message : "Save failed"}`);
+        failures.push(
+          `Row ${index + 1} (${row.ticker || "unknown ticker"}): ${cause instanceof Error ? cause.message : "Save failed"}`,
+        );
       }
     }
     if (failures.length > 0) {
@@ -993,7 +1061,11 @@ function ImportPanel({
             </span>
             <h2 className="text-sm font-bold">Import Records</h2>
           </div>
-          <button type="button" onClick={onClose} className="rounded-lg p-1.5 hover:bg-surface-hover">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-1.5 hover:bg-surface-hover"
+          >
             <X size={16} strokeWidth={1.75} style={{ color: "var(--ink-3)" }} />
           </button>
         </div>
@@ -1133,7 +1205,13 @@ function ImportPanel({
           {status === "review" && (
             <>
               {error && (
-                <div className="mb-3 rounded-xl px-3 py-3 text-xs" style={{ background: "color-mix(in srgb, var(--bad) 6%, transparent)", color: "var(--bad)" }}>
+                <div
+                  className="mb-3 rounded-xl px-3 py-3 text-xs"
+                  style={{
+                    background: "color-mix(in srgb, var(--bad) 6%, transparent)",
+                    color: "var(--bad)",
+                  }}
+                >
                   {error}
                 </div>
               )}
@@ -1283,7 +1361,9 @@ function Ledger() {
   const [actionFilter, setActionFilter] = useState<TxAction | "ALL">("ALL");
   const [statusFilter, setStatusFilter] = useState<"all" | "posted" | "needs_review">("all");
   const [rowMenu, setRowMenu] = useState<string | null>(null);
-  const [rowMenuPosition, setRowMenuPosition] = useState<{ top: number; left: number } | null>(null);
+  const [rowMenuPosition, setRowMenuPosition] = useState<{ top: number; left: number } | null>(
+    null,
+  );
 
   useEffect(() => {
     if (!rowMenu) return;

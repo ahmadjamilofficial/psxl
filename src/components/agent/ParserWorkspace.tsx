@@ -958,7 +958,7 @@ function Chat({
             className="size-1.5 rounded-full"
             style={{ background: isStreaming ? "var(--color-accent)" : "var(--ok)" }}
           />
-          {isStreaming ? "Wab is working" : "Ready when you are"}
+          {isStreaming ? "Wab is working" : ""}
         </div>
       </header>
       {/* ── Messages ─────────────────────────────────────────────────────── */}

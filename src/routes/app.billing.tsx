@@ -21,13 +21,7 @@ import {
   normalizePlanId,
 } from "@/lib/plans";
 import { supabase } from "@/lib/supabase";
-import {
-  clearTrialClock,
-  getTrialClock,
-  isTrialExpired,
-  startTrialClock,
-  trialDaysRemaining,
-} from "@/lib/trial";
+import { clearTrialClock, getTrialClock, isTrialExpired, trialDaysRemaining } from "@/lib/trial";
 
 export const Route = createFileRoute("/app/billing")({
   component: Billing,
@@ -82,11 +76,15 @@ function Billing() {
   const currentPlan = normalizePlanId(entitlement.featurePlan);
   const status = sub?.status ?? profile?.plan_status ?? "active";
   const onTrial =
-    status === "trialing" || (Boolean(clock) && !isTrialExpired(clock, serverEnds) && currentPlan === "standard");
+    status === "trialing" ||
+    (Boolean(clock) && !isTrialExpired(clock, serverEnds) && currentPlan === "standard");
   const trialDays = trialDaysRemaining(clock, serverEnds);
   const trialExpired =
     (status === "trialing" && isTrialExpired(clock, serverEnds)) ||
-    (Boolean(clock) && isTrialExpired(clock, serverEnds) && currentPlan !== "pro" && status !== "active");
+    (Boolean(clock) &&
+      isTrialExpired(clock, serverEnds) &&
+      currentPlan !== "pro" &&
+      status !== "active");
 
   const priceNow =
     currentPlan === "free"
@@ -108,7 +106,9 @@ function Billing() {
     }
     setClockTick((n) => n + 1);
     await refreshProfile();
-    toast.success("Reverted to Basic ($0). You can restore your paid plan for free until the paid window ends.");
+    toast.success(
+      "Reverted to Basic ($0). You can restore your paid plan for free until the paid window ends.",
+    );
   }
 
   async function restorePaid(plan: PlanId) {
@@ -126,7 +126,9 @@ function Billing() {
     }
     setClockTick((n) => n + 1);
     await refreshProfile();
-    toast.success(`Restored ${PLANS[plan].name} at no extra charge. ${entitlement.daysLeft} day(s) left in this cycle.`);
+    toast.success(
+      `Restored ${PLANS[plan].name} at no extra charge. ${entitlement.daysLeft} day(s) left in this cycle.`,
+    );
   }
 
   function openPlan(plan: PlanId) {
@@ -151,42 +153,16 @@ function Billing() {
       toast.error("Sign in to start the free trial.");
       return;
     }
-    const started = startTrialClock(orgId, userId);
-    try {
-      const { data: existing } = await supabase
-        .from("subscriptions")
-        .select("id")
-        .eq("org_id", orgId)
-        .maybeSingle();
-      if (existing?.id) {
-        await supabase
-          .from("subscriptions")
-          .update({
-            plan: "standard",
-            status: "trialing",
-            charge_period: "MONTHLY",
-            trial_end_at: started.endsAt,
-          } as never)
-          .eq("id", existing.id);
-      } else {
-        await supabase.from("subscriptions").insert({
-          org_id: orgId,
-          plan: "standard",
-          status: "trialing",
-          charge_period: "MONTHLY",
-          trial_end_at: started.endsAt,
-        } as never);
-      }
-    } catch {
-      /* local clock still tracks days if the row cannot be written */
-    }
+    // Checkout is only intent. Never write a paid/trialing entitlement here:
+    // Kelviq's payment webhook is the source of truth and activates the plan.
+    clearTrialClock(orgId, userId);
     setClockTick((n) => n + 1);
     window.open(
       kelviqCheckoutUrl({ plan: "standard", period: "monthly", orgId }),
       "_blank",
       "noopener",
     );
-    toast.info(`Started your ${TRIAL_DAYS}-day Standard trial. Days keep counting even if you sign out.`);
+    toast.info("Checkout opened. Your plan changes only after Kelviq confirms payment.");
   }
 
   function handleStayBasic() {
@@ -249,7 +225,10 @@ function Billing() {
       {trialExpired && (
         <div
           className="rounded-2xl px-5 py-4"
-          style={{ background: "color-mix(in srgb, var(--bad) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--bad) 24%, transparent)" }}
+          style={{
+            background: "color-mix(in srgb, var(--bad) 8%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--bad) 24%, transparent)",
+          }}
         >
           <p className="text-sm font-semibold">Your {TRIAL_DAYS}-day Standard trial has ended</p>
           <p className="mt-1 text-xs" style={{ color: "var(--ink-2)" }}>
@@ -339,8 +318,8 @@ function Billing() {
         />
         <p style={{ color: "var(--ink-2)" }}>
           <strong>Plans:</strong> Basic is $0. Switching to Basic from a paid plan happens in the
-          app — no Kelviq checkout. If your paid cycle is still active ({MONTHLY_DAYS} days monthly /{" "}
-          {YEARLY_DAYS} days yearly, counted strictly), you can restore that paid plan at no extra
+          app — no Kelviq checkout. If your paid cycle is still active ({MONTHLY_DAYS} days monthly
+          / {YEARLY_DAYS} days yearly, counted strictly), you can restore that paid plan at no extra
           charge. New paid cycles still go through Kelviq. A {TRIAL_DAYS}-day trial applies only to
           Standard from the trial card above.
         </p>

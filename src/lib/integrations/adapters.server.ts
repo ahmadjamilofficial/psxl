@@ -268,7 +268,11 @@ export const evmWalletAdapter: ProviderAdapter = {
   capabilities: ["Native balance", "No signing, no custody"],
   requiresCredentials: false,
   credentialFields: [],
-  configFields: [],
+  configFields: [
+    { key: "address", label: "Wallet address", required: true, placeholder: "0x…" },
+    { key: "rpc_url", label: "RPC endpoint", required: false, placeholder: DEFAULT_RPC },
+    { key: "chain", label: "Chain label", required: false, placeholder: "ethereum" },
+  ],
   async test(ctx: AdapterContext): Promise<AdapterTestResult> {
     const address = (ctx.config["address"] ?? "").trim();
     if (!/^0x[0-9a-fA-F]{40}$/.test(address)) {
@@ -382,7 +386,10 @@ export const evmWalletAdapter: ProviderAdapter = {
           side: inbound ? ("buy" as const) : ("sell" as const),
           instrument: "ETH",
           amount: inbound ? value : -value,
-          fees: weiToEth(BigInt(String(tx["gasUsed"] ?? "0") || "0") * BigInt(String(tx["gasPrice"] ?? "0") || "0")),
+          fees: weiToEth(
+            BigInt(String(tx["gasUsed"] ?? "0") || "0") *
+              BigInt(String(tx["gasPrice"] ?? "0") || "0"),
+          ),
           currency: "ETH",
           occurredAt: new Date(ts || Date.now()).toISOString(),
           sourceRef: hash ? `evm:${hash}` : undefined,
@@ -416,8 +423,18 @@ export const binanceAdapter: ProviderAdapter = {
   summary: "Spot balances and trade history via signed REST.",
   capabilities: ["Account balances", "Trade history", "Permission verification"],
   requiresCredentials: true,
-  credentialFields: [],
-  configFields: [],
+  credentialFields: [
+    { key: "apiKey", label: "API key", secret: true, required: true },
+    { key: "apiSecret", label: "API secret", secret: true, required: true },
+  ],
+  configFields: [
+    {
+      key: "symbols",
+      label: "Symbols for trade history",
+      required: false,
+      placeholder: "BTCUSDT,ETHUSDT",
+    },
+  ],
   async test(ctx: AdapterContext): Promise<AdapterTestResult> {
     const apiKey = ctx.credentials["apiKey"];
     const apiSecret = ctx.credentials["apiSecret"];
@@ -456,11 +473,10 @@ export const binanceAdapter: ProviderAdapter = {
       if (payload.canWithdraw) {
         warnings.push("This key can withdraw funds. Replace it with a read-only key.");
       }
-      const live =
-        (payload.balances ?? []).filter((row) => {
-          const b = row as { free?: string; locked?: string };
-          return (Number(b.free) || 0) + (Number(b.locked) || 0) > 0;
-        }).length;
+      const live = (payload.balances ?? []).filter((row) => {
+        const b = row as { free?: string; locked?: string };
+        return (Number(b.free) || 0) + (Number(b.locked) || 0) > 0;
+      }).length;
       return {
         ok: true,
         message: `Connected to Binance. Live: ${live} asset${live === 1 ? "" : "s"} with a balance.`,
@@ -585,8 +601,13 @@ export const alpacaAdapter: ProviderAdapter = {
     "Connectivity verification",
   ],
   requiresCredentials: true,
-  credentialFields: [],
-  configFields: [],
+  credentialFields: [
+    { key: "keyId", label: "API key ID", secret: true, required: true },
+    { key: "secretKey", label: "API secret", secret: true, required: true },
+  ],
+  configFields: [
+    { key: "environment", label: "Environment", required: false, placeholder: "paper" },
+  ],
   async test(ctx: AdapterContext): Promise<AdapterTestResult> {
     const keyId = ctx.credentials["keyId"];
     const secretKey = ctx.credentials["secretKey"];

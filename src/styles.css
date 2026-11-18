@@ -634,3 +634,19 @@ body {
     animation: none;
   }
 }
+
+/* Mission-control surfaces: quiet GitHub-style chrome, not decorative cards. */
+.dashboard-surface {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow-card);
+}
+.dashboard-surface:hover {
+  box-shadow: var(--shadow-hover);
+}
+.dark .recharts-cartesian-grid line {
+  stroke: var(--hairline) !important;
+}
+.dark .recharts-text {
+  fill: var(--ink-3);
+}

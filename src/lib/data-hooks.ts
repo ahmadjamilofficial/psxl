@@ -100,8 +100,16 @@ export function useUpdateTransaction() {
     }) => {
       const allowed: Partial<TransactionInput> & { status?: string } = {};
       const fields: Array<keyof TransactionInput> = [
-        "ticker", "action", "quantity", "price", "fees", "wht",
-        "trade_date", "ref_id", "broker", "exchange",
+        "ticker",
+        "action",
+        "quantity",
+        "price",
+        "fees",
+        "wht",
+        "trade_date",
+        "ref_id",
+        "broker",
+        "exchange",
       ];
       for (const field of fields) {
         if (values[field] !== undefined) {
@@ -386,7 +394,7 @@ export function useDeleteBroker() {
 export function useDeleteOrganization() {
   return useMutation({
     mutationFn: async ({ orgId }: { orgId: string }) => {
-      const { error } = await supabase.from("organizations").delete().eq("id", orgId);
+      const { error } = await supabase.rpc("delete_current_organization", { _org_id: orgId });
       if (error) throw new Error(error.message);
     },
   });

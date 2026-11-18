@@ -89,7 +89,7 @@ function MetricCard({
   return (
     <motion.div variants={reveal} custom={i} initial="hidden" animate="visible">
       <div
-        className="group relative overflow-hidden rounded-2xl bg-surface p-5 transition-shadow hover:shadow-md"
+        className="group relative overflow-hidden rounded-xl bg-surface p-5 transition-shadow hover:shadow-md"
         style={{ border: "1px solid var(--hairline)" }}
       >
         <p className="text-xs font-medium" style={{ color: "var(--ink-2)" }}>
@@ -323,12 +323,12 @@ function MissionControl() {
   }
 
   return (
-    <div className="space-y-5 p-3 sm:space-y-6 sm:p-6 max-w-[1600px]">
+    <div className="mx-auto w-full max-w-[1440px] space-y-5 p-3 sm:space-y-6 sm:p-6">
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 style={{ fontFamily: "var(--font-heading)", fontSize: "1.75rem" }}>
-            Portfolio Overview
+            Portfolio overview
           </h1>
           <p className="mt-1 text-sm" style={{ color: "var(--ink-2)" }}>
             Portfolio health and ledger-based intelligence
@@ -348,7 +348,10 @@ function MissionControl() {
       <DailyBriefing />
 
       {/* Key Metrics Grid */}
-      <div className="rounded-2xl bg-surface p-4 sm:p-6" style={{ border: "1px solid var(--hairline)" }}>
+      <div
+        className="rounded-xl bg-surface p-4 sm:p-6"
+        style={{ border: "1px solid var(--hairline)" }}
+      >
         <div className="mb-4">
           <h2 className="text-sm font-bold">Key Metrics</h2>
           <p className="text-xs" style={{ color: "var(--ink-3)" }}>
@@ -374,8 +377,8 @@ function MissionControl() {
           />
           <MetricCard
             label="Unrealized P&L"
-            value={summaryLoading ? "—" : "Unavailable"}
-            sub="Requires verified current prices"
+            value={summaryLoading ? "—" : "Not priced"}
+            sub="Requires a verified quote source"
             tone="info"
             i={2}
             askWhy="Why did my unrealized gains change?"
@@ -392,13 +395,13 @@ function MissionControl() {
       </div>
 
       {/* Two-column layout */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_340px] xl:gap-6">
         {/* Left column - Main charts and insights */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="min-w-0 space-y-5">
           {/* P&L Chart */}
           {pnlData.length > 0 && (
             <div
-              className="rounded-2xl bg-surface p-6"
+              className="rounded-xl bg-surface p-6"
               style={{ border: "1px solid var(--hairline)" }}
             >
               <div className="flex items-center justify-between mb-4">
@@ -456,7 +459,7 @@ function MissionControl() {
 
           {/* Financial Timeline */}
           <div
-            className="rounded-2xl bg-surface p-6"
+            className="rounded-xl bg-surface p-6"
             style={{ border: "1px solid var(--hairline)" }}
           >
             <div className="mb-4 flex items-center justify-between">
@@ -482,10 +485,10 @@ function MissionControl() {
         </div>
 
         {/* Right column - Sidebar widgets */}
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-5">
           {/* Health Score */}
           <div
-            className="rounded-2xl bg-surface p-6"
+            className="rounded-xl bg-surface p-6"
             style={{ border: "1px solid var(--hairline)" }}
           >
             <FinancialHealthScore score={score} isLoading={scoreLoading} />
@@ -494,7 +497,7 @@ function MissionControl() {
           {/* Holdings Allocation */}
           {allocationData.length > 0 && (
             <div
-              className="rounded-2xl bg-surface p-6"
+              className="rounded-xl bg-surface p-6"
               style={{ border: "1px solid var(--hairline)" }}
             >
               <div className="flex items-center justify-between mb-4">
@@ -553,14 +556,11 @@ function MissionControl() {
           )}
 
           {/* Portfolio concentration snapshot */}
-          <PortfolioRiskSnapshot
-            positions={summary?.tickerBreakdown ?? []}
-            currency={currency}
-          />
+          <PortfolioRiskSnapshot positions={summary?.tickerBreakdown ?? []} currency={currency} />
 
           {/* Secondary Metrics */}
           <div
-            className="rounded-2xl bg-surface p-6"
+            className="rounded-xl bg-surface p-6"
             style={{ border: "1px solid var(--hairline)" }}
           >
             <div className="mb-4">
@@ -598,7 +598,7 @@ function MissionControl() {
           {/* Priorities */}
           {(priorities.length > 0 || prioritiesLoading) && (
             <div
-              className="rounded-2xl bg-surface p-6"
+              className="rounded-xl bg-surface p-6"
               style={{ border: "1px solid var(--hairline)" }}
             >
               <div className="mb-4 flex items-center justify-between">

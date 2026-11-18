@@ -79,6 +79,7 @@ const navGroups = [
     title: "Account",
     items: [
       { label: "Settings", icon: Settings, to: "/app/settings" },
+      { label: "Usage", icon: BarChart3, to: "/app/settings?tab=usage" },
       { label: "Billing", icon: CreditCard, to: "/app/billing" },
     ],
   },
@@ -124,7 +125,8 @@ function NavItem({
         opacity: active || accent ? 1 : 0.72,
       }}
       onMouseEnter={(e) => {
-        if (!active && !accent) (e.currentTarget as HTMLElement).style.background = "var(--sidebar-accent)";
+        if (!active && !accent)
+          (e.currentTarget as HTMLElement).style.background = "var(--sidebar-accent)";
       }}
       onMouseLeave={(e) => {
         if (!active && !accent) (e.currentTarget as HTMLElement).style.background = "transparent";
@@ -195,7 +197,8 @@ function InnerShell({ children }: { children: ReactNode }) {
   const plan = profile?.plan || "free";
   const isAskPage = currentPath.startsWith("/app/parser");
   const initials = displayName.charAt(0).toUpperCase();
-  const avatarUrl = (profile?.avatar_url || user?.user_metadata?.["avatar_url"]) as string | undefined;
+  const avatarUrl = (profile?.avatar_url || user?.user_metadata?.["avatar_url"]) as
+    string | undefined;
 
   const isActive = (to: string) => currentPath === to || currentPath.startsWith(to + "/");
   const tabActive = mobileTabs.some((tab) => isActive(tab.to));
@@ -236,13 +239,14 @@ function InnerShell({ children }: { children: ReactNode }) {
           {!collapsed && (
             <div
               className="mt-4 flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-xs"
-              style={{ background: "var(--sidebar-accent)", border: "1px solid var(--sidebar-border)" }}
+              style={{
+                background: "var(--sidebar-accent)",
+                border: "1px solid var(--sidebar-border)",
+              }}
             >
               <div className="min-w-0">
                 <p className="truncate font-semibold">{orgName}</p>
-                <p style={{ color: "var(--ink-3)" }}>
-                  {plan.toUpperCase()} plan
-                </p>
+                <p style={{ color: "var(--ink-3)" }}>{plan.toUpperCase()} plan</p>
               </div>
               <ChevronDown size={14} strokeWidth={1.75} style={{ color: "var(--ink-3)" }} />
             </div>
@@ -573,16 +577,26 @@ function InnerShell({ children }: { children: ReactNode }) {
                   boxShadow: "var(--shadow-hover)",
                 }}
               >
-                <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ background: "var(--sidebar-border)" }} />
+                <div
+                  className="mx-auto mb-4 h-1 w-10 rounded-full"
+                  style={{ background: "var(--sidebar-border)" }}
+                />
                 <div className="mb-4 flex items-center justify-between">
                   <p className="text-sm font-semibold">More</p>
-                  <button type="button" onClick={() => setMoreOpen(false)} aria-label="Close navigation">
+                  <button
+                    type="button"
+                    onClick={() => setMoreOpen(false)}
+                    aria-label="Close navigation"
+                  >
                     <X size={18} strokeWidth={1.75} />
                   </button>
                 </div>
                 <div
                   className="mb-4 flex items-center gap-3 rounded-2xl px-3 py-3"
-                  style={{ background: "var(--sidebar-accent)", border: "1px solid var(--sidebar-border)" }}
+                  style={{
+                    background: "var(--sidebar-accent)",
+                    border: "1px solid var(--sidebar-border)",
+                  }}
                 >
                   <div
                     className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full text-sm font-semibold"
@@ -623,8 +637,12 @@ function InnerShell({ children }: { children: ReactNode }) {
                             onClick={() => setMoreOpen(false)}
                             className="flex items-center gap-2.5 rounded-2xl px-3 py-3 text-sm font-medium"
                             style={{
-                              background: active ? "var(--sidebar-accent)" : "var(--color-login-bg)",
-                              color: active ? "var(--sidebar-primary)" : "var(--sidebar-foreground)",
+                              background: active
+                                ? "var(--sidebar-accent)"
+                                : "var(--color-login-bg)",
+                              color: active
+                                ? "var(--sidebar-primary)"
+                                : "var(--sidebar-foreground)",
                               border: "1px solid var(--sidebar-border)",
                             }}
                           >

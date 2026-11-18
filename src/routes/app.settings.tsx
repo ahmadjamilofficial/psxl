@@ -47,7 +47,15 @@ function Settings() {
   const { profile, user, signOut } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [tab, setTab] = useState<Tab>("org");
+  const [tab, setTab] = useState<Tab>(() => {
+    if (
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("tab") === "usage"
+    ) {
+      return "usage";
+    }
+    return "org";
+  });
   const [orgName, setOrgName] = useState(profile?.org_name ?? "My Organisation");
   const [jurisdiction, setJurisdiction] = useState(profile?.jurisdiction ?? "PSX");
   const [saved, setSaved] = useState(false);

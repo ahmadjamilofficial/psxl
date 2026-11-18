@@ -6,6 +6,7 @@ import {
   Copy,
   CreditCard,
   Download,
+  Activity,
   Loader2,
   Plus,
   Trash2,
@@ -18,7 +19,12 @@ import { Btn, Panel } from "@/components/kit";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { setNotificationPrefs } from "@/lib/notifications";
-import { useDeleteOrganization } from "@/lib/data-hooks";
+import {
+  useAiUsageToday,
+  useDeleteOrganization,
+  useMonthlyTransactionCount,
+} from "@/lib/data-hooks";
+import { normalizePlanId, planOf } from "@/lib/plans";
 import { DirectSourceConnect } from "@/components/app/DirectSourceConnect";
 import { inviteUrl, randomInviteToken, type TeamRole } from "@/lib/team";
 
@@ -26,10 +32,11 @@ export const Route = createFileRoute("/app/settings")({
   component: Settings,
 });
 
-type Tab = "org" | "tax-profiles" | "import" | "team" | "notifications";
+type Tab = "org" | "usage" | "tax-profiles" | "import" | "team" | "notifications";
 
 const TABS: { id: Tab; label: string; icon: typeof Building2 }[] = [
   { id: "org", label: "Organisation", icon: Building2 },
+  { id: "usage", label: "Usage", icon: Activity },
   { id: "tax-profiles", label: "Tax Profiles", icon: CreditCard },
   { id: "import", label: "Import Data", icon: Download },
   { id: "team", label: "Team & Roles", icon: Users },
@@ -53,6 +60,17 @@ function Settings() {
   const [inviteOpen, setInviteOpen] = useState(false);
 
   const deleteOrgMutation = useDeleteOrganization();
+  const { data: aiUsage } = useAiUsageToday(user?.id);
+  const { data: monthlyTransactions = 0 } = useMonthlyTransactionCount(profile?.org_id);
+  const activePlan = planOf(normalizePlanId(profile?.plan));
+  const aiLimit = activePlan.dailyAiCredits;
+  const transactionLimit = activePlan.transactionsPerMonth;
+  const aiUsed = aiUsage?.credits_used_today ?? 0;
+  const aiPercent = Math.min(100, Math.round((aiUsed / aiLimit) * 100));
+  const transactionPercent =
+    transactionLimit === null
+      ? 0
+      : Math.min(100, Math.round((monthlyTransactions / transactionLimit) * 100));
 
   const { data: members = [] } = useQuery({
     queryKey: ["org-members", profile?.org_id],
@@ -93,14 +111,18 @@ function Settings() {
     setInviting(true);
     try {
       const token = randomInviteToken();
-      const { data: invite, error } = await supabase.from("org_invites").insert({
-        org_id: profile.org_id,
-        email,
-        role: inviteRole,
-        token,
-        invited_by: user.id,
-        status: "pending",
-      }).select("id").single();
+      const { data: invite, error } = await supabase
+        .from("org_invites")
+        .insert({
+          org_id: profile.org_id,
+          email,
+          role: inviteRole,
+          token,
+          invited_by: user.id,
+          status: "pending",
+        })
+        .select("id")
+        .single();
       if (error) throw error;
       const url = inviteUrl(token);
       await navigator.clipboard.writeText(url).catch(() => undefined);
@@ -112,10 +134,12 @@ function Settings() {
         headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
         body: JSON.stringify({ invite_id: invite.id }),
       });
-      const mailResult = await mailResponse.json().catch(() => ({})) as { error?: string };
+      const mailResult = (await mailResponse.json().catch(() => ({}))) as { error?: string };
       if (!mailResponse.ok) {
         toast.warning("Invitation created, but email was not sent", {
-          description: mailResult.error ?? "The invite link is copied. Share it manually or configure email delivery.",
+          description:
+            mailResult.error ??
+            "The invite link is copied. Share it manually or configure email delivery.",
         });
       } else {
         toast.success(`Invitation email sent to ${email}`, {
@@ -371,6 +395,58 @@ function Settings() {
             </motion.div>
           )}
 
+          {tab === "usage" && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+              <Panel>
+                <div className="mb-5 flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold">Usage</p>
+                    <p className="mt-1 text-xs" style={{ color: "var(--ink-3)" }}>
+                      Current limits for your {activePlan.name} plan. AI resets on a rolling 24-hour
+                      window; transactions reset each calendar month.
+                    </p>
+                  </div>
+                  <span
+                    className="rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                    style={{ background: "var(--accent-10)", color: "var(--color-accent)" }}
+                  >
+                    {activePlan.name}
+                  </span>
+                </div>
+                <div className="space-y-5">
+                  <UsageMeter
+                    label="AI credits"
+                    used={aiUsed}
+                    limit={aiLimit}
+                    percent={aiPercent}
+                    suffix="credits / rolling 24h"
+                  />
+                  <UsageMeter
+                    label="Ledger transactions"
+                    used={monthlyTransactions}
+                    limit={transactionLimit}
+                    percent={transactionPercent}
+                    suffix="transactions / calendar month"
+                  />
+                </div>
+              </Panel>
+              <Panel>
+                <p className="mb-3 text-sm font-semibold">What counts?</p>
+                <ul className="space-y-2 text-xs leading-relaxed" style={{ color: "var(--ink-2)" }}>
+                  <li>
+                    • Each successful Wab AI request uses one AI credit. Requests are blocked once
+                    the plan limit is reached.
+                  </li>
+                  <li>
+                    • Imported or manually created ledger transactions count toward the monthly
+                    transaction allowance.
+                  </li>
+                  <li>• Failed provider requests do not consume a successful AI credit.</li>
+                </ul>
+              </Panel>
+            </motion.div>
+          )}
+
           {tab === "tax-profiles" && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <Panel>
@@ -485,7 +561,11 @@ function Settings() {
                           }}
                         >
                           {isYou && avatarUrl ? (
-                            <img src={avatarUrl} alt={displayName} className="size-full object-cover" />
+                            <img
+                              src={avatarUrl}
+                              alt={displayName}
+                              className="size-full object-cover"
+                            />
                           ) : (
                             (member.full_name || "?").charAt(0).toUpperCase()
                           )}
@@ -518,7 +598,8 @@ function Settings() {
                       <div className="flex-1">
                         <p className="text-sm font-medium">{inv.email}</p>
                         <p className="text-xs capitalize" style={{ color: "var(--ink-3)" }}>
-                          Pending {inv.role} · expires {new Date(inv.expires_at).toLocaleDateString()}
+                          Pending {inv.role} · expires{" "}
+                          {new Date(inv.expires_at).toLocaleDateString()}
                         </p>
                       </div>
                       <button
@@ -604,6 +685,55 @@ function Settings() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function UsageMeter({
+  label,
+  used,
+  limit,
+  percent,
+  suffix,
+}: {
+  label: string;
+  used: number;
+  limit: number | null;
+  percent: number;
+  suffix: string;
+}) {
+  return (
+    <div>
+      <div className="mb-2 flex items-baseline justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium">{label}</p>
+          <p className="text-[11px]" style={{ color: "var(--ink-3)" }}>
+            {suffix}
+          </p>
+        </div>
+        <p className="text-sm font-semibold">
+          {used.toLocaleString()}{" "}
+          <span className="font-normal" style={{ color: "var(--ink-3)" }}>
+            / {limit === null ? "Unlimited" : limit.toLocaleString()}
+          </span>
+        </p>
+      </div>
+      {limit !== null && (
+        <div className="h-2 overflow-hidden rounded-full" style={{ background: "var(--accent-6)" }}>
+          <div
+            className="h-full rounded-full transition-[width]"
+            style={{
+              width: `${percent}%`,
+              background:
+                percent >= 90
+                  ? "var(--bad)"
+                  : percent >= 70
+                    ? "var(--warn)"
+                    : "var(--color-accent)",
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -569,6 +569,35 @@ export const Route = createFileRoute("/api/chat")({
           const limits = planOf(plan);
           const isPro = plan === "pro";
 
+          // Enforce the same limit shown in the Usage screen on the server.
+          // Client-side counters are informational and must never be trusted.
+          const usageSince = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+          const { data: usageRows } = await supabase
+            .from("ai_usage")
+            .select("credits_used")
+            .eq("user_id", authData.user.id)
+            .eq("status", "ok")
+            .gte("created_at", usageSince);
+          const creditsUsed = (usageRows ?? []).reduce(
+            (total, row) => total + Number(row.credits_used ?? 0),
+            0,
+          );
+          if (creditsUsed >= limits.dailyAiCredits) {
+            return new Response(
+              JSON.stringify({
+                code: "quota_exceeded",
+                plan,
+                daily_limit: limits.dailyAiCredits,
+                credits_used: creditsUsed,
+                message: `Your ${limits.name} plan has used all ${limits.dailyAiCredits} AI credits for the last 24 hours.`,
+              }),
+              {
+                status: 429,
+                headers: { "Content-Type": "application/json", "Retry-After": "86400" },
+              },
+            );
+          }
+
           // Higher plans get larger tool budgets and better models.
           const maxSteps = limits.maxAgentSteps;
           const monthlyTxLimit = limits.transactionsPerMonth; // null = unlimited

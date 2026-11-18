@@ -325,19 +325,28 @@ function MissionControl() {
   return (
     <div className="mx-auto w-full max-w-[1440px] space-y-5 p-3 sm:space-y-6 sm:p-6">
       {/* Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="overview-hero flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 style={{ fontFamily: "var(--font-heading)", fontSize: "1.75rem" }}>
+          <h1
+            style={{
+              fontFamily: "var(--font-heading)",
+              fontSize: "1.75rem",
+              color: "var(--brand-panel-fg)",
+            }}
+          >
             Portfolio overview
           </h1>
-          <p className="mt-1 text-sm" style={{ color: "var(--ink-2)" }}>
+          <p
+            className="mt-1 text-sm"
+            style={{ color: "color-mix(in srgb, var(--brand-panel-fg) 64%, transparent)" }}
+          >
             Portfolio health and ledger-based intelligence
           </p>
         </div>
         <Link
           to="/app/parser"
-          className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold"
-          style={{ background: "var(--color-accent)", color: "var(--accent-fg)" }}
+          className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-opacity hover:opacity-85"
+          style={{ background: "var(--brand-panel-fg)", color: "var(--brand-panel)" }}
         >
           <Upload size={16} />
           Upload Data

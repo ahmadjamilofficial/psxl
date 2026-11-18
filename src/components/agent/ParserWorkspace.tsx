@@ -950,16 +950,11 @@ function Chat({
         style={{ borderColor: "var(--hairline)", background: "var(--surface)" }}
       >
         <ChatSidebar activeId={threadId} />
-        <div
-          className="hidden items-center gap-2 text-[11px] sm:flex"
-          style={{ color: "var(--ink-3)" }}
-        >
-          <span
-            className="size-1.5 rounded-full"
-            style={{ background: isStreaming ? "var(--color-accent)" : "var(--ok)" }}
-          />
-          {isStreaming ? "Wab is working" : ""}
-        </div>
+        {isStreaming && (
+          <div className="hidden text-[11px] sm:block" style={{ color: "var(--ink-3)" }}>
+            Wab is working
+          </div>
+        )}
       </header>
       {/* ── Messages ─────────────────────────────────────────────────────── */}
       <Conversation className="min-h-0 flex-1">

@@ -90,8 +90,7 @@ export function ChatSidebar({ activeId }: { activeId: string }) {
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
         aria-haspopup="listbox"
-        className="inline-flex max-w-[min(72vw,280px)] items-center gap-1.5 rounded-lg border px-2 py-1.5 text-left transition-colors hover:bg-[var(--accent-5)]"
-        style={{ borderColor: "var(--hairline)" }}
+        className="inline-flex max-w-[min(72vw,280px)] items-center gap-1.5 rounded-md bg-transparent px-1 py-1.5 text-left transition-colors hover:bg-[var(--accent-5)]"
       >
         <MessageSquare size={14} strokeWidth={1.8} style={{ color: "var(--color-accent)" }} />
         <span className="max-w-[min(52vw,220px)] truncate text-xs font-semibold">
@@ -195,7 +194,7 @@ export function ChatSidebar({ activeId }: { activeId: string }) {
                   type="button"
                   onClick={() => void removeChat(thread.id)}
                   aria-label={`Delete ${thread.title || "chat"}`}
-                  className="hidden size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:text-destructive group-hover:flex"
+                  className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-[var(--accent-6)] hover:text-destructive sm:hidden sm:group-hover:flex"
                 >
                   <Trash2 size={12} />
                 </button>

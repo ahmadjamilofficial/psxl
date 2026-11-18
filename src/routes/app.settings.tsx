@@ -441,7 +441,10 @@ function Settings() {
                     • Imported or manually created ledger transactions count toward the monthly
                     transaction allowance.
                   </li>
-                  <li>• Failed provider requests do not consume a successful AI credit.</li>
+                  <li>
+                    • Requests accepted for processing are metered before streaming begins; provider
+                    errors are shown without changing your ledger.
+                  </li>
                 </ul>
               </Panel>
             </motion.div>

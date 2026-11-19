@@ -34,8 +34,9 @@ import {
 import { usePendingApprovals } from "@/lib/data-hooks";
 import { useAgentHeartbeat } from "@/lib/use-agent-heartbeat";
 import { useTheme } from "@/lib/theme-context";
+import { BRAND_NAME, brandText } from "@/lib/brand";
 
-const SIDEBAR_KEY = "wab.sidebar.expanded";
+const SIDEBAR_KEY = "psxl.sidebar.expanded";
 function readSidebarPref(): boolean {
   if (typeof window === "undefined") return false;
   try {
@@ -53,7 +54,7 @@ function writeSidebarPref(v: boolean) {
   }
 }
 
-const primaryItem = { label: "Ask Wab", icon: Sparkles, to: "/app/parser" } as const;
+const primaryItem = { label: brandText("Ask {{brand}}"), icon: Sparkles, to: "/app/parser" } as const;
 
 const navGroups = [
   {
@@ -86,7 +87,7 @@ const navGroups = [
 ] as const;
 
 const mobileTabs = [
-  { label: "Ask Wab", icon: Sparkles, to: "/app/parser" },
+  { label: brandText("Ask {{brand}}"), icon: Sparkles, to: "/app/parser" },
   { label: "Portfolio", icon: LayoutDashboard, to: "/app/overview" },
   { label: "Ledger", icon: BookOpen, to: "/app/ledger" },
   { label: "Review", icon: Inbox, to: "/app/review" },
@@ -211,7 +212,7 @@ function InnerShell({ children }: { children: ReactNode }) {
   function SidebarContent({ collapsed, onClose }: { collapsed: boolean; onClose?: () => void }) {
     return (
       <div className="flex h-full min-h-0 flex-col overflow-hidden">
-        <div className={`shrink-0 ${collapsed ? "flex flex-col items-center gap-3 p-3" : "p-4"}`}>
+        <div className={`shrink-0 ${collapsed ? "flex flex-col items-center gap-3 p-3" : "p-4"}brandText(`}>
           <div className="flex w-full items-center justify-between">
             {collapsed ? (
               <button
@@ -225,7 +226,7 @@ function InnerShell({ children }: { children: ReactNode }) {
               </button>
             ) : (
               <>
-                <Link to="/app/parser" aria-label="Wab home">
+                <Link to="/app/parser" aria-label={brandText(brandText("{{brand}} home"))}>
                   <Logo />
                 </Link>
                 <button
@@ -259,7 +260,7 @@ function InnerShell({ children }: { children: ReactNode }) {
         </div>
 
         <nav
-          className={`min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain scrollbar-thin ${
+          className={`)min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain scrollbar-thin ${
             collapsed ? "flex flex-col items-center gap-1 px-3" : "space-y-4 px-4"
           }`}
         >
@@ -312,7 +313,7 @@ function InnerShell({ children }: { children: ReactNode }) {
             title={displayName}
             className={`flex w-full items-center rounded-xl transition-colors ${
               collapsed ? "justify-center py-2" : "gap-3 px-3 py-2.5"
-            }`}
+            }brandText(`}
             style={{ color: "var(--sidebar-foreground)" }}
             onMouseEnter={(e) => (e.currentTarget.style.background = "var(--sidebar-accent)")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
@@ -483,7 +484,7 @@ function InnerShell({ children }: { children: ReactNode }) {
                 }}
               >
                 <Sparkles size={14} strokeWidth={2} />
-                Ask Wab
+                Ask {{brand}}
               </Link>
             )}
 
@@ -495,7 +496,7 @@ function InnerShell({ children }: { children: ReactNode }) {
         </header>
 
         <main
-          className={`app-mobile-main min-h-0 flex-1 ${isAskPage ? "overflow-hidden" : "overflow-y-auto scrollbar-thin"}`}
+          className={`)app-mobile-main min-h-0 flex-1 ${isAskPage ? "overflow-hidden" : "overflow-y-auto scrollbar-thin"}`}
         >
           {children}
         </main>

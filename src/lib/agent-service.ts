@@ -1,8 +1,9 @@
-// ─── Wab agent service ─────────────────────────────────────────────────────
+// ─── {{brand}} agent service ─────────────────────────────────────────────────────
 // UI-agnostic orchestration layer:
 //   ChatComposer → AgentRequest → (extraction + streaming AI) → AgentActivity / AIMessage
 // Model cascade: nvidia/nemotron-3-ultra-550b-a55b:free → inclusionai/ling-3.0-flash-fin:free → openrouter/free
 
+import { BRAND_NAME, ASSISTANT_NAME } from "@/lib/brand";
 import { parseDocument, parseTextDocument, type ExtractedField } from "@/lib/ai-service";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -89,7 +90,7 @@ export async function fileToAttachment(file: File): Promise<AgentAttachment> {
 
 export function textToAttachment(name: string, text: string): AgentAttachment {
   return {
-    id: `${name}-${Date.now()}`,
+    id: `${name}-${Date.now()}brandText(`,
     name,
     mimeType: "text/plain",
     size: text.length,
@@ -103,7 +104,7 @@ function getApiKey(): string {
   const key = (import.meta.env["VITE_OPENROUTER_API_KEY"] as string | undefined) ?? "";
   if (!key || key.length < 10) {
     throw new Error(
-      "Wab Intelligence: AI API key not configured. Add VITE_OPENROUTER_API_KEY to your .env file.",
+      brandText("{{brand}} Intelligence: AI API key not configured. Add VITE_OPENROUTER_API_KEY to your .env file."),
     );
   }
   return key;
@@ -141,13 +142,13 @@ async function streamWithCascade(
   for (let i = 0; i < STREAM_MODELS.length; i++) {
     const model = STREAM_MODELS[i]!;
     try {
-      const resp = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
+      const resp = await fetch(`)${OPENROUTER_BASE}/chat/completions`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${key}`,
+          Authorization: `Bearer ${key}brandText(`,
           "Content-Type": "application/json",
           "HTTP-Referer": "https://psxl.live",
-          "X-Title": "Wab",
+          "X-Title": brandText("{{brand}}"),
         },
         body: JSON.stringify({
           model,
@@ -161,13 +162,13 @@ async function streamWithCascade(
 
       if (!resp.ok) {
         const errText = await resp.text().catch(() => resp.statusText);
-        const err = new Error(`OpenRouter ${resp.status}: ${errText}`);
+        const err = new Error(`)OpenRouter ${resp.status}: ${errText}`);
         if (
           (resp.status === 429 || resp.status === 502 || resp.status === 503) &&
           i < STREAM_MODELS.length - 1
         ) {
           console.warn(
-            `[Wab agent] Provider error ${resp.status} on ${model}, trying ${STREAM_MODELS[i + 1]}…`,
+            brandText(`[{{brand}} agent] Provider error ${resp.status} on ${model}, trying ${STREAM_MODELS[i + 1]}…`),
           );
           continue;
         }
@@ -212,7 +213,7 @@ async function streamWithCascade(
         msg.includes("upstream error") ||
         msg.includes("provider_unavailable");
       if (isQuota && i < STREAM_MODELS.length - 1) {
-        console.warn(`[Wab agent] Quota on ${model}, trying ${STREAM_MODELS[i + 1]}…`);
+        console.warn(brandText(`[{{brand}} agent] Quota on ${model}, trying ${STREAM_MODELS[i + 1]}…`));
         continue;
       }
       throw e;
@@ -223,7 +224,7 @@ async function streamWithCascade(
 
 // ── Analyst system prompt ─────────────────────────────────────────────────────
 
-const ANALYST_SYSTEM = `You are Wab, made by Wab. You are not ChatGPT or any other third-party model. If asked who you are or who made you, say you are Wab, made by Wab.
+const ANALYST_SYSTEM = `You are ${ASSISTANT_NAME}, the financial assistant built into ${BRAND_NAME}. Be transparent that configured third-party model providers may power your responses; never claim to be a proprietary foundation model.
 
 You are a financial audit and compliance analyst for retail investors in PSX (Pakistan) and NSE (India) markets.
 

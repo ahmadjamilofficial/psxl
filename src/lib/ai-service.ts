@@ -1,4 +1,5 @@
-// ─── Wab AI Service — Agentic pipeline on Groq ─────────────────────────────
+import { brandText } from "@/lib/brand";
+// ─── {{brand}} AI Service — Agentic pipeline on Groq ─────────────────────────────
 //
 // MODEL CASCADE (Groq models):
 //   1. llama-3.3-70b-versatile          → primary (fast, strong reasoning)
@@ -72,7 +73,7 @@ function getApiKey(): string {
   const key = (import.meta.env["VITE_GROQ_API_KEY"] as string | undefined) ?? "";
   if (!key || key.length < 10) {
     throw new Error(
-      "Wab Intelligence: AI API key not configured. Add VITE_GROQ_API_KEY to your .env file. " +
+      brandText("{{brand}} Intelligence: AI API key not configured. Add VITE_GROQ_API_KEY to your .env file. ") +
         "Get a free key at https://console.groq.com",
     );
   }
@@ -140,14 +141,14 @@ function safeParseJSON(raw: string): Record<string, unknown> {
   // Strip markdown code fences the model may accidentally add
   const cleaned = raw
     .replace(/^```(?:json)?\s*/im, "")
-    .replace(/\s*```\s*$/im, "")
+    .replace(/\s*``brandText(`\s*$/im, "")
     .trim();
 
   try {
     return JSON.parse(cleaned) as Record<string, unknown>;
   } catch (e) {
     const error = e as Error;
-    console.error("[Wab AI] JSON parse failed:", {
+    console.error(brandText("[{{brand}} AI] JSON parse failed:"), {
       error: error.message,
       rawPreview: cleaned.slice(0, 200),
       fullLength: cleaned.length,
@@ -165,7 +166,7 @@ function safeParseJSON(raw: string): Record<string, unknown> {
         return JSON.parse(fixedNewlines) as Record<string, unknown>;
       } catch {
         throw new Error(
-          `Failed to parse AI response as JSON. Raw output: ${cleaned.slice(0, 500)}...`,
+          `)Failed to parse AI response as JSON. Raw output: ${cleaned.slice(0, 500)}...`,
         );
       }
     }
@@ -216,7 +217,7 @@ async function runWithCascade(opts: RunOptions): Promise<string> {
 
         if (isQuotaError(e)) {
           if (attempt < maxRetries) continue;
-          console.warn(`[Wab AI] Quota exhausted on ${model}, cascading…`);
+          console.warn(brandText(`[{{brand}} AI] Quota exhausted on ${model}, cascading…`));
           break;
         }
 

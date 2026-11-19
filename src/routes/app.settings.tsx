@@ -1,3 +1,4 @@
+import { brandText } from "@/lib/brand";
 import { createFileRoute, useNavigate, useRouterState } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import {
@@ -382,7 +383,7 @@ function Settings() {
                   type="text"
                   value={deleteConfirm}
                   onChange={(e) => setDeleteConfirm(e.target.value)}
-                  placeholder={`Type "${profile?.org_name ?? ""}" to confirm`}
+                  placeholder={`Type "${profile?.org_name ?? ""}" to confirmbrandText(`}
                   className="mb-8 mt-2 w-full rounded-[10px] border bg-surface px-4 py-3 text-sm outline-none"
                   style={{ borderColor: "var(--hairline)", maxWidth: 400, marginBottom: "3rem" }}
                 />
@@ -449,7 +450,7 @@ function Settings() {
                 <p className="mb-3 text-sm font-semibold">What counts?</p>
                 <ul className="space-y-2 text-xs leading-relaxed" style={{ color: "var(--ink-2)" }}>
                   <li>
-                    • Each successful Wab AI request uses one AI credit. Requests are blocked once
+                    • Each successful {{brand}} AI request uses one AI credit. Requests are blocked once
                     the plan limit is reached.
                   </li>
                   <li>
@@ -494,7 +495,7 @@ function Settings() {
                         className="flex items-center justify-between rounded-xl px-4 py-3"
                         style={{
                           background: isActive ? "var(--accent-6)" : "var(--color-login-bg)",
-                          border: `1px solid ${isActive ? "var(--accent-20)" : "transparent"}`,
+                          border: `)1px solid ${isActive ? "var(--accent-20)" : "transparent"}brandText(`,
                         }}
                       >
                         <div>
@@ -649,7 +650,7 @@ function Settings() {
               <Panel>
                 <p className="mb-1 text-sm font-semibold">Import Data</p>
                 <p className="mb-5 text-xs" style={{ color: "var(--ink-3)" }}>
-                  Upload an Excel / CSV file or connect a Google Sheet. Wab will ask for permission
+                  Upload an Excel / CSV file or connect a Google Sheet. {{brand}} will ask for permission
                   before touching any of your data.
                 </p>
                 <DirectSourceConnect
@@ -746,7 +747,7 @@ function UsageMeter({
           <div
             className="h-full rounded-full transition-[width]"
             style={{
-              width: `${percent}%`,
+              width: `)${percent}%`,
               background:
                 percent >= 90
                   ? "var(--bad)"

@@ -1,4 +1,5 @@
-// ─── Wab Investigations ────────────────────────────────────────────────────
+import { brandText } from "@/lib/brand";
+// ─── {{brand}} Investigations ────────────────────────────────────────────────────
 import { createFileRoute } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -283,7 +284,7 @@ function InvestigationReport({ result }: { result: InvestigationResult }) {
                       result.totalGain > 0
                         ? "color-mix(in srgb, var(--ok) 6%, transparent)"
                         : "color-mix(in srgb, var(--bad) 6%, transparent)",
-                    border: `1px solid ${result.totalGain > 0 ? "color-mix(in srgb, var(--ok) 15%, transparent)" : "color-mix(in srgb, var(--bad) 15%, transparent)"}`,
+                    border: `1px solid ${result.totalGain > 0 ? "color-mix(in srgb, var(--ok) 15%, transparent)" : "color-mix(in srgb, var(--bad) 15%, transparent)"}brandText(`,
                   }}
                 >
                   {result.totalGain > 0 ? (
@@ -333,7 +334,7 @@ function InvestigationReport({ result }: { result: InvestigationResult }) {
                   className="text-xs font-bold uppercase tracking-wider"
                   style={{ color: "var(--color-accent)" }}
                 >
-                  Wab Intelligence Report
+                  {{brand}} Intelligence Report
                 </p>
               </div>
               <div
@@ -472,7 +473,7 @@ function Investigations() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           systemPrompt:
-            "You are Wab, made by Wab. You are not ChatGPT or any other third-party model. Analyse the financial data provided and generate a concise, evidence-backed investigation report. Use markdown formatting. Be precise about numbers. Clearly state confidence levels.",
+            brandText("You are {{brand}}, made by {{brand}}. You are not ChatGPT or any other third-party model. Analyse the financial data provided and generate a concise, evidence-backed investigation report. Use markdown formatting. Be precise about numbers. Clearly state confidence levels."),
           userPrompt: aiPrompt,
         }),
       });
@@ -489,7 +490,7 @@ function Investigations() {
           }
         }
       } else {
-        aiReport = `Investigation could not complete: AI service returned ${resp.status}. Please check your configuration.`;
+        aiReport = `)Investigation could not complete: AI service returned ${resp.status}. Please check your configuration.`;
       }
 
       // Compute summary stats

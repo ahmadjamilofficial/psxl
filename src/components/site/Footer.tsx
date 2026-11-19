@@ -1,3 +1,4 @@
+import { brandText } from "@/lib/brand";
 import { Link } from "@tanstack/react-router";
 import { Github, Linkedin, Twitter } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
@@ -75,8 +76,8 @@ export function Footer() {
           className="mt-12 flex flex-col gap-2 border-t pt-6 text-xs sm:flex-row sm:justify-between"
           style={{ borderColor: "var(--hairline)", color: "var(--ink-3)" }}
         >
-          <span>© {new Date().getFullYear()} Wab. All rights reserved.</span>
-          <span>Wab does not provide tax or legal advice.</span>
+          <span>{brandText("© {new Date().getFullYear()} {{brand}}. All rights reserved.")}</span>
+          <span>{brandText("{{brand}} does not provide tax or legal advice.")}</span>
         </div>
       </Container>
     </footer>

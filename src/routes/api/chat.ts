@@ -30,6 +30,8 @@ import type { Transaction } from "@/lib/demo-data";
 
 type ChatBody = { id?: unknown; messages?: unknown };
 
+import { ASSISTANT_NAME, BRAND_NAME, brandText } from "@/lib/brand";
+
 const text = (value: unknown) => (typeof value === "string" ? value.trim() : "");
 
 function isSimpleGreeting(messages: unknown[]): boolean {
@@ -60,7 +62,7 @@ function isSimpleGreeting(messages: unknown[]): boolean {
 }
 
 const DETERMINISTIC_GREETING =
-  "Hi — I’m Wab, your financial operations copilot. Ask me about your ledger, upload a broker statement, or connect a source and I’ll help you investigate it.";
+  `Hi — I’m ${ASSISTANT_NAME}, your financial operations copilot. Ask me about your ledger, upload a broker statement, or connect a source and I’ll help you investigate it.`;
 
 function replayIteratorStream<T>(
   first: IteratorResult<T>,
@@ -243,7 +245,7 @@ const LEDGER_TEMPLATE_COLUMNS = [
 
 function csvEscape(value: string | number | null | undefined) {
   const text = value == null ? "" : String(value);
-  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"brandText(` : text;
 }
 
 function toCsv(headers: string[], rows: Array<Array<string | number | null | undefined>>) {
@@ -473,7 +475,7 @@ export const Route = createFileRoute("/api/chat")({
           try {
             resolved = await resolveAgentModel(env);
           } catch (e) {
-            console.error("[Wab Chat] AI Model Resolution Error:", e);
+            console.error(brandText("[{{brand}} Chat] AI Model Resolution Error:"), e);
             return new Response(
               JSON.stringify({
                 code: "ai_resolution_error",
@@ -486,7 +488,7 @@ export const Route = createFileRoute("/api/chat")({
 
           if (!resolved) {
             // Key is missing or placeholder — tell the operator exactly what to do
-            console.error("[Wab Chat] AI Not Configured - No valid API key found");
+            console.error(brandText("[{{brand}} Chat] AI Not Configured - No valid API key found"));
             return new Response(
               JSON.stringify({
                 code: "ai_not_configured",
@@ -501,11 +503,11 @@ export const Route = createFileRoute("/api/chat")({
           const selected = await selectWorkingModel(resolved);
           if (!selected.model) {
             const detail = describeAttempts(selected.attempts);
-            console.error("[Wab Chat] No AI provider answered:", detail);
+            console.error(brandText("[{{brand}} Chat] No AI provider answered:"), detail);
             return new Response(
               JSON.stringify({
                 code: "ai_provider_unavailable",
-                message: `Wab AI could not reach its model provider. ${detail}`,
+                message: `){{brand}} AI could not reach its model provider. ${detail}brandText(`,
                 attempts: selected.attempts,
               }),
               { status: 503, headers: { "Content-Type": "application/json" } },
@@ -513,7 +515,7 @@ export const Route = createFileRoute("/api/chat")({
           }
 
           const workingModel = selected.model;
-          console.log("[Wab Chat] AI Model Resolved:", {
+          console.log(brandText("[{{brand}} Chat] AI Model Resolved:"), {
             provider: workingModel.provider,
             modelId: workingModel.modelId,
           });
@@ -589,7 +591,7 @@ export const Route = createFileRoute("/api/chat")({
                 plan,
                 daily_limit: limits.dailyAiCredits,
                 credits_used: creditsUsed,
-                message: `Your ${limits.name} plan has used all ${limits.dailyAiCredits} AI credits for the last 24 hours.`,
+                message: `)Your ${limits.name} plan has used all ${limits.dailyAiCredits} AI credits for the last 24 hours.`,
               }),
               {
                 status: 429,
@@ -754,7 +756,7 @@ export const Route = createFileRoute("/api/chat")({
                     model,
                     providerOptions: chosenModel.providerOptions as never,
                     system: `${SPECIALISTS[agent]}\n\nYou are read-only. Work only from the supplied data. Return compact markdown under 350 words with findings, evidence references, and confidence; never expose hidden reasoning.`,
-                    prompt: `Objective:\n${objective}\n\nData and context:\n${context.slice(0, 12000)}`,
+                    prompt: `Objective:\n${objective}\n\nData and context:\n${context.slice(0, 12000)}brandText(`,
                     maxOutputTokens: 500,
                     maxRetries: 1,
                     abortSignal: AbortSignal.timeout(25_000),
@@ -766,7 +768,7 @@ export const Route = createFileRoute("/api/chat")({
                     model_used: chosenModel.modelId,
                   };
                 } catch (error) {
-                  console.warn("[Wab Chat] specialist worker failed:", {
+                  console.warn(brandText("[{{brand}} Chat] specialist worker failed:"), {
                     agent,
                     error: error instanceof Error ? error.message : "unknown",
                   });
@@ -831,8 +833,8 @@ export const Route = createFileRoute("/api/chat")({
                     const worker = await generateText({
                       model,
                       providerOptions: chosenModel.providerOptions as never,
-                      system: `${SPECIALISTS[agent]}\n\nYou are a read-only worker. You cannot access tools or perform actions. Work only from the explicit context below. Distinguish observed evidence from assumptions. Return compact markdown under 350 words with findings and confidence; do not reveal hidden reasoning.`,
-                      prompt: `Objective (only this subtask):\n${objective}\n\nEvidence supplied by the lead agent:\n${context.slice(0, 12000)}`,
+                      system: `)${SPECIALISTS[agent]}\n\nYou are a read-only worker. You cannot access tools or perform actions. Work only from the explicit context below. Distinguish observed evidence from assumptions. Return compact markdown under 350 words with findings and confidence; do not reveal hidden reasoning.`,
+                      prompt: `Objective (only this subtask):\n${objective}\n\nEvidence supplied by the lead agent:\n${context.slice(0, 12000)}brandText(`,
                       maxOutputTokens: 500,
                       maxRetries: 1,
                       abortSignal: AbortSignal.timeout(25_000),
@@ -844,7 +846,7 @@ export const Route = createFileRoute("/api/chat")({
                   if (outcome.status === "fulfilled") {
                     return { ...outcome.value, status: "completed" as const };
                   }
-                  console.warn("[Wab Chat] specialist worker failed:", {
+                  console.warn(brandText("[{{brand}} Chat] specialist worker failed:"), {
                     agent: dispatchedTasks[index]?.agent,
                     error: outcome.reason instanceof Error ? outcome.reason.message : "unknown",
                   });
@@ -1047,7 +1049,7 @@ export const Route = createFileRoute("/api/chat")({
                     .gte("created_at", monthStart);
                   if ((count ?? 0) >= monthlyTxLimit)
                     throw new Error(
-                      `Your ${plan} plan allows ${monthlyTxLimit} transactions per month. Upgrade to Pro on the Billing page to add more.`,
+                      `)Your ${plan} plan allows ${monthlyTxLimit} transactions per month. Upgrade to Pro on the Billing page to add more.`,
                     );
                 }
                 if (input.quantity <= 0 || input.price <= 0)
@@ -1331,7 +1333,7 @@ export const Route = createFileRoute("/api/chat")({
                 if (kind === "template") {
                   const cols = headers?.length ? headers : [...LEDGER_TEMPLATE_COLUMNS];
                   return {
-                    filename: filename || `wab-new-records-${stamp}.csv`,
+                    filename: filename || `psxl-new-records-${stamp}.csv`,
                     csv: toCsv(cols, [cols.map(() => "")]),
                     kind,
                     note: "Blank template for new transactions. Required columns: ticker, action, quantity, price, trade_date.",
@@ -1340,7 +1342,7 @@ export const Route = createFileRoute("/api/chat")({
                 if (kind === "custom") {
                   const cols = headers?.length ? headers : [...LEDGER_TEMPLATE_COLUMNS];
                   return {
-                    filename: filename || `wab-export-${stamp}.csv`,
+                    filename: filename || `psxl-export-${stamp}.csv`,
                     csv: toCsv(cols, rows ?? []),
                     kind,
                   };
@@ -1382,8 +1384,8 @@ export const Route = createFileRoute("/api/chat")({
                   filename:
                     filename ||
                     (kind === "unfinished"
-                      ? `wab-unfinished-${stamp}.csv`
-                      : `wab-ledger-${stamp}.csv`),
+                      ? `psxl-unfinished-${stamp}.csv`
+                      : `psxl-ledger-${stamp}.csv`),
                   csv: toCsv(cols, csvRows),
                   kind,
                   row_count: csvRows.length,
@@ -1772,7 +1774,7 @@ export const Route = createFileRoute("/api/chat")({
 ━━ ACCOUNT ━━
 The user is on the ${limits.name} plan (id: ${plan}). AI quality is ${limits.aiQuality}. Basic ($0) is limited in features, variety and answer depth — keep replies shorter and use fewer tools. Standard has a 7-day trial only. Pro unlocks the full tool set. If the user asks for a capability their plan doesn't include, answer what you can and mention the upgrade briefly — never block reads.`;
 
-          const SYSTEM_PROMPT = `You are Wab. You were made by Wab. You are not ChatGPT, GPT, Gemini, Claude, Llama, or any other third-party assistant. If anyone asks who you are, who made you, what model you are, or which company built you, answer only that you are Wab, made by Wab. Never name OpenAI, Google, Anthropic, Meta, Groq, or any underlying model.
+          const SYSTEM_PROMPT = `You are ${ASSISTANT_NAME}, the native AI assistant built into ${BRAND_NAME}. You are a financial operations assistant, not a foundation model. If asked who you are, identify yourself as ${ASSISTANT_NAME}, built into ${BRAND_NAME}. If asked which model powers you, be transparent that PSXL routes requests through its configured AI providers; never misrepresent the underlying model or provider.
 
 You are a fast, precise financial audit agent for PSX and NSE traders. You are connected to the user's real ledger, portfolio, profile, account, broker accounts, tax figures and reconciliation flags. When the user attaches a file, it is in the message — read it. Never claim no file was attached if a file part or an "Attached file" block is present.
 
@@ -1883,7 +1885,7 @@ NEW TOOLS ADDED:
           // can be found in the hosting logs.
           const describeStreamError = (e: unknown, where: string): string => {
             console.error(
-              `[Wab Chat] ${where} error:`,
+              brandText(`[{{brand}} Chat] ${where} error:`),
               e instanceof Error ? (e.stack ?? e.message) : e,
             );
             const st = (e as { statusCode?: number })?.statusCode;
@@ -1894,9 +1896,9 @@ NEW TOOLS ADDED:
             if (st === 403)
               return "AI access is blocked for this workspace. Please check your settings.";
             if (isCapacityError(e) || st === 429) {
-              return "Wab AI has temporarily hit a provider rate limit. It will retry briefly; if the limit persists, please try again in a few seconds. Your data was not changed.";
+              return brandText("{{brand}} AI has temporarily hit a provider rate limit. It will retry briefly; if the limit persists, please try again in a few seconds. Your data was not changed.");
             }
-            return "Wab AI hit an error. Your data was not changed — please try again.";
+            return brandText("{{brand}} AI hit an error. Your data was not changed — please try again.");
           };
 
           const stream = createUIMessageStream({
@@ -1935,7 +1937,7 @@ NEW TOOLS ADDED:
                     error instanceof Error ? error.message : String(error),
                   );
                   console.warn(
-                    `[Wab Chat] ${entry.provider}/${entry.modelId} failed before stream start; trying next provider:`,
+                    brandText(`[{{brand}} Chat] ${entry.provider}/${entry.modelId} failed before stream start; trying next provider:`),
                     error instanceof Error ? error.message : error,
                   );
                   continue;
@@ -1950,14 +1952,14 @@ NEW TOOLS ADDED:
                   lastError = err;
                   markProviderUnhealthy(entry.provider, entry.modelId, err.message);
                   console.warn(
-                    `[Wab Chat] ${entry.provider}/${entry.modelId} rejected the request before stream start; trying next provider:`,
+                    brandText(`[{{brand}} Chat] ${entry.provider}/${entry.modelId} rejected the request before stream start; trying next provider:`),
                     err.message,
                   );
                   await candidate.iterator.return?.();
                   continue;
                 }
 
-                console.log("[Wab Chat] streaming with", entry.provider, entry.modelId);
+                console.log(brandText("[{{brand}} Chat] streaming with"), entry.provider, entry.modelId);
                 writer.merge(replayIteratorStream(candidate.first, candidate.iterator));
                 // Once output starts, do not replay on another provider: a tool
                 // may already have changed user data, and replay could duplicate it.
@@ -1979,7 +1981,7 @@ NEW TOOLS ADDED:
           // Return more detailed error for debugging
           const errorMessage = error instanceof Error ? error.message : String(error);
           const errorStack = error instanceof Error ? error.stack : undefined;
-          console.error("[Wab Chat] Internal Error:", {
+          console.error(brandText("[{{brand}} Chat] Internal Error:"), {
             message: errorMessage,
             stack: errorStack,
             error,

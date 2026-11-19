@@ -267,7 +267,7 @@ function TaxCenter() {
       <Panel>
         <div className="mb-4">
           <p className="text-sm font-semibold">Ledger activity · {activeYear}</p>
-          <p className="mt-1 text-xs" style={{ color: "var(--ink-3)" }}>Actual posted records in ${activeCurrency} for the selected year. Other currencies are calculated separately. Buy-only activity does not create a realised capital gain until a disposal is recorded.</p>
+          <p className="mt-1 text-xs" style={{ color: "var(--ink-3)" }}>Actual posted records in {activeCurrency} for the selected year. Other currencies are calculated separately. Buy-only activity does not create a realised capital gain until a disposal is recorded.</p>
         </div>
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {[

@@ -57,7 +57,7 @@ function TaxCenter() {
     customLongTermRate: Number(customLongTermRate) / 100,
     customLongTermDays: Number(customLongTermDays) || 365,
   });
-  const harvest = []; // No fabricated quote feed: harvesting requires verified current prices and jurisdiction-specific loss rules.
+  const harvest: ReturnType<typeof suggestHarvesting> = []; // No fabricated quote feed: harvesting requires verified current prices and jurisdiction-specific loss rules.
   const yearTransactions = taxTransactions.filter((transaction) => transaction.status === "posted" && transaction.trade_date.startsWith(activeYear));
   const purchaseValue = yearTransactions.filter((transaction) => transaction.action === "BUY").reduce((sum, transaction) => sum + transaction.quantity * transaction.price + transaction.fees, 0);
   const saleProceeds = yearTransactions.filter((transaction) => transaction.action === "SELL").reduce((sum, transaction) => sum + transaction.quantity * transaction.price - transaction.fees, 0);

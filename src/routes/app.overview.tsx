@@ -48,6 +48,7 @@ import { PortfolioRiskSnapshot } from "@/components/portfolio/PortfolioRiskSnaps
 import { PortfolioAnalyticsLab } from "@/components/portfolio/PortfolioAnalyticsLab";
 import { PortfolioMarketTerminal } from "@/components/portfolio/PortfolioMarketTerminal";
 import { useLedgerContext } from "@/lib/use-ledger-context";
+import { currencyForExchange } from "@/lib/market-currency";
 import { FinancialHealthScore } from "@/components/intelligence/FinancialHealthScore";
 import { PriorityCard, PriorityCardSkeleton } from "@/components/intelligence/PriorityCard";
 import {
@@ -242,7 +243,8 @@ function MissionControl() {
   const { data: events = [], isLoading: eventsLoading } = useFinancialEvents(30);
   const { data: insights = [] } = useFinancialInsights(5);
 
-  const tax = computeTax(transactions, {
+  const reportingTransactions = transactions.filter((tx) => (tx.currency ?? currencyForExchange(tx.exchange)) === currency);
+  const tax = computeTax(reportingTransactions, {
     jurisdiction: detectedJurisdiction,
     filerStatus: "Filer",
     taxYear: currentYear,

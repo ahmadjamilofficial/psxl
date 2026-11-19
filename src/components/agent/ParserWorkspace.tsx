@@ -1,4 +1,4 @@
-// ─── Wab Parser Workspace ──────────────────────────────────────────────────
+// ─── PSXL Parser Workspace ──────────────────────────────────────────────────
 // AI chat interface with agentic tool execution, approval gates,
 // quota-aware error handling, and chat deletion.
 
@@ -183,7 +183,7 @@ function ErrorBanner({
       color: "var(--warn)",
       bg: "color-mix(in srgb, var(--warn) 6%, transparent)",
       border: "color-mix(in srgb, var(--warn) 20%, transparent)",
-      title: "Wab is temporarily busy",
+      title: "PSXL is temporarily busy",
       body: "The AI service has reached its current request limit. Your data is safe and no changes were made. Try again in a few minutes.",
       cta: "Try again",
       ctaLink: null,
@@ -193,7 +193,7 @@ function ErrorBanner({
       color: "var(--warn)",
       bg: "color-mix(in srgb, var(--warn) 6%, transparent)",
       border: "color-mix(in srgb, var(--warn) 20%, transparent)",
-      title: "Wab is taking longer than expected",
+      title: "PSXL is taking longer than expected",
       body: "The AI service didn't respond in time. Your financial data hasn't been changed.",
       cta: "Try again",
       ctaLink: null,
@@ -203,7 +203,7 @@ function ErrorBanner({
       color: "var(--warn)",
       bg: "color-mix(in srgb, var(--warn) 6%, transparent)",
       border: "color-mix(in srgb, var(--warn) 20%, transparent)",
-      title: "Wab is temporarily unavailable",
+      title: "PSXL is temporarily unavailable",
       body: "The AI service didn't respond. Your financial data was not changed. This is usually resolved in seconds.",
       cta: "Try again",
       ctaLink: null,
@@ -705,7 +705,7 @@ function ToolCard({
         >
           <AlertTriangle size={14} style={{ color: "var(--warn)", flexShrink: 0 }} />
           <p className="mr-auto text-xs" style={{ color: "var(--ink-2)" }}>
-            Wab wants to write to your ledger. Review the input above before approving.
+            PSXL wants to write to your ledger. Review the input above before approving.
           </p>
           <button
             type="button"
@@ -883,7 +883,7 @@ function Chat({
     },
     onError: (cause) => {
       // Don't show a generic toast — the ErrorBanner in the UI handles it
-      console.error("[Wab] Chat error", cause);
+      console.error("[PSXL] Chat error", cause);
     },
   });
 
@@ -954,7 +954,7 @@ function Chat({
         <ChatSidebar activeId={threadId} />
         {isStreaming && (
           <div className="hidden text-[11px] sm:block" style={{ color: "var(--ink-3)" }}>
-            Wab is working
+            PSXL is working
           </div>
         )}
       </header>
@@ -972,7 +972,7 @@ function Chat({
                   lineHeight: 1.15,
                 }}
               >
-                Ask Wab a question about your data
+                Ask PSXL a question about your data
               </h1>
               <p
                 className="mt-3 max-w-md text-balance text-[15px] leading-relaxed"
@@ -1054,10 +1054,10 @@ function Chat({
               className="flex w-full max-w-[48rem] items-center gap-2 px-4 py-1"
               role="status"
               aria-live="polite"
-              aria-label="Wab is preparing a response"
+              aria-label="PSXL is preparing a response"
             >
               <span className="text-sm font-medium" style={{ color: "var(--ink-2)" }}>
-                Wab is working
+                PSXL is working
               </span>
               <span className="wab-thinking-dots" aria-hidden="true">
                 <span />
@@ -1129,7 +1129,7 @@ function Chat({
             <PromptInputTextarea
               ref={textareaRef}
               autoFocus
-              placeholder="Ask Wab a question about your data…"
+              placeholder="Ask PSXL a question about your data…"
               className="max-h-[200px] min-h-[56px] px-5 pt-4 text-base leading-6 placeholder:text-[color:var(--ink-3)]"
               onChange={(e) => {
                 // Auto-grow (field-sizing covers modern browsers; this covers the rest)
@@ -1148,7 +1148,7 @@ function Chat({
           </PromptInput>
 
           <p className="mt-2 text-center text-[11px]" style={{ color: "var(--ink-3)" }}>
-            Wab acts on your data autonomously. Every change is traceable and reversible.
+            PSXL acts on your data autonomously. Every change is traceable and reversible.
           </p>
         </div>
       </div>

@@ -629,7 +629,7 @@ function Home() {
         </Container>
       </section>
 
-      {/* ─── WHY TRUST WAB? ─────────────────────────────────────────────────── */}
+      {/* ─── WHY TRUST PSXL? ─────────────────────────────────────────────────── */}
       <section style={{ background: "var(--color-login-bg)" }}>
         <Container className="grid items-center gap-16 py-24 md:grid-cols-2">
           <Reveal>

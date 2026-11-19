@@ -82,7 +82,10 @@ export function useCreateTransaction() {
       if (error) throw new Error(error.message);
       return data;
     },
-    onSuccess: (_d, { orgId }) => qc.invalidateQueries({ queryKey: ["transactions", orgId] }),
+    onSuccess: (_d, { orgId }) => {
+      void qc.invalidateQueries({ queryKey: ["transactions", orgId] });
+      void qc.invalidateQueries({ queryKey: ["transactions_month", orgId] });
+    },
   });
 }
 
@@ -126,7 +129,10 @@ export function useUpdateTransaction() {
         .eq("org_id", orgId);
       if (error) throw new Error(error.message);
     },
-    onSuccess: (_d, { orgId }) => qc.invalidateQueries({ queryKey: ["transactions", orgId] }),
+    onSuccess: (_d, { orgId }) => {
+      void qc.invalidateQueries({ queryKey: ["transactions", orgId] });
+      void qc.invalidateQueries({ queryKey: ["transactions_month", orgId] });
+    },
   });
 }
 
@@ -141,7 +147,10 @@ export function useDeleteTransaction() {
         .eq("org_id", orgId);
       if (error) throw new Error(error.message);
     },
-    onSuccess: (_d, { orgId }) => qc.invalidateQueries({ queryKey: ["transactions", orgId] }),
+    onSuccess: (_d, { orgId }) => {
+      void qc.invalidateQueries({ queryKey: ["transactions", orgId] });
+      void qc.invalidateQueries({ queryKey: ["transactions_month", orgId] });
+    },
   });
 }
 
@@ -159,10 +168,11 @@ export function useMonthlyTransactionCount(orgId: string | undefined) {
         .select("id", { count: "exact", head: true })
         .eq("org_id", orgId!)
         .gte("created_at", start.toISOString());
-      if (error) return 0;
+      if (error) throw new Error(`Could not load monthly transaction usage: ${error.message}`);
       return count ?? 0;
     },
-    staleTime: 30_000,
+    refetchInterval: 15_000,
+    staleTime: 10_000,
   });
 }
 

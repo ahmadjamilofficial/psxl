@@ -52,7 +52,7 @@ function TaxCenter() {
     customLongTermRate: Number(customLongTermRate) / 100,
     customLongTermDays: Number(customLongTermDays) || 365,
   });
-  const harvest = suggestHarvesting(transactions, tax.totalGain);
+  const harvest = activeJurisdiction === "CUSTOM" ? [] : suggestHarvesting(transactions, tax.totalGain);
 
   async function getAIExplanation() {
     setLoadingAI(true);
@@ -209,14 +209,14 @@ function TaxCenter() {
           {
             label: "Short-term Gain",
             value: `${currency} ${fmt(tax.shortTermGain)}`,
-            sublabel: tax.shortTermGain > 0 ? `${"${((tax.shortTermTax / tax.shortTermGain) * 100).toFixed(1)}%"} effective` : activeJurisdiction === "CUSTOM" ? "Configure custom rules" : "No realized gain this year",
+            sublabel: tax.shortTermGain > 0 ? `${((tax.shortTermTax / tax.shortTermGain) * 100).toFixed(1)}% effective` : activeJurisdiction === "CUSTOM" ? "Configure custom rules" : "No realized gain this year",
             tone: tax.shortTermGain >= 0 ? ("ok" as const) : ("bad" as const),
             i: 0,
           },
           {
             label: "Long-term Gain",
             value: `${currency} ${fmt(tax.longTermGain)}`,
-            sublabel: tax.longTermGain > 0 ? `${"${((tax.longTermTax / tax.longTermGain) * 100).toFixed(1)}%"} effective` : activeJurisdiction === "CUSTOM" ? "Configure custom rules" : "No realized gain this year",
+            sublabel: tax.longTermGain > 0 ? `${((tax.longTermTax / tax.longTermGain) * 100).toFixed(1)}% effective` : activeJurisdiction === "CUSTOM" ? "Configure custom rules" : "No realized gain this year",
             tone: tax.longTermGain >= 0 ? ("ok" as const) : ("bad" as const),
             i: 1,
           },
@@ -419,7 +419,7 @@ function TaxCenter() {
                   </p>
                   <p className="tnum text-xs" style={{ color: "var(--ok)" }}>
                     saves ~{currency}{" "}
-                    {fmt(h.potentialOffset * (jurisdiction === "PSX" ? 0.15 : jurisdiction === "NSE" ? 0.2 : Number(customShortTermRate) / 100))}
+                    {fmt(h.potentialOffset * (activeJurisdiction === "PSX" ? 0.15 : activeJurisdiction === "NSE" ? 0.2 : Number(customShortTermRate) / 100))}
                   </p>
                 </div>
               </div>

@@ -1833,7 +1833,7 @@ NEW TOOLS ADDED:
             // Groq on-demand frequently returns transient TPM 429s with a
             // short retry-after window. Allow the SDK's exponential backoff to
             // retry before we declare this provider unavailable and fail over.
-            maxRetries: 2,
+            maxRetries: 1,
             // Last step is text-only so the model must narrate tool results.
             prepareStep: ({ stepNumber }: { stepNumber: number }) =>
               stepNumber >= Math.max(0, maxSteps - 1) ? { toolChoice: "none" as const } : {},

@@ -56,7 +56,7 @@ export const PLANS: Record<PlanId, PlanLimits> = {
     taxProfiles: 1,
     brokerAccounts: 1,
     dailyAiCredits: 8,
-    maxAgentSteps: 8,
+    maxAgentSteps: 4,
     aiQuality: "limited",
     features: {
       csvExport: true,
@@ -91,7 +91,7 @@ export const PLANS: Record<PlanId, PlanLimits> = {
     taxProfiles: 2,
     brokerAccounts: 3,
     dailyAiCredits: 60,
-    maxAgentSteps: 18,
+    maxAgentSteps: 8,
     aiQuality: "standard",
     features: {
       csvExport: true,
@@ -127,7 +127,7 @@ export const PLANS: Record<PlanId, PlanLimits> = {
     taxProfiles: null,
     brokerAccounts: 10,
     dailyAiCredits: 200,
-    maxAgentSteps: 28,
+    maxAgentSteps: 12,
     aiQuality: "high",
     features: {
       csvExport: true,

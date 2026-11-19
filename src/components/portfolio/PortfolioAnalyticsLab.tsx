@@ -62,7 +62,18 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
     // Preserve one point per posted transaction. Grouping only by date collapsed
     // same-day activity into a single dot, hiding the actual cash-flow movement.
     let flow = 0, peak = 0;
-    const equity = filtered.map((t, index) => {
+    const equity = filtered.length
+      ? [
+          {
+            date: filtered[0]!.trade_date,
+            point: `${filtered[0]!.trade_date} · 000`,
+            ticker: "Opening balance",
+            action: "OPEN",
+            netFlow: 0,
+            cumulative: 0,
+            drawdown: 0,
+          },
+          ...filtered.map((t, index) => {
       const gross = t.quantity * t.price;
       const netFlow = t.action === "BUY"
         ? -(gross + t.fees)
@@ -80,7 +91,9 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
         cumulative: flow,
         drawdown: peak > 0 ? ((flow - peak) / peak) * 100 : 0,
       };
-    });
+          }),
+        ]
+      : [];
     const tickerRows = [...byTicker.values()].map(v=>({ticker:v.ticker + " · " + v.exchange, buys:v.buyValue, sells:v.sellValue, dividends:v.dividends, netCash:v.sellValue+v.dividends-v.buyValue, shares:v.shares})).sort((a,b)=>b.netCash-a.netCash);
     return { activity, equity, tickerRows, divs: activity.filter(d=>d.dividends>0), monthly, actionCounts };
   }, [filtered]);

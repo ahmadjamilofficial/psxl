@@ -115,7 +115,7 @@ export function ChatSidebar({ activeId }: { activeId: string }) {
             <div>
               <p className="text-sm font-semibold">Your chats</p>
               <p className="text-[11px]" style={{ color: "var(--ink-3)" }}>
-                Switch context without leaving Ask Wab
+                Switch context without leaving Ask PSXL
               </p>
             </div>
             <button

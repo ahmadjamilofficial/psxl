@@ -17,6 +17,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useTransactions } from "@/lib/data-hooks";
 import { computeTax, suggestHarvesting, type Jurisdiction } from "@/lib/tax";
 import { useLedgerContext } from "@/lib/use-ledger-context";
+import { currencyForExchange } from "@/lib/market-currency";
 
 export const Route = createFileRoute("/app/tax")({
   component: TaxCenter,
@@ -40,10 +41,10 @@ function TaxCenter() {
 
   // Tax computations must never add gains from different currencies together.
   const activeJurisdiction = jurisdiction ?? detectedJ;
-  const detectedCurrencies = [...new Set(transactions.map((transaction) => transaction.currency ?? detectedCurrency).filter((value) => value && value !== "MIXED"))].sort();
+  const detectedCurrencies = [...new Set(transactions.map((transaction) => transaction.currency ?? currencyForExchange(transaction.exchange)).filter((value) => value && value !== "MIXED"))].sort();
   const currencyOptions = detectedCurrencies.length ? detectedCurrencies : [detectedCurrency !== "MIXED" ? detectedCurrency : "USD"];
   const activeCurrency = taxCurrency ?? (currencyOptions.includes(detectedCurrency) ? detectedCurrency : currencyOptions[0] ?? "USD");
-  const taxTransactions = transactions.filter((transaction) => (transaction.currency ?? detectedCurrency) === activeCurrency);
+  const taxTransactions = transactions.filter((transaction) => (transaction.currency ?? currencyForExchange(transaction.exchange)) === activeCurrency);
   const transactionYears = [...new Set(taxTransactions.map((transaction) => transaction.trade_date.slice(0, 4)).filter(Boolean))].sort((a, b) => Number(b) - Number(a));
   const defaultTaxYear = transactionYears[0] ?? currentYear;
   const activeYear = taxYear ?? defaultTaxYear;

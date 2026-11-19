@@ -231,11 +231,17 @@ export function pickCascadeForPlan<
 >(cascade: T[], plan: string | null | undefined, fallback: T): T {
   const id = normalizePlanId(plan);
   if (id === "pro" || cascade.length === 0) return fallback;
-  const cheap = (m: string) =>
-    /mini|flash|haiku|:free|8b|7b|small|lite/i.test(m);
+  const lowCost = (m: string) =>
+    /mini|flash-lite|haiku|:free|8b|7b|small|lite/i.test(m);
+  const premium = (m: string) =>
+    /gpt-6|gpt-4o(?!-mini)|claude-3-5|claude-3-7|deepseek-r1|70b|pro/i.test(m);
   if (id === "free") {
-    return cascade.find((c) => cheap(c.modelId)) ?? fallback;
+    return cascade.find((c) => lowCost(c.modelId)) ?? fallback;
   }
-  const mid = cascade.find((c) => /mini|flash/i.test(c.modelId));
-  return mid ?? fallback;
+  if (id === "standard") {
+    return cascade.find((c) => !lowCost(c.modelId) && !/flash-lite|:free|8b|7b/i.test(c.modelId))
+      ?? cascade.find((c) => /flash|mini/i.test(c.modelId))
+      ?? fallback;
+  }
+  return cascade.find((c) => premium(c.modelId)) ?? fallback;
 }

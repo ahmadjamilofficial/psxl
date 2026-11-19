@@ -29,7 +29,7 @@ export function useLedgerContext(): LedgerContext {
     const counts = transactions.reduce<Record<string, number>>((acc, tx) => { acc[tx.exchange] = (acc[tx.exchange] ?? 0) + 1; return acc; }, {});
     const exchange = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "CUSTOM";
     const j: Jurisdiction = exchange === "PSX" || exchange === "NSE" ? exchange : "CUSTOM";
-    const currencyByExchange: Record<string, string> = { PSX: "PKR", NSE: "INR", NYSE: "USD", NASDAQ: "USD", LSE: "GBP", TSX: "CAD", ASX: "AUD", HKEX: "HKD", TSE: "JPY", SIX: "CHF", SGX: "SGD" };
+    const currencyByExchange: Record<string, string> = { PSX: "PKR", KSE: "PKR", NSE: "INR", BSE: "INR", NYSE: "USD", NASDAQ: "USD", AMEX: "USD", LSE: "GBP", TSX: "CAD", TSXV: "CAD", ASX: "AUD", HKEX: "HKD", TSE: "JPY", KRX: "KRW", SIX: "CHF", SGX: "SGD", XETRA: "EUR", FRA: "EUR", EURONEXT: "EUR" };
     return { jurisdiction: j, currency: currencyByExchange[exchange] ?? "USD" };
   }, [transactions, profile?.jurisdiction]);
 

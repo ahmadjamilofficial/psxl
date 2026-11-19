@@ -7,11 +7,11 @@ import { useMemo } from "react";
 import { useAuth } from "./auth-context";
 import { useTransactions } from "./data-hooks";
 
-export type Jurisdiction = "PSX" | "NSE";
+export type Jurisdiction = "PSX" | "NSE" | "CUSTOM";
 
 export interface LedgerContext {
   jurisdiction: Jurisdiction;
-  currency: "PKR" | "INR";
+  currency: string;
   taxYear: string; // current calendar year as string
   isLoading: boolean;
 }
@@ -23,12 +23,14 @@ export function useLedgerContext(): LedgerContext {
   const { jurisdiction, currency } = useMemo(() => {
     if (!transactions.length) {
       // No data yet — fall back to org profile default
-      const orgJ = (profile?.jurisdiction as Jurisdiction | undefined) ?? "PSX";
-      return { jurisdiction: orgJ, currency: orgJ === "NSE" ? ("INR" as const) : ("PKR" as const) };
+      const orgJ = (profile?.jurisdiction as Jurisdiction | undefined) ?? "CUSTOM";
+      return { jurisdiction: orgJ, currency: orgJ === "NSE" ? "INR" : orgJ === "PSX" ? "PKR" : "USD" };
     }
-    const nseCount = transactions.filter((t) => t.exchange === "NSE").length;
-    const j: Jurisdiction = nseCount > transactions.length / 2 ? "NSE" : "PSX";
-    return { jurisdiction: j, currency: j === "NSE" ? ("INR" as const) : ("PKR" as const) };
+    const counts = transactions.reduce<Record<string, number>>((acc, tx) => { acc[tx.exchange] = (acc[tx.exchange] ?? 0) + 1; return acc; }, {});
+    const exchange = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "CUSTOM";
+    const j: Jurisdiction = exchange === "PSX" || exchange === "NSE" ? exchange : "CUSTOM";
+    const currencyByExchange: Record<string, string> = { PSX: "PKR", NSE: "INR", NYSE: "USD", NASDAQ: "USD", LSE: "GBP", TSX: "CAD", ASX: "AUD", HKEX: "HKD", TSE: "JPY", SIX: "CHF", SGX: "SGD" };
+    return { jurisdiction: j, currency: currencyByExchange[exchange] ?? "USD" };
   }, [transactions, profile?.jurisdiction]);
 
   const taxYear = String(new Date().getFullYear());

@@ -739,25 +739,19 @@ function BrokerPanel({ orgId, onClose }: { orgId: string; onClose: () => void })
                 <datalist id="wab-account-exchanges">
                   {["NYSE","NASDAQ","AMEX","LSE","TSX","ASX","HKEX","TSE","NSE","BSE","PSX","SGX","SIX","XETRA"].map((exchange) => <option key={exchange} value={exchange} />)}
                 </datalist>
-                <select
+                <input
                   className={fieldClass}
                   style={{ borderColor: "var(--hairline)" }}
                   value={form.currency}
-                  onChange={(e) => set("currency", e.target.value)}
-                >
-                  <option value="PKR">PKR</option>
-                  <option value="INR">INR</option>
-                  <option value="USD">USD</option>
-                  <option value="EUR">EUR</option>
-                  <option value="GBP">GBP</option>
-                  <option value="CAD">CAD</option>
-                  <option value="AUD">AUD</option>
-                  <option value="JPY">JPY</option>
-                  <option value="CHF">CHF</option>
-                  <option value="CNY">CNY</option>
-                  <option value="HKD">HKD</option>
-                  <option value="SGD">SGD</option>
-                </select>
+                  onChange={(e) => set("currency", e.target.value.toUpperCase().trim())}
+                  list="wab-account-currencies"
+                  placeholder="Currency (USD, EUR, GBP…)"
+                  maxLength={3}
+                  required
+                />
+                <datalist id="wab-account-currencies">
+                  {["USD","EUR","GBP","CAD","AUD","JPY","CHF","CNY","HKD","SGD","KRW","INR","PKR","NZD","SEK","NOK","DKK","ZAR","AED","SAR","BRL","MXN","TRY","THB","IDR","MYR"].map((code) => <option key={code} value={code} />)}
+                </datalist>
               </div>
               <input
                 className={fieldClass}
@@ -936,7 +930,7 @@ function ImportPanel({
                 trade_date: dateValue(pick("trade_date")),
                 ref_id: String(pick("ref_id") ?? "").trim(),
                 broker: String(pick("broker") ?? "").trim(),
-                exchange: String(pick("exchange") ?? "PSX").trim() || "PSX",
+                exchange: String(pick("exchange") ?? "OTHER").trim() || "OTHER",
                 _raw: file.name,
               });
             }
@@ -986,7 +980,7 @@ function ImportPanel({
               trade_date: String(r["trade_date"] ?? new Date().toISOString().slice(0, 10)),
               ref_id: String(r["ref_id"] ?? ""),
               broker: String(r["broker"] ?? ""),
-              exchange: String(r["exchange"] ?? "PSX"),
+              exchange: String(r["exchange"] ?? "OTHER"),
               _raw: file.name,
             });
           }

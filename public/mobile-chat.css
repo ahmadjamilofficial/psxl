@@ -208,3 +208,72 @@
   }
 }
 
+/* Fine-tune phone typography and give the composer more horizontal room. */
+@media (max-width: 767px) {
+  .app-mobile-main [data-slot="conversation-content"] h1 {
+    font-size: 1.2rem !important;
+    line-height: 1.22 !important;
+    letter-spacing: -0.035em;
+  }
+  .app-mobile-main [data-slot="conversation-content"] h2 {
+    font-size: 1.02rem !important;
+    line-height: 1.3 !important;
+  }
+  .app-mobile-main [data-slot="conversation-content"] h3 {
+    font-size: 0.92rem !important;
+    line-height: 1.35 !important;
+  }
+  .app-mobile-main [data-slot="conversation-content"] > .wab-fade-up h1 {
+    max-width: 300px;
+    font-size: 1.22rem !important;
+    line-height: 1.22 !important;
+  }
+  .app-mobile-main [data-slot="conversation-content"] > .wab-fade-up p {
+    max-width: 300px;
+    font-size: 0.88rem !important;
+    line-height: 1.48 !important;
+  }
+  .wab-md,
+  [data-slot="message-response"] {
+    font-size: 14px !important;
+    line-height: 1.55 !important;
+  }
+  .wab-md p,
+  .wab-md li {
+    font-size: 14px;
+    line-height: 1.55;
+  }
+  .wab-composer-area {
+    padding-left: 6px !important;
+    padding-right: 6px !important;
+    padding-top: 4px !important;
+  }
+  .wab-composer-area > div,
+  .wab-composer-area .wab-composer {
+    width: 100% !important;
+    max-width: none !important;
+  }
+  .wab-composer [data-slot="input-group"] {
+    min-height: 88px !important;
+    border-radius: 20px !important;
+  }
+  .wab-composer textarea {
+    min-height: 38px !important;
+    max-height: min(18dvh, 104px) !important;
+    padding: 8px 12px 3px !important;
+    font-size: 14px !important;
+    line-height: 1.4 !important;
+  }
+  .wab-composer [data-slot="input-group-addon"] {
+    padding-inline: 7px !important;
+    padding-bottom: 5px !important;
+  }
+  .wab-composer .wab-send,
+  .wab-composer button[aria-label="Attach files"] {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+  }
+}
+

@@ -424,7 +424,7 @@ function MissionControl() {
           <MetricCard
             label="Estimated Tax Liability"
             value={`${currency} ${fmt(tax.estimatedTaxDue)}`}
-            sub={`FIFO · ${jurisdiction} Filer`}
+            sub={`FIFO · ${detectedJurisdiction} tax profile`}
             tone="warn"
             i={3}
             askWhy="Why did my estimated tax change?"

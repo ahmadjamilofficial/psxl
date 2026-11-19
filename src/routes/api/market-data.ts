@@ -7,10 +7,10 @@ export const Route = createFileRoute("/api/market-data")({
         try {
           const url = new URL(request.url);
           const symbol = (url.searchParams.get("symbol") || "").trim().toUpperCase();
-          const exchange = (url.searchParams.get("exchange") || "PSX") as "PSX" | "NSE";
+          const exchange = (url.searchParams.get("exchange") || "NYSE").trim().toUpperCase();
           const range = url.searchParams.get("range") || "1mo";
           const interval = url.searchParams.get("interval") || "1d";
-          if (!/^[A-Z0-9][A-Z0-9.&_-]{0,19}$/.test(symbol) || !["PSX", "NSE"].includes(exchange) || !["1d", "5d", "1mo", "3mo", "1y"].includes(range) || !["5m", "30m", "1d"].includes(interval)) return Response.json({ points: [], error: "Invalid ticker, exchange, range, or interval. Ticker must be a symbol, not a company name." }, { status: 400 });
+          if (!/^[A-Z0-9][A-Z0-9.&_-]{0,19}$/.test(symbol) || !/^[A-Z0-9_-]{2,16}$/.test(exchange) || !["1d", "5d", "1mo", "3mo", "1y"].includes(range) || !["5m", "30m", "1d"].includes(interval)) return Response.json({ points: [], error: "Invalid ticker, exchange, range, or interval. Ticker must be a symbol, not a company name." }, { status: 400 });
           const ticker = normalizeTicker(symbol, exchange);
           const response = await fetch("https://query1.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(ticker) + "?interval=" + interval + "&range=" + range, { headers: { "User-Agent": "Mozilla/5.0" } });
           if (!response.ok) return Response.json({ points: [], error: `Market data provider returned HTTP ${response.status} for ${ticker}. The symbol may not be listed on the selected exchange or the provider may be unavailable.`, provider: "Yahoo Finance", requestedSymbol: symbol, providerSymbol: ticker }, { status: 502 });
@@ -29,7 +29,7 @@ export const Route = createFileRoute("/api/market-data")({
       POST: async ({ request }) => {
         try {
           const body = (await request.json()) as {
-            tickers: Array<{ ticker: string; exchange: "PSX" | "NSE" }>;
+            tickers: Array<{ ticker: string; exchange: string }>;
           };
           const tickers = body.tickers || [];
 
@@ -60,7 +60,7 @@ interface TickerQuote {
 
 interface MarketPrice {
   ticker: string;
-  exchange: "PSX" | "NSE";
+  exchange: string;
   price: number;
   change: number;
   changePercent: number;
@@ -111,7 +111,7 @@ async function fetchYahooPrice(ticker: string): Promise<TickerQuote | null> {
 
 // ─── Normalize ticker symbols for Yahoo Finance ─────────────────────────────
 
-function normalizeTicker(ticker: string, exchange: "PSX" | "NSE"): string {
+function normalizeTicker(ticker: string, exchange: string): string {
   // NSE tickers need .NS suffix
   if (exchange === "NSE") {
     return `${ticker}.NS`;
@@ -132,7 +132,7 @@ async function fetchYahooPrices(
     const quote = await fetchYahooPrice(normalized);
 
     if (quote) {
-      const currency = exchange === "NSE" ? "INR" : "PKR";
+      const currency = quote.currency || "USD";
       const marketPrice: MarketPrice = {
         ticker,
         exchange,

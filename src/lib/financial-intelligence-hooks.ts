@@ -29,18 +29,19 @@ export function usePortfolioSummary() {
 
   // Detect jurisdiction from actual transaction exchanges
   const nseCount = transactions.filter((t) => t.exchange === "NSE").length;
-  const jurisdiction: "PSX" | "NSE" =
-    transactions.length === 0
-      ? ((profile?.jurisdiction as "PSX" | "NSE" | undefined) ?? "PSX")
-      : nseCount > transactions.length / 2
-        ? "NSE"
-        : "PSX";
+  const exchangeCounts = new Map<string, number>();
+  for (const tx of transactions) exchangeCounts.set(tx.exchange, (exchangeCounts.get(tx.exchange) ?? 0) + 1);
+  const dominantExchange = [...exchangeCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+  const jurisdiction: "PSX" | "NSE" | "CUSTOM" =
+    dominantExchange === "PSX" ? "PSX" :
+    dominantExchange === "NSE" ? "NSE" :
+    (profile?.jurisdiction as "PSX" | "NSE" | "CUSTOM" | undefined) ?? "CUSTOM";
 
   const taxYear = String(new Date().getFullYear());
 
   // Use React Query to handle async computation with live market data
   const { data: summary, isLoading: summaryLoading } = useQuery({
-    queryKey: ["portfolio_summary", profile?.org_id, transactions.length],
+    queryKey: ["portfolio_summary", profile?.org_id, transactions.map(t => t.id + ":" + t.status + ":" + t.trade_date).join("|")],
     enabled: !txLoading && !!profile?.org_id,
     queryFn: async () => {
       const computed = await computePortfolioSummary(transactions, jurisdiction, taxYear);

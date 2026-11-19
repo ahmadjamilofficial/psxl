@@ -29,8 +29,8 @@ function TaxCenter() {
   const [jurisdiction, setJurisdiction] = useState<Jurisdiction | null>(null);
   const [filerStatus, setFilerStatus] = useState<"Filer" | "Non-Filer">("Filer");
   const [taxYear, setTaxYear] = useState<string | null>(null);
-  const [customShortTermRate, setCustomShortTermRate] = useState("15");
-  const [customLongTermRate, setCustomLongTermRate] = useState("10");
+  const [customShortTermRate, setCustomShortTermRate] = useState("");
+  const [customLongTermRate, setCustomLongTermRate] = useState("");
   const [customLongTermDays, setCustomLongTermDays] = useState("365");
   const [aiExplanation, setAiExplanation] = useState<string | null>(null);
   const [loadingAI, setLoadingAI] = useState(false);
@@ -42,6 +42,7 @@ function TaxCenter() {
   const transactionYears = [...new Set(transactions.map((transaction) => transaction.trade_date.slice(0, 4)).filter(Boolean))].sort((a, b) => Number(b) - Number(a));
   const defaultTaxYear = transactionYears[0] ?? currentYear;
   const activeYear = taxYear ?? defaultTaxYear;
+  const customRatesConfigured = activeJurisdiction !== "CUSTOM" || (customShortTermRate.trim() !== "" && customLongTermRate.trim() !== "" && Number.isFinite(Number(customShortTermRate)) && Number.isFinite(Number(customLongTermRate)) && Number(customShortTermRate) >= 0 && Number(customShortTermRate) <= 100 && Number(customLongTermRate) >= 0 && Number(customLongTermRate) <= 100);
   const availableTaxYears = [...new Set([currentYear, ...transactionYears])].sort((a, b) => Number(b) - Number(a));
 
   const tax = computeTax(transactions, {
@@ -155,11 +156,11 @@ function TaxCenter() {
           {activeJurisdiction === "CUSTOM" && (
             <div className="grid min-w-[260px] flex-1 gap-3 sm:grid-cols-3">
               <label className="text-xs font-medium" style={{ color: "var(--ink-2)" }}>
-                Short-term CGT %
+                Short-term CGT % (local rule)
                 <input type="number" min="0" max="100" step="0.1" value={customShortTermRate} onChange={(e) => setCustomShortTermRate(e.target.value)} className="mt-1 w-full rounded-[10px] border bg-surface px-3 py-2.5 text-sm" style={{ borderColor: "var(--hairline)" }} />
               </label>
               <label className="text-xs font-medium" style={{ color: "var(--ink-2)" }}>
-                Long-term CGT %
+                Long-term CGT % (local rule)
                 <input type="number" min="0" max="100" step="0.1" value={customLongTermRate} onChange={(e) => setCustomLongTermRate(e.target.value)} className="mt-1 w-full rounded-[10px] border bg-surface px-3 py-2.5 text-sm" style={{ borderColor: "var(--hairline)" }} />
               </label>
               <label className="text-xs font-medium" style={{ color: "var(--ink-2)" }}>
@@ -213,14 +214,14 @@ function TaxCenter() {
           {
             label: "Short-term Gain",
             value: `${currency} ${fmt(tax.shortTermGain)}`,
-            sublabel: tax.shortTermGain > 0 ? `${((tax.shortTermTax / tax.shortTermGain) * 100).toFixed(1)}% effective` : activeJurisdiction === "CUSTOM" ? "Configure custom rules" : "No realized gain this year",
+            sublabel: !customRatesConfigured ? "Configure custom rules" : tax.shortTermGain > 0 ? `${((tax.shortTermTax / tax.shortTermGain) * 100).toFixed(1)}% effective` : "No realised taxable gain",
             tone: tax.shortTermGain >= 0 ? ("ok" as const) : ("bad" as const),
             i: 0,
           },
           {
             label: "Long-term Gain",
             value: `${currency} ${fmt(tax.longTermGain)}`,
-            sublabel: tax.longTermGain > 0 ? `${((tax.longTermTax / tax.longTermGain) * 100).toFixed(1)}% effective` : activeJurisdiction === "CUSTOM" ? "Configure custom rules" : "No realized gain this year",
+            sublabel: !customRatesConfigured ? "Configure custom rules" : tax.longTermGain > 0 ? `${((tax.longTermTax / tax.longTermGain) * 100).toFixed(1)}% effective` : "No realised taxable gain",
             tone: tax.longTermGain >= 0 ? ("ok" as const) : ("bad" as const),
             i: 1,
           },
@@ -233,8 +234,8 @@ function TaxCenter() {
           },
           {
             label: "Estimated Tax Due",
-            value: `${currency} ${fmt(tax.estimatedTaxDue)}`,
-            sublabel: "FIFO · deterministic",
+            value: customRatesConfigured ? `${currency} ${fmt(tax.estimatedTaxDue)}` : "Configure rates",
+            sublabel: customRatesConfigured ? "FIFO · deterministic estimate" : "No tax estimate until rates are entered",
             tone: "warn" as const,
             i: 3,
           },
@@ -280,8 +281,8 @@ function TaxCenter() {
             <Sparkles size={16} strokeWidth={1.75} style={{ color: "var(--color-accent)" }} />
             <p className="text-sm font-semibold">AI Tax Commentary</p>
           </div>
-          <Btn variant="secondary" onClick={getAIExplanation} disabled={loadingAI}>
-            {loadingAI ? "Explaining…" : aiExplanation ? "Refresh" : "Explain in plain English"}
+          <Btn variant="secondary" onClick={getAIExplanation} disabled={loadingAI || !customRatesConfigured}>
+            {loadingAI ? "Explaining…" : !customRatesConfigured ? "Configure rates first" : aiExplanation ? "Refresh" : "Explain in plain English"}
           </Btn>
         </div>
         {aiExplanation ? (
@@ -386,13 +387,13 @@ function TaxCenter() {
                       {fmt(lot.gain)}
                     </td>
                     <td className="tnum px-3 py-3 text-sm" style={{ color: "var(--ink-2)" }}>
-                      {(lot.taxRate * 100).toFixed(1)}%
+                      {activeJurisdiction === "CUSTOM" && !customRatesConfigured ? "—" : `${(lot.taxRate * 100).toFixed(1)}%`}
                     </td>
                     <td
                       className="tnum px-3 py-3 text-sm font-medium"
                       style={{ color: "var(--color-accent)" }}
                     >
-                      {fmt(lot.taxDue)}
+                      {activeJurisdiction === "CUSTOM" && !customRatesConfigured ? "—" : fmt(lot.taxDue)}
                     </td>
                   </tr>
                 ))}

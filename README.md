@@ -15,7 +15,7 @@
 [![Gemini AI](https://img.shields.io/badge/Google-Gemini_3.8-4285F4.svg?style=flat-square&logo=google&logoColor=white)](https://aistudio.google.com/)
 [![Vite](https://img.shields.io/badge/Vite-8.x-646CFF.svg?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev/)
 
-[**Live Demo**](https://psxl.live) · [**Documentation**](#-documentation) · [**Quick Start**](#-quick-start) · [**Report a Bug**](https://github.com/Ahmadjamilofficial/wab/issues)
+[**Live Demo**](https://psxl.live) · [**Documentation**](#-documentation) · [**Quick Start**](#-quick-start) · [**Report a Bug**](https://github.com/ahmadjamilofficial/psxl/issues)
 
 ---
 
@@ -29,7 +29,7 @@
 
 ## Table of Contents
 
-- [Why PSXL](#-why-wab)
+- [Why PSXL](#-why-psxl)
 - [Features](#-features)
 - [Architecture](#-architecture)
 - [Tech Stack](#-tech-stack)
@@ -179,8 +179,8 @@ Every mutation (parse, post, reconcile, compute) writes a `sha256(prev_hash + pa
 ### 1. Clone & install
 
 ```bash
-git clone https://github.com/Ahmadjamilofficial/wab.git
-cd wab
+git clone https://github.com/ahmadjamilofficial/psxl.git
+cd psxl
 npm install
 ```
 
@@ -337,7 +337,7 @@ Also configure `WAB_CREDENTIAL_KEY` on the PSXL server so connected provider cre
 ## Project Structure
 
 ```
-wab/
+psxl/
 ├── public/
 │   ├── favicon.png          # PSXL logo
 │   ├── favicon.svg          # Modern SVG favicon
@@ -461,6 +461,6 @@ PSXL does not provide tax or legal advice. All computations are indicative only.
 
 **Built for traders, financiers, and individuals who deserve better financial tooling.**
 
-[Website](https://psxl.live) · [Twitter](https://twitter.com/wabapp) · [LinkedIn](https://linkedin.com/company/wab)
+[Website](https://psxl.live) · [Twitter](https://psxl.live) · [LinkedIn](https://psxl.live)
 
 </div>

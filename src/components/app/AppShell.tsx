@@ -200,7 +200,12 @@ function InnerShell({ children }: { children: ReactNode }) {
   const avatarUrl = (profile?.avatar_url || user?.user_metadata?.["avatar_url"]) as
     string | undefined;
 
-  const isActive = (to: string) => currentPath === to || currentPath.startsWith(to + "/");
+  const isActive = (to: string) =>
+    to === "/app/settings?tab=usage"
+      ? currentPath === "/app/settings" &&
+        typeof window !== "undefined" &&
+        new URLSearchParams(window.location.search).get("tab") === "usage"
+      : currentPath === to || currentPath.startsWith(to + "/");
   const tabActive = mobileTabs.some((tab) => isActive(tab.to));
 
   function SidebarContent({ collapsed, onClose }: { collapsed: boolean; onClose?: () => void }) {

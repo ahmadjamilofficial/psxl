@@ -1703,6 +1703,41 @@ export const Route = createFileRoute("/api/chat")({
             }),
           };
 
+          // Keep the model's tool context lean. Basic and Standard accounts only
+          // receive tools their plan can actually use; specialist/background and
+          // external integrations are loaded only for Pro.
+          const basicToolNames = new Set([
+            "calculate",
+            "get_latest_trade_metrics",
+            "get_transactions",
+            "get_ledger_summary",
+            "get_open_flags",
+            "insert_transaction",
+            "update_transaction",
+            "delete_transaction",
+            "flag_anomaly",
+            "resolve_flag",
+            "get_unfinished_records",
+            "get_tax_computation",
+            "get_portfolio_analysis",
+            "prepare_spreadsheet",
+            "get_account_overview",
+            "get_broker_accounts",
+            "get_financial_health",
+          ]);
+          const standardToolNames = new Set([
+            ...basicToolNames,
+            "investigate_discrepancy",
+            "propose_unfinished_fixes",
+          ]);
+          const enabledTools = (plan === "pro"
+            ? tools
+            : Object.fromEntries(
+                Object.entries(tools).filter(([name]) =>
+                  (plan === "standard" ? standardToolNames : basicToolNames).has(name),
+                ),
+              )) as typeof tools;
+
           const lastUser = [...uiMessages].reverse().find((m) => m.role === "user");
           const latestText = (lastUser?.parts ?? [])
             .map((p) => (p.type === "text" ? p.text : ""))
@@ -1812,11 +1847,11 @@ NEW TOOLS ADDED:
           const STREAM_OPTS = {
             system: SYSTEM_PROMPT + planSection,
             messages: cleanedMessages,
-            tools,
+            tools: enabledTools,
             // Only destructive deletes need a confirmation; everything else is audited.
-            toolApproval: {
+            toolApproval: plan === "pro" ? {
               delete_transaction: "user-approval" as const,
-            },
+            } : {},
             experimental_toolApprovalSecret: approvalSecret,
             // AI SDK 7 ignores maxSteps; without stopWhen the loop ends after the
             // first tool call and the user never gets a written answer.

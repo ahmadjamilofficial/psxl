@@ -112,18 +112,24 @@ async function fetchYahooPrice(ticker: string): Promise<TickerQuote | null> {
 // ─── Normalize ticker symbols for Yahoo Finance ─────────────────────────────
 
 function normalizeTicker(ticker: string, exchange: string): string {
-  // NSE tickers need .NS suffix
-  if (exchange === "NSE") {
-    return `${ticker}.NS`;
-  }
-  // Yahoo Finance maps Pakistan Stock Exchange symbols to the .KAR suffix.
-  return `${ticker}.KAR`;
+  // A Yahoo Finance symbol can be supplied directly (for example VOD.L or 0700.HK).
+  if (ticker.includes(".") || ticker.startsWith("^") || ticker.startsWith("=")) return ticker;
+  const suffixByExchange: Record<string, string> = {
+    PSX: ".KAR", KSE: ".KAR", NSE: ".NS", BSE: ".BO",
+    LSE: ".L", LONDON: ".L", TSX: ".TO", TSXV: ".V",
+    ASX: ".AX", HKEX: ".HK", TSE: ".T", JPX: ".T",
+    KRX: ".KS", SGX: ".SI", SIX: ".SW", SWX: ".SW",
+    FRA: ".F", XETRA: ".DE", EURONEXT: ".PA",
+  };
+  const suffix = suffixByExchange[exchange.toUpperCase()];
+  // US listings and unrecognised markets use the symbol as supplied.
+  return suffix ? ticker + suffix : ticker;
 }
 
 // ─── Fetch multiple ticker prices (batched) ─────────────────────────────────
 
 async function fetchYahooPrices(
-  tickers: Array<{ ticker: string; exchange: "PSX" | "NSE" }>,
+  tickers: Array<{ ticker: string; exchange: string }>,
 ): Promise<MarketPrice[]> {
   const prices: MarketPrice[] = [];
 

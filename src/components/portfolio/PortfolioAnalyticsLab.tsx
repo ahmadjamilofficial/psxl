@@ -59,8 +59,28 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
       return { ...item, cumulative: monthlyFlow };
     });
     const actionCounts = (["BUY", "SELL", "DIV"] as const).map(action => ({ action, count: filtered.filter(t => t.action === action).length })).filter(item => item.count > 0);
+    // Preserve one point per posted transaction. Grouping only by date collapsed
+    // same-day activity into a single dot, hiding the actual cash-flow movement.
     let flow = 0, peak = 0;
-    const equity = activity.map(d => { flow += d.netFlow; peak = Math.max(peak,flow); return { ...d, cumulative: flow, drawdown: peak ? (flow-peak)/peak*100 : 0 }; });
+    const equity = filtered.map((t, index) => {
+      const gross = t.quantity * t.price;
+      const netFlow = t.action === "BUY"
+        ? -(gross + t.fees)
+        : t.action === "SELL"
+          ? gross - t.fees
+          : gross - t.wht;
+      flow += netFlow;
+      peak = Math.max(peak, flow);
+      return {
+        date: t.trade_date,
+        point: `${t.trade_date} · ${String(index + 1).padStart(3, "0")}`,
+        ticker: t.ticker,
+        action: t.action,
+        netFlow,
+        cumulative: flow,
+        drawdown: peak > 0 ? ((flow - peak) / peak) * 100 : 0,
+      };
+    });
     const tickerRows = [...byTicker.values()].map(v=>({ticker:v.ticker + " · " + v.exchange, buys:v.buyValue, sells:v.sellValue, dividends:v.dividends, netCash:v.sellValue+v.dividends-v.buyValue, shares:v.shares})).sort((a,b)=>b.netCash-a.netCash);
     return { activity, equity, tickerRows, divs: activity.filter(d=>d.dividends>0), monthly, actionCounts };
   }, [filtered]);
@@ -83,7 +103,7 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
     <div className="flex gap-1 overflow-x-auto rounded-xl p-1" style={{background:"var(--color-login-bg)"}}>{tabs.map(t=>{const Icon=t.icon;return <button key={t.id} onClick={()=>setTab(t.id)} className="flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition-all" style={{background:tab===t.id?"var(--color-sheet)":"transparent",color:tab===t.id?"var(--color-text)":"var(--ink-3)",boxShadow:tab===t.id?"0 1px 5px #00000012":"none"}}><Icon size={14}/>{t.label}</button>})}</div>
     <div className="h-[300px] min-w-0 sm:h-[360px]">
       <ResponsiveContainer width="100%" height="100%">
-      {tab==="equity" ? <AreaChart data={data.equity}><defs><linearGradient id="wab-lab-equity" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#34D399" stopOpacity={.28}/><stop offset="100%" stopColor="#34D399" stopOpacity={0}/></linearGradient></defs><CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis dataKey="date" tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><Tooltip formatter={(v:number)=>[(activeCurrency || "—")+" "+fmt(v),"Net cash flow"]} contentStyle={{background:"#111",border:"1px solid rgba(255,255,255,0.1)",borderRadius:12,color:"#fff",padding:"10px 14px"}}/><Area dataKey="cumulative" type="monotone" stroke="#34D399" strokeWidth={2.2} fill="url(#wab-lab-equity)" activeDot={{r:4}}/></AreaChart>
+      {tab==="equity" ? <AreaChart data={data.equity}><defs><linearGradient id="wab-lab-equity" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#34D399" stopOpacity={.28}/><stop offset="100%" stopColor="#34D399" stopOpacity={0}/></linearGradient></defs><CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis dataKey="point" tickFormatter={(value:string)=>String(value).split(" · ")[0]} interval="preserveStartEnd" minTickGap={28} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><Tooltip labelFormatter={(label)=>String(label).split(" · ")[0]} formatter={(v:number)=>[(activeCurrency || "—")+" "+fmt(v),"Cumulative cash flow"]} contentStyle={{background:"#111",border:"1px solid rgba(255,255,255,0.1)",borderRadius:12,color:"#fff",padding:"10px 14px"}}/><Area dataKey="cumulative" name="Cumulative cash flow" type="monotone" stroke="#34D399" strokeWidth={2.2} fill="url(#wab-lab-equity)" activeDot={{r:4}}/></AreaChart>
       : tab==="ticker" ? <BarChart data={data.tickerRows}><CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis dataKey="ticker" tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><Tooltip formatter={(v:number)=>[(activeCurrency || "—")+" "+fmt(v)]} contentStyle={{background:"#111",border:"1px solid rgba(255,255,255,0.1)",borderRadius:12,color:"#fff",padding:"10px 14px"}}/><Bar dataKey="netCash" name="Net cash flow" radius={[4,4,0,0]}>{data.tickerRows.map((r,i)=><Cell key={r.ticker} fill={r.netCash>=0?"#34D399":"#FB7185"}/>)}</Bar></BarChart>
       : tab==="activity" ? <BarChart data={data.activity}><CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis dataKey="date" tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><Tooltip formatter={(v:number)=>[(activeCurrency || "—")+" "+fmt(v)]} contentStyle={{background:"#111",border:"1px solid rgba(255,255,255,0.1)",borderRadius:12,color:"#fff",padding:"10px 14px"}}/><Bar dataKey="buys" name="Buy turnover" fill="#60A5FA" radius={[3,3,0,0]}/><Bar dataKey="sells" name="Sell turnover" fill="#34D399" radius={[3,3,0,0]}/></BarChart>
       : <AreaChart data={data.equity}><CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis dataKey="date" tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis tickFormatter={v=>v.toFixed(1)+"%"} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><Tooltip formatter={(v:number)=>[v.toFixed(2)+"%","Drawdown on cumulative net flow"]} contentStyle={{background:"#111",border:"1px solid rgba(255,255,255,0.1)",borderRadius:12,color:"#fff",padding:"10px 14px"}}/><Area dataKey="drawdown" type="monotone" stroke="#FB7185" strokeWidth={2} fill="#FB718522" activeDot={{r:4}}/></AreaChart>}

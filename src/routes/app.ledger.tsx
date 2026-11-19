@@ -58,6 +58,7 @@ interface TxRow {
   ref_id: string;
   broker: string;
   exchange: string;
+  broker_account_id?: string;
   confidence_score: number;
   status: "posted" | "needs_review";
 }
@@ -110,7 +111,7 @@ function TxFormModal({
 }: {
   mode: "add" | "edit";
   initial: TransactionInput & { notes?: string };
-  brokers: { id: string; name: string; broker_name: string }[];
+  brokers: { id: string; name: string; broker_name: string; currency: string; exchange: string }[];
   onClose: () => void;
   onSave: (values: TransactionInput & { notes?: string }) => void;
   saving: boolean;
@@ -121,7 +122,7 @@ function TxFormModal({
   // records while keeping edit forms untouched.
   useEffect(() => {
     if (mode === "add" && !form.broker && brokers.length > 0) {
-      setForm((current) => ({ ...current, broker: brokers[0]!.broker_name }));
+      setForm((current) => ({ ...current, broker: brokers[0]!.broker_name, broker_account_id: brokers[0]!.id, exchange: brokers[0]!.exchange }));
     }
   }, [brokers, form.broker, mode]);
 
@@ -354,13 +355,16 @@ function TxFormModal({
                 <select
                   className={fieldClass}
                   style={{ borderColor: "var(--hairline)" }}
-                  value={form.broker}
-                  onChange={(e) => set("broker", e.target.value)}
+                  value={form.broker_account_id ?? ""}
+                  onChange={(e) => {
+                    const account = brokers.find((b) => b.id === e.target.value);
+                    setForm((current) => ({ ...current, broker_account_id: account?.id, broker: account?.broker_name ?? (e.target.value === "__custom" ? "__custom" : ""), exchange: account?.exchange ?? current.exchange }));
+                  }}
                 >
                   <option value="">— select broker —</option>
                   {brokers.map((b) => (
-                    <option key={b.id} value={b.broker_name}>
-                      {b.name} ({b.broker_name})
+                    <option key={b.id} value={b.id}>
+                      {b.name} ({b.broker_name} · {b.exchange} · {b.currency})
                     </option>
                   ))}
                   <option value="__custom">Other (type below)</option>
@@ -1965,7 +1969,7 @@ function Ledger() {
           <TxFormModal
             mode="add"
             initial={{ ...EMPTY_FORM }}
-            brokers={brokers as { id: string; name: string; broker_name: string }[]}
+            brokers={brokers}
             onClose={() => setAddOpen(false)}
             onSave={handleAdd}
             saving={createTx.isPending}
@@ -1986,6 +1990,7 @@ function Ledger() {
               ref_id: editRow.ref_id,
               broker: editRow.broker,
               exchange: editRow.exchange,
+              broker_account_id: editRow.broker_account_id,
             }}
             brokers={brokers as { id: string; name: string; broker_name: string }[]}
             onClose={() => setEditRow(null)}

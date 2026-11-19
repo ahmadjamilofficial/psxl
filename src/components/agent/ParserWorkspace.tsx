@@ -299,7 +299,9 @@ function narrateToolOutput(name: string, output: unknown): string {
     }
     const trade = (rec["trade"] ?? {}) as Record<string, unknown>;
     const metrics = (rec["metrics"] ?? {}) as Record<string, unknown>;
-    const money = (value: unknown) => formatMoney(value, "PKR");
+    const exchange = String(trade["exchange"] ?? "NYSE").toUpperCase();
+    const currencyByExchange: Record<string, string> = { PSX: "PKR", KSE: "PKR", NSE: "INR", BSE: "INR", NYSE: "USD", NASDAQ: "USD", AMEX: "USD", LSE: "GBP", TSX: "CAD", ASX: "AUD", HKEX: "HKD", TSE: "JPY", SGX: "SGD", SIX: "CHF", XETRA: "EUR" };
+    const money = (value: unknown) => formatMoney(value, currencyByExchange[exchange] ?? "USD");
     const ticker = String(trade["ticker"] ?? "Trade");
     const action = String(trade["action"] ?? "Trade");
     const date = String(trade["trade_date"] ?? "Date unavailable");

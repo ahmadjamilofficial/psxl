@@ -45,6 +45,9 @@ import {
 } from "@/lib/financial-intelligence-hooks";
 import { DailyBriefing } from "@/components/intelligence/DailyBriefing";
 import { PortfolioRiskSnapshot } from "@/components/portfolio/PortfolioRiskSnapshot";
+import { PortfolioAnalyticsLab } from "@/components/portfolio/PortfolioAnalyticsLab";
+import { PortfolioMarketTerminal } from "@/components/portfolio/PortfolioMarketTerminal";
+import { useLedgerContext } from "@/lib/use-ledger-context";
 import { FinancialHealthScore } from "@/components/intelligence/FinancialHealthScore";
 import { PriorityCard, PriorityCardSkeleton } from "@/components/intelligence/PriorityCard";
 import {
@@ -226,15 +229,10 @@ function FoundSomethingSection({
 
 function MissionControl() {
   const { profile } = useAuth();
-  const jurisdiction = (profile?.jurisdiction as "PSX" | "NSE") ?? "PSX";
+  const { jurisdiction: detectedJurisdiction, currency } = useLedgerContext();
 
   const { data: transactions = [], isLoading: txLoading } = useTransactions(profile?.org_id);
   const { data: flags = [] } = useReconciliationFlags(profile?.org_id);
-
-  // Wab uses one workspace-wide base currency: PKR.
-  // Keep tax jurisdiction independent from transaction exchange detection.
-  const detectedJurisdiction: "PSX" = "PSX";
-  const currency = "PKR";
 
   const currentYear = String(new Date().getFullYear());
   const { score, isLoading: scoreLoading } = useHealthScore();
@@ -383,6 +381,10 @@ function MissionControl() {
           Upload Data
         </Link>
       </div>
+
+      {/* AVMIRS-inspired, ledger-derived analytics suite */}
+      <PortfolioAnalyticsLab transactions={transactions} currency={currency} />
+      <PortfolioMarketTerminal transactions={transactions} currency={currency} />
 
       {/* Daily Briefing */}
       <DailyBriefing />

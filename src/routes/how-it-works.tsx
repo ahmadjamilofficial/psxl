@@ -1,3 +1,4 @@
+import { brandText } from "@/lib/brand";
 import { createFileRoute } from "@tanstack/react-router";
 import { FileCheck2, ScanSearch, Sparkles, Upload } from "lucide-react";
 import { Btn, Panel, Reveal, StatusPill } from "@/components/kit";
@@ -6,13 +7,13 @@ import { PageShell } from "@/components/site/PageShell";
 export const Route = createFileRoute("/how-it-works")({
   head: () => ({
     meta: [
-      { title: "How Wab Works — Upload, Extract, Reconcile, File" },
+      { title: brandText("How {{brand}} Works — Upload, Extract, Reconcile, File") },
       {
         name: "description",
         content:
-          "A walkthrough of the Wab pipeline: multimodal extraction with confidence scoring, rule-based reconciliation and deterministic FIFO tax computation.",
+          brandText("A walkthrough of the {{brand}} pipeline: multimodal extraction with confidence scoring, rule-based reconciliation and deterministic FIFO tax computation."),
       },
-      { property: "og:title", content: "How Wab Works" },
+      { property: "og:title", content: brandText("How {{brand}} Works") },
       {
         property: "og:description",
         content: "From a photographed broker slip to a filed capital-gains summary.",

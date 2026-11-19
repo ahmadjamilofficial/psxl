@@ -1,3 +1,4 @@
+import { brandText } from "@/lib/brand";
 import { createFileRoute } from "@tanstack/react-router";
 import { Mail, Phone, MessageCircle } from "lucide-react";
 import { Btn, Panel } from "@/components/kit";
@@ -6,13 +7,13 @@ import { PageShell } from "@/components/site/PageShell";
 export const Route = createFileRoute("/contact")({
   head: () => ({
     meta: [
-      { title: "Contact Wab — Sales, Support & Compliance" },
+      { title: brandText("Contact {{brand}} — Sales, Support & Compliance") },
       {
         name: "description",
         content:
-          "Get in touch with the Wab team about reconciliation, enterprise plans, jurisdictions or compliance questions.",
+          brandText("Get in touch with the {{brand}} team about reconciliation, enterprise plans, jurisdictions or compliance questions."),
       },
-      { property: "og:title", content: "Contact Wab" },
+      { property: "og:title", content: brandText("Contact {{brand}}") },
       { property: "og:description", content: "Talk to sales, support or the compliance team." },
     ],
   }),

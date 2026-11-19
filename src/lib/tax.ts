@@ -96,6 +96,8 @@ export function computeTax(txs: Transaction[], profile: TaxProfile): TaxComputat
 
     while (remaining > 0 && queue.length > 0) {
       const lot = queue[0]!;
+      // A future purchase cannot fund an earlier disposal.
+      if (lot.date > sell.trade_date) break;
       const matched = Math.min(remaining, lot.qty);
 
       const sellDate = new Date(sell.trade_date);

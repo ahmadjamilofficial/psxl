@@ -581,6 +581,9 @@ function Reconciliation() {
                                     <p style={{ color: "var(--ink-2)" }}>
                                       {aiExplanations[flag.id]}
                                     </p>
+                                    <p className="mt-2 text-[11px]" style={{ color: "var(--ink-3)" }}>
+                                      AI analysis does not change your ledger or resolve this flag. Verify the suggested action, then mark it resolved below.
+                                    </p>
                                   </div>
                                 ) : (
                                   <button

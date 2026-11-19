@@ -189,7 +189,8 @@ async function runWithCascade(opts: RunOptions): Promise<string> {
 
   for (const modelKey of cascade) {
     const model = MODELS[modelKey];
-    const maxRetries = 1;
+    // Fail over promptly instead of waiting on repeated provider backoff.
+    const maxRetries = 0;
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {

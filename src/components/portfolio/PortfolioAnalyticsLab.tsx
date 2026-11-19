@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Activity, BarChart3, Calculator, CandlestickChart, Layers3, PieChart as PieIcon, TrendingDown, TrendingUp } from "lucide-react";
 import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart,
-  ResponsiveContainer, Tooltip, XAxis, YAxis,
+  ResponsiveContainer, Tooltip, XAxis, YAxis, Legend, ReferenceLine,
 } from "recharts";
 import type { Transaction } from "@/lib/demo-data";
 
@@ -48,11 +48,24 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
       byTicker.set(key,v); daily.set(t.trade_date,d);
     }
     const activity = [...daily.values()].sort((a,b)=>a.date.localeCompare(b.date));
+    const monthlyMap = new Map<string, { month: string; buys: number; sells: number; dividends: number; netFlow: number }>();
+    for (const day of activity) {
+      const month = day.date.slice(0, 7);
+      const bucket = monthlyMap.get(month) || { month, buys: 0, sells: 0, dividends: 0, netFlow: 0 };
+      bucket.buys += day.buys; bucket.sells += day.sells; bucket.dividends += day.dividends; bucket.netFlow += day.netFlow;
+      monthlyMap.set(month, bucket);
+    }
+    let monthlyFlow = 0;
+    const monthly = [...monthlyMap.values()].sort((a,b)=>a.month.localeCompare(b.month)).map(item => {
+      monthlyFlow += item.netFlow;
+      return { ...item, cumulative: monthlyFlow };
+    });
+    const actionCounts = (["BUY", "SELL", "DIV"] as const).map(action => ({ action, count: filtered.filter(t => t.action === action).length })).filter(item => item.count > 0);
     let flow = 0, peak = 0;
     const equity = activity.map(d => { flow += d.netFlow; peak = Math.max(peak,flow); return { ...d, cumulative: flow, drawdown: peak ? (flow-peak)/peak*100 : 0 }; });
     const alloc = [...byTicker.values()].map(v=>({name:v.ticker + " · " + v.exchange,value:v.positionCost,weight:v.positionCost})).filter(v=>v.weight>0);
     const tickerRows = [...byTicker.values()].map(v=>({ticker:v.ticker + " · " + v.exchange, buys:v.buyValue, sells:v.sellValue, dividends:v.dividends, netCash:v.sellValue+v.dividends-v.buyValue, shares:v.shares})).sort((a,b)=>b.netCash-a.netCash);
-    return { activity, equity, alloc, tickerRows, divs: activity.filter(d=>d.dividends>0) };
+    return { activity, equity, alloc, tickerRows, divs: activity.filter(d=>d.dividends>0), monthly, actionCounts };
   }, [filtered]);
 
   const fmt = (v:number) => v.toLocaleString("en-PK",{maximumFractionDigits:2});
@@ -80,6 +93,32 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
       : tab==="dividends" ? <BarChart data={data.divs}><CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis dataKey="date" tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><Tooltip formatter={(v:number)=>[(activeCurrency || "—")+" "+fmt(v),"Net dividend"]} contentStyle={{border:"1px solid var(--hairline)",borderRadius:12,background:"var(--color-sheet)"}}/><Bar dataKey="dividends" fill="#A78BFA" radius={[4,4,0,0]}/></BarChart>
       : <AreaChart data={data.equity}><CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis dataKey="date" tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis tickFormatter={v=>v.toFixed(1)+"%"} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><Tooltip formatter={(v:number)=>[v.toFixed(2)+"%","Drawdown on cumulative net flow"]} contentStyle={{border:"1px solid var(--hairline)",borderRadius:12,background:"var(--color-sheet)"}}/><Area dataKey="drawdown" type="monotone" stroke="#FB7185" strokeWidth={2} fill="#FB718522" activeDot={{r:4}}/></AreaChart>}
       </ResponsiveContainer>
+    </div>
+    <div className="grid gap-4 lg:grid-cols-2">
+      <div className="rounded-2xl p-4" style={card}>
+        <div className="mb-2"><h3 className="text-sm font-semibold">Position allocation</h3><p className="text-[11px]" style={{color:"var(--ink-3)"}}>Remaining cost basis · {activeCurrency || "choose currency"}</p></div>
+        <ResponsiveContainer width="100%" height={230}>
+          <PieChart><Pie data={data.alloc} dataKey="weight" nameKey="name" innerRadius={54} outerRadius={84} paddingAngle={3}>{data.alloc.map((item,i)=><Cell key={item.name} fill={colors[i%colors.length]}/>)}</Pie><Tooltip formatter={(v:number)=>[(activeCurrency||"—")+" "+fmt(v),"Cost basis"]} contentStyle={{border:"1px solid var(--hairline)",borderRadius:12,background:"var(--color-sheet)"}}/><Legend wrapperStyle={{fontSize:10,color:"var(--ink-3)"}}/></PieChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="rounded-2xl p-4" style={card}>
+        <div className="mb-2"><h3 className="text-sm font-semibold">Monthly cash-flow trend</h3><p className="text-[11px]" style={{color:"var(--ink-3)"}}>Cumulative net ledger flow by month</p></div>
+        <ResponsiveContainer width="100%" height={230}>
+          <AreaChart data={data.monthly}><CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis dataKey="month" tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><Tooltip formatter={(v:number)=>[(activeCurrency||"—")+" "+fmt(v)]} contentStyle={{border:"1px solid var(--hairline)",borderRadius:12,background:"var(--color-sheet)"}}/><Area dataKey="cumulative" name="Cumulative cash flow" type="monotone" stroke="#2563EB" fill="#2563EB22" strokeWidth={2}/><Line dataKey="buys" name="Buy turnover" type="monotone" stroke="#F59E0B" dot={false}/></AreaChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="rounded-2xl p-4" style={card}>
+        <div className="mb-2"><h3 className="text-sm font-semibold">Ticker cash-flow ranking</h3><p className="text-[11px]" style={{color:"var(--ink-3)"}}>Sell proceeds + dividends − purchases</p></div>
+        <ResponsiveContainer width="100%" height={250}>
+          <BarChart data={data.tickerRows.slice(0,8)} layout="vertical" margin={{left:8,right:12}}><CartesianGrid horizontal={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis type="number" tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis type="category" dataKey="ticker" width={118} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><ReferenceLine x={0} stroke="var(--ink-3)" strokeOpacity={0.4}/><Tooltip formatter={(v:number)=>[(activeCurrency||"—")+" "+fmt(v)]} contentStyle={{border:"1px solid var(--hairline)",borderRadius:12,background:"var(--color-sheet)"}}/><Bar dataKey="netCash" name="Net cash flow" radius={[0,4,4,0]}>{data.tickerRows.slice(0,8).map((item,i)=><Cell key={item.ticker} fill={item.netCash>=0?"#059669":"#DC2626"}/>)}</Bar></BarChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="rounded-2xl p-4" style={card}>
+        <div className="mb-2"><h3 className="text-sm font-semibold">Transaction mix</h3><p className="text-[11px]" style={{color:"var(--ink-3)"}}>Posted buy, sell and dividend records</p></div>
+        <ResponsiveContainer width="100%" height={250}>
+          <PieChart><Pie data={data.actionCounts} dataKey="count" nameKey="action" innerRadius={54} outerRadius={86} paddingAngle={3}>{data.actionCounts.map((item,i)=><Cell key={item.action} fill={["#2563EB","#059669","#A78BFA"][i%3]}/>)}</Pie><Tooltip formatter={(v:number)=>[v,"Records"]} contentStyle={{border:"1px solid var(--hairline)",borderRadius:12,background:"var(--color-sheet)"}}/><Legend wrapperStyle={{fontSize:10,color:"var(--ink-3)"}}/></PieChart>
+        </ResponsiveContainer>
+      </div>
     </div>
     <div className="grid gap-3 sm:grid-cols-3">
       <div className="rounded-xl p-4" style={{...card,background:"var(--color-login-bg)"}}><p className="text-xs" style={{color:"var(--ink-3)"}}>Recorded trades</p><p className="tnum mt-1 text-xl font-semibold">{filtered.filter(t=>t.action!=="DIV").length}</p><p className="mt-1 text-[10px]" style={{color:"var(--ink-3)"}}>Filtered posted BUY / SELL events</p></div>

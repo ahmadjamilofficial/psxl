@@ -1,0 +1,159 @@
+/* Mobile Ask PSXL: compact, edge-aware chat layout inspired by native chat apps. */
+@media (max-width: 767px) {
+  html,
+  body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  .app-mobile-main:has(.wab-composer) {
+    height: 100dvh;
+    max-height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .wab-composer-area {
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: 100%;
+    padding: 8px 12px max(8px, env(safe-area-inset-bottom, 0px)) !important;
+    background: var(--background);
+  }
+
+  .wab-composer-area > div {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  /* Suggestions consume valuable vertical space on phones; keep them on desktop. */
+  .wab-composer-area > div > .wab-fade-up {
+    display: none !important;
+  }
+
+  .wab-composer-area > div > p {
+    display: none;
+  }
+
+  .wab-composer [data-slot="input-group"] {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 26px;
+    box-shadow: 0 1px 3px oklch(0 0 0 / 8%) !important;
+  }
+
+  .wab-composer textarea {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    min-height: 44px !important;
+    max-height: min(30dvh, 168px) !important;
+    padding: 11px 16px 7px !important;
+    font-family: var(--font-body);
+    font-size: 16px !important;
+    line-height: 1.45 !important;
+    letter-spacing: -0.01em;
+    overscroll-behavior: contain;
+    -webkit-appearance: none;
+  }
+
+  .wab-composer [data-slot="input-group-addon"] {
+    min-width: 0;
+    padding-inline: 10px;
+    padding-bottom: 9px;
+  }
+
+  .wab-composer .wab-send,
+  .wab-composer button[aria-label="Attach files"] {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+  }
+
+  .chat-scroll [class*="max-w-[48rem]"] {
+    width: 100%;
+    max-width: 100%;
+    padding-inline: 16px;
+  }
+
+  .wab-composer-area .wab-composer {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* Chat transcript: 16px gutters and readable, non-overflowing response text. */
+  .chat-scroll {
+    scrollbar-width: none;
+  }
+
+  .chat-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  .chat-scroll [class*="max-w-[48rem]"] {
+    width: 100%;
+    max-width: 42rem;
+    margin-inline: auto;
+  }
+
+  [data-slot="conversation-content"],
+  .wab-composer-area ~ * {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .wab-md,
+  [data-slot="message-response"] {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: normal;
+    font-size: 16px;
+    line-height: 1.6;
+    letter-spacing: -0.01em;
+  }
+
+  .wab-md p,
+  .wab-md li {
+    line-height: 1.6;
+  }
+
+  .wab-md pre,
+  .wab-md table,
+  .wab-md img,
+  .wab-md svg {
+    max-width: 100%;
+  }
+
+  .wab-md pre,
+  .wab-md > div {
+    overflow-x: auto;
+  }
+
+  .wab-composer-area::before {
+    top: -14px;
+    height: 14px;
+  }
+
+  /* Preserve the app's own scrolling while the software keyboard is open. */
+  .app-mobile-main,
+  .app-mobile-main > *,
+  .app-mobile-main .min-h-0 {
+    min-width: 0;
+  }
+
+  .app-mobile-main .chat-scroll {
+    -webkit-overflow-scrolling: touch;
+    scroll-padding-bottom: 12px;
+  }
+}
+
+@media (min-width: 768px) {
+  .wab-composer-area > div,
+  .wab-composer-area .wab-composer,
+  .wab-composer-area > div > .wab-fade-up {
+    max-width: 42rem;
+  }
+}

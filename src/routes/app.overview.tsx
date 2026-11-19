@@ -23,9 +23,6 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Cell,
-  Pie,
-  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -41,12 +38,9 @@ import {
   usePriorities,
   useFinancialEvents,
   useFinancialInsights,
-  useDailyBriefing,
 } from "@/lib/financial-intelligence-hooks";
-import { DailyBriefing } from "@/components/intelligence/DailyBriefing";
 import { PortfolioRiskSnapshot } from "@/components/portfolio/PortfolioRiskSnapshot";
 import { PortfolioAnalyticsLab } from "@/components/portfolio/PortfolioAnalyticsLab";
-import { PortfolioMarketTerminal } from "@/components/portfolio/PortfolioMarketTerminal";
 import { useLedgerContext } from "@/lib/use-ledger-context";
 import { currencyForExchange } from "@/lib/market-currency";
 import { FinancialHealthScore } from "@/components/intelligence/FinancialHealthScore";
@@ -63,9 +57,6 @@ import type { EventSeverity } from "@/lib/financial-intelligence";
 export const Route = createFileRoute("/app/overview")({
   component: MissionControl,
 });
-
-// Distinct premium hues so each holding remains identifiable in the allocation ring.
-const allocationColors = ["#34D399", "#60A5FA", "#A78BFA", "#FBBF24", "#F472B6", "#22D3EE"];
 
 // ── Metric Card ───────────────────────────────────────────────────────────────
 
@@ -255,11 +246,6 @@ function MissionControl() {
   });
   const unreconciledCount = transactions.filter((t) => t.status === "needs_review").length;
 
-  // Portfolio allocation — use live market data from summary
-  const allocationData = (summary?.tickerBreakdown ?? [])
-    .slice(0, 6)
-    .map((d, i) => ({ name: d.ticker, value: d.value, color: allocationColors[i] ?? "#ccc" }));
-
   const totalPortfolioValue = summary?.totalValue ?? 0;
 
   // Cumulative P&L chart
@@ -367,14 +353,14 @@ function MissionControl() {
             style={{
               fontFamily: "var(--font-heading)",
               fontSize: "1.75rem",
-              color: "var(--brand-panel-fg)",
+              color: "var(--color-text)",
             }}
           >
             Portfolio overview
           </h1>
           <p
             className="mt-1 text-sm"
-            style={{ color: "color-mix(in srgb, var(--brand-panel-fg) 64%, transparent)" }}
+            style={{ color: "var(--ink-2)" }}
           >
             Portfolio health and ledger-based intelligence
           </p>
@@ -382,15 +368,12 @@ function MissionControl() {
         <Link
           to="/app/parser"
           className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-opacity hover:opacity-85"
-          style={{ background: "var(--brand-panel-fg)", color: "var(--brand-panel)" }}
+          style={{ background: "var(--color-accent)", color: "var(--accent-fg)" }}
         >
           <Upload size={16} />
           Upload Data
         </Link>
       </div>
-
-      {/* Daily Briefing */}
-      <DailyBriefing />
 
       {/* Key Metrics Grid */}
       <div
@@ -441,7 +424,6 @@ function MissionControl() {
 
       {/* AVMIRS-inspired, ledger-derived analytics suite */}
       <PortfolioAnalyticsLab transactions={transactions} currency={currency} />
-      <PortfolioMarketTerminal transactions={transactions} currency={currency} />
 
       <section className="grid gap-4 lg:grid-cols-2" aria-label="Ledger analytics">
         <div className="rounded-2xl p-5" style={{ background: "var(--surface)", border: "1px solid var(--hairline)" }}>
@@ -597,67 +579,6 @@ function MissionControl() {
           >
             <FinancialHealthScore score={score} isLoading={scoreLoading} />
           </div>
-
-          {/* Holdings Allocation */}
-          {allocationData.length > 0 && (
-            <div
-              className="rounded-xl bg-surface p-6"
-              style={{ border: "1px solid var(--hairline)" }}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="text-sm font-bold">Holdings</p>
-                  <p className="text-xs" style={{ color: "var(--ink-3)" }}>
-                    By ticker · current positions
-                  </p>
-                </div>
-                <BarChart3 size={16} style={{ color: "var(--ink-3)" }} />
-              </div>
-              <div className="flex justify-center">
-                <ResponsiveContainer width={140} height={140}>
-                  <PieChart>
-                    <Pie
-                      data={allocationData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={42}
-                      outerRadius={65}
-                      dataKey="value"
-                      paddingAngle={2}
-                    >
-                      {allocationData.map((entry) => (
-                        <Cell key={entry.name} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        fontSize: 11,
-                        borderRadius: 8,
-                        border: "1px solid var(--hairline)",
-                      }}
-                      formatter={(v: number) => [`${currency} ${fmt(v)}`, ""]}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="mt-3 space-y-1.5">
-                {allocationData.map((d) => (
-                  <div key={d.name} className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-1.5" style={{ color: "var(--ink-2)" }}>
-                      <span
-                        className="size-2 rounded-full shrink-0"
-                        style={{ background: d.color }}
-                      />
-                      {d.name}
-                    </div>
-                    <span className="tnum font-medium" style={{ color: "var(--color-text)" }}>
-                      {((d.value / totalPortfolioValue) * 100).toFixed(1)}%
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Portfolio concentration snapshot */}
           <PortfolioRiskSnapshot positions={summary?.tickerBreakdown ?? []} currency={currency} />

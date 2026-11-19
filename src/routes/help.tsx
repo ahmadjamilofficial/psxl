@@ -1,3 +1,4 @@
+import { brandText } from "@/lib/brand";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   BookOpen,
@@ -15,13 +16,13 @@ import { PageShell } from "@/components/site/PageShell";
 export const Route = createFileRoute("/help")({
   head: () => ({
     meta: [
-      { title: "Wab Help Center — Guides, Parsing & Tax Support" },
+      { title: brandText("{{brand}} Help Center — Guides, Parsing & Tax Support") },
       {
         name: "description",
         content:
-          "Search Wab guides on uploading statements, reconciliation, capital-gains computation, billing and troubleshooting.",
+          brandText("Search {{brand}} guides on uploading statements, reconciliation, capital-gains computation, billing and troubleshooting."),
       },
-      { property: "og:title", content: "Wab Help Center" },
+      { property: "og:title", content: brandText("{{brand}} Help Center") },
       {
         property: "og:description",
         content: "Guides and answers for parsing, reconciliation, tax profiles and billing.",
@@ -62,7 +63,7 @@ const cats = [
 
 const popular = [
   "Why did my extraction land in the review queue?",
-  "How Wab matches FIFO lots across broker accounts",
+  brandText("How {{brand}} matches FIFO lots across broker accounts"),
   "Setting filer vs non-filer status for PSX withholding",
   "Exporting a tax summary your accountant will accept",
   "Fixing a duplicate fill flagged during reconciliation",

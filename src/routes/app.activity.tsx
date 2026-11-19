@@ -1,3 +1,4 @@
+import { brandText } from "@/lib/brand";
 // ─── Activity Feed ────────────────────────────────────────────────────────────
 import { createFileRoute } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
@@ -224,7 +225,7 @@ function ActivityFeed() {
         <div>
           <h1 className="text-xl font-bold">Activity Feed</h1>
           <p className="mt-0.5 text-sm" style={{ color: "var(--ink-2)" }}>
-            Every autonomous action Wab has taken, in order. Revert any run instantly.
+            {brandText("Every autonomous action {{brand}} has taken, in order. Revert any run instantly.")}
           </p>
         </div>
         <button

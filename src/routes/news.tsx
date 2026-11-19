@@ -1,3 +1,4 @@
+import { brandText } from "@/lib/brand";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Panel, Reveal, StatusPill } from "@/components/kit";
@@ -6,16 +7,16 @@ import { PageShell } from "@/components/site/PageShell";
 export const Route = createFileRoute("/news")({
   head: () => ({
     meta: [
-      { title: "Wab News, Compliance Updates & Release Notes" },
+      { title: brandText("{{brand}} News, Compliance Updates & Release Notes") },
       {
         name: "description",
         content:
-          "Product announcements, regional compliance updates and the Wab release-note timeline for traders on PSX and NSE.",
+          brandText("Product announcements, regional compliance updates and the {{brand}} release-note timeline for traders on PSX and NSE."),
       },
-      { property: "og:title", content: "Wab News & Changelog" },
+      { property: "og:title", content: brandText("{{brand}} News & Changelog") },
       {
         property: "og:description",
-        content: "Product, compliance and company updates from the Wab team.",
+        content: brandText("Product, compliance and company updates from the {{brand}} team."),
       },
     ],
   }),
@@ -48,7 +49,7 @@ const posts = [
   },
   {
     cat: "Company",
-    title: "Wab opens an early-access program for micro-brokerages",
+    title: brandText("{{brand}} opens an early-access program for micro-brokerages"),
     date: "21 May 2026",
     excerpt:
       "Multi-client rollups, member directories and reconciliation health leaderboards are in the hands of first design partners.",

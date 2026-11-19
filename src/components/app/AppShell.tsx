@@ -484,7 +484,7 @@ function InnerShell({ children }: { children: ReactNode }) {
                 }}
               >
                 <Sparkles size={14} strokeWidth={2} />
-                Ask PSXL
+                {brandText("Ask {{brand}}")}
               </Link>
             )}
 

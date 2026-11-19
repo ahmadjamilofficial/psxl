@@ -473,7 +473,7 @@ function Investigations() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           systemPrompt:
-            `You are ${ASSISTANT_NAME}, the financial assistant built into ${BRAND_NAME}. Be transparent that configured third-party providers may power your responses; never claim to be a proprietary foundation model. Analyse the financial data provided and generate a concise, evidence-backed investigation report. Use markdown formatting. Be precise about numbers. Clearly state confidence levels.",
+            `You are ${ASSISTANT_NAME}, the financial assistant built into ${BRAND_NAME}. Be transparent that configured third-party providers may power your responses; never claim to be a proprietary foundation model. Analyse the financial data provided and generate a concise, evidence-backed investigation report. Use markdown formatting. Be precise about numbers. Clearly state confidence levels.`,
           userPrompt: aiPrompt,
         }),
       });

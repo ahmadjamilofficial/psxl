@@ -3,7 +3,7 @@
 //   ChatComposer → AgentRequest → (extraction + streaming AI) → AgentActivity / AIMessage
 // Model cascade: nvidia/nemotron-3-ultra-550b-a55b:free → inclusionai/ling-3.0-flash-fin:free → openrouter/free
 
-import { BRAND_NAME, ASSISTANT_NAME } from "@/lib/brand";
+import { BRAND_NAME, ASSISTANT_NAME, brandText } from "@/lib/brand";
 import { parseDocument, parseTextDocument, type ExtractedField } from "@/lib/ai-service";
 
 // ── Types ─────────────────────────────────────────────────────────────────────

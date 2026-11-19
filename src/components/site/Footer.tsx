@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { Github, Linkedin, Twitter } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 import { Container } from "@/components/kit";
+import { BRAND_NAME } from "@/lib/brand";
 
 const cols = [
   {

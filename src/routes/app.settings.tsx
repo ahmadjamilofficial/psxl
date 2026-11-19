@@ -353,6 +353,7 @@ function Settings() {
                     >
                       <option value="PSX">PSX — Pakistan</option>
                       <option value="NSE">NSE — India</option>
+                      <option value="CUSTOM">Other / Global</option>
                     </select>
                   </div>
                   <Btn onClick={save} variant="primary" disabled={saving}>
@@ -482,6 +483,11 @@ function Settings() {
                       name: "NSE — India",
                       key: "NSE",
                       rules: "STCG 20%, LTCG 12.5% (post Budget 2024)",
+                    },
+                    {
+                      name: "Other markets — Custom",
+                      key: "CUSTOM",
+                      rules: "Configure tax rules for your local jurisdiction in Tax Center",
                     },
                   ].map((p) => {
                     const isActive = jurisdiction === p.key;

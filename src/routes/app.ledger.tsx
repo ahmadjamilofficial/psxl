@@ -95,7 +95,7 @@ const EMPTY_FORM: TransactionInput & { notes?: string } = {
   trade_date: new Date().toISOString().slice(0, 10),
   ref_id: "",
   broker: "",
-  exchange: "PSX",
+  exchange: "",
 };
 
 // ─── Transaction Form Modal ───────────────────────────────────────────────────

@@ -1,3 +1,4 @@
+import { brandText } from "@/lib/brand";
 import { createFileRoute } from "@tanstack/react-router";
 import { ConnectedSourcesTab } from "@/components/app/ConnectedSourcesTab";
 import { useAuth } from "@/lib/auth-context";
@@ -22,7 +23,7 @@ function DataSources() {
         <div className="rounded-2xl bg-surface p-6" style={{ border: "1px solid var(--hairline)" }}>
           <p className="mb-1 text-sm font-semibold">Connected Sources</p>
           <p className="mb-5 text-xs" style={{ color: "var(--ink-3)" }}>
-            Wab monitors these sources continuously and acts on changes automatically.
+            {brandText("{{brand}} monitors these sources continuously and acts on changes automatically.")}
           </p>
           <ConnectedSourcesTab orgId={profile?.org_id ?? ""} />
         </div>

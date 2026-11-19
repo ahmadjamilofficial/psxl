@@ -1,3 +1,4 @@
+import { brandText } from "@/lib/brand";
 // ─── Shared contact / project constants ───────────────────────────────────────
 
 export const SUPPORT_EMAIL = "ahmadjamildhami@gmail.com";
@@ -16,7 +17,7 @@ export function upgradeMailto(
   return mailto(
     `I want to upgrade my plan — ${plan}`,
     [
-      "Hi Wab team,",
+      brandText("Hi {{brand}} team,"),
       "",
       `I want to upgrade my plan to ${plan}.`,
       "",

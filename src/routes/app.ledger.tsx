@@ -1,3 +1,4 @@
+import { brandText } from "@/lib/brand";
 import { createFileRoute } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { createPortal } from "react-dom";
@@ -1104,7 +1105,7 @@ function ImportPanel({
                   Drop files here or <span style={{ color: "var(--color-accent)" }}>browse</span>
                 </p>
                 <p className="mt-1 text-xs" style={{ color: "var(--ink-3)" }}>
-                  CSV, Excel (.xlsx) or text files. PDFs and images go in the Wab chat.
+                  {brandText("CSV, Excel (.xlsx) or text files. PDFs and images go in the {{brand}} chat.")}
                 </p>
                 <input
                   ref={inputRef}
@@ -1467,7 +1468,7 @@ function Ledger() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `wab-ledger-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `psxl-ledger-${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -1494,7 +1495,7 @@ function Ledger() {
     );
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Ledger");
-    XLSX.writeFile(wb, `wab-ledger-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    XLSX.writeFile(wb, `psxl-ledger-${new Date().toISOString().slice(0, 10)}.xlsx`);
     toast.success("Ledger exported for Excel / Google Sheets");
   }
 

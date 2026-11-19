@@ -218,12 +218,18 @@ export function useResolveFlag() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ flagId, orgId }: { flagId: string; orgId: string }) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("reconciliation_flags")
         .update({ status: "resolved" })
         .eq("id", flagId)
-        .eq("org_id", orgId);
+        .eq("org_id", orgId)
+        .eq("status", "open")
+        .select("id, status")
+        .maybeSingle();
       if (error) throw new Error(error.message);
+      if (!data || data.status !== "resolved") {
+        throw new Error("The flag was not updated. It may already be resolved or your account lacks permission.");
+      }
     },
     onSuccess: (_d, { orgId }) =>
       qc.invalidateQueries({ queryKey: ["reconciliation_flags", orgId] }),

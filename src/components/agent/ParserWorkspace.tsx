@@ -1049,7 +1049,9 @@ function Chat({
             );
           })}
 
-          {status === "submitted" && (
+          {isStreaming && !assistantHasWrittenText(
+            messages.at(-1)?.role === "assistant" ? messages.at(-1)!.parts : [],
+          ) && (
             <div
               className="flex w-full max-w-[48rem] items-center gap-2 px-4 py-1"
               role="status"

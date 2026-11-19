@@ -575,7 +575,7 @@ function Reconciliation() {
                                         className="text-xs font-semibold"
                                         style={{ color: "var(--color-accent)" }}
                                       >
-                                        Wab AI
+                                        {{brand}} AI
                                       </span>
                                     </div>
                                     <p style={{ color: "var(--ink-2)" }}>

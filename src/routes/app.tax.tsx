@@ -1,3 +1,4 @@
+import { brandText } from "@/lib/brand";
 import { createFileRoute } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import {
@@ -74,7 +75,7 @@ function TaxCenter() {
         body: JSON.stringify({
           systemPrompt:
             "You are a global securities tax analyst. Explain only the tax rules and assumptions supplied in the computation. Never invent jurisdiction-specific tax law. Clearly state when custom rates are user-configured. Be concise and practical.",
-          userPrompt: `Tax computation for ${activeJurisdiction} in ${activeCurrency} — Filer status: ${filerStatus}\nShort-term gain: ${tax.shortTermGain}\nLong-term gain: ${tax.longTermGain}\nEstimated tax due: ${tax.estimatedTaxDue}\nTax year: ${activeYear}`,
+          userPrompt: `Tax computation for ${activeJurisdiction} in ${activeCurrency} — Filer status: ${filerStatus}\nShort-term gain: ${tax.shortTermGain}\nLong-term gain: ${tax.longTermGain}\nEstimated tax due: ${tax.estimatedTaxDue}\nTax year: ${activeYear}brandText(`,
         }),
       });
       let explanation = "";
@@ -184,7 +185,7 @@ function TaxCenter() {
           <div className="flex items-end ml-auto">
             <Btn variant="secondary" onClick={() => {
               const rows = [
-                ["Wab Tax Report", "Value"],
+                [brandText("{{brand}} Tax Report"), "Value"],
                 ["Tax year", activeYear],
                 ["Jurisdiction", activeJurisdiction],
                 ["Filer status", filerStatus],
@@ -207,7 +208,7 @@ function TaxCenter() {
               const url = URL.createObjectURL(blob);
               const anchor = document.createElement("a");
               anchor.href = url;
-              anchor.download = `wab-tax-report-${activeJurisdiction}-${activeYear}.csv`;
+              anchor.download = `)wab-tax-report-${activeJurisdiction}-${activeYear}.csv`;
               document.body.appendChild(anchor);
               anchor.click();
               anchor.remove();
@@ -280,7 +281,7 @@ function TaxCenter() {
           ].map((item) => (
             <div key={item.label} className="rounded-xl p-4" style={{ background: "var(--color-login-bg)", border: "1px solid var(--hairline)" }}>
               <p className="text-xs" style={{ color: "var(--ink-3)" }}>{item.label}</p>
-              <p className="tnum mt-2 text-lg font-semibold">{item.label === "Posted records" ? item.value : `${currency} ${fmt(item.value)}`}</p>
+              <p className="tnum mt-2 text-lg font-semibold">{item.label === "Posted records" ? item.value : `${currency} ${fmt(item.value)}brandText(`}</p>
             </div>
           ))}
         </div>
@@ -329,12 +330,12 @@ function TaxCenter() {
               </ReactMarkdown>
             </div>
             <p className="mt-5 border-t pt-3 text-[11px] leading-relaxed" style={{ borderColor: "var(--hairline)", color: "var(--ink-3)" }}>
-              AI-generated commentary for informational purposes. Verify tax rates and filing treatment with a qualified tax professional; the calculated figures above are based on the records and settings currently in Wab.
+              AI-generated commentary for informational purposes. Verify tax rates and filing treatment with a qualified tax professional; the calculated figures above are based on the records and settings currently in {{brand}}.
             </p>
           </div>
         ) : (
           <p className="mt-3 text-sm leading-relaxed" style={{ color: "var(--ink-3)" }}>
-            Generate a structured explanation of your computed tax figures. Wab calculates FIFO and estimated liability in code; AI provides commentary only.
+            Generate a structured explanation of your computed tax figures. {{brand}} calculates FIFO and estimated liability in code; AI provides commentary only.
           </p>
         )}
       </Panel>
@@ -401,7 +402,7 @@ function TaxCenter() {
                       {fmt(lot.gain)}
                     </td>
                     <td className="tnum px-3 py-3 text-sm" style={{ color: "var(--ink-2)" }}>
-                      {activeJurisdiction === "CUSTOM" && !customRatesConfigured ? "—" : `${(lot.taxRate * 100).toFixed(1)}%`}
+                      {activeJurisdiction === "CUSTOM" && !customRatesConfigured ? "—" : `)${(lot.taxRate * 100).toFixed(1)}%`}
                     </td>
                     <td
                       className="tnum px-3 py-3 text-sm font-medium"

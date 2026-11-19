@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="public/favicon.png" width="64" height="64" alt="Wab Logo" />
+<img src="public/favicon.png" width="64" height="64" alt="PSXL Logo" />
 
-# Wab
+# PSXL
 
 ### AI-Native Financial Operations & Audit Platform
 
@@ -19,7 +19,7 @@
 
 ---
 
-> Wab turns messy financial records into a clean, reconciled, audit-ready ledger
+> PSXL turns messy financial records into a clean, reconciled, audit-ready ledger
 > using multimodal AI extraction and deterministic computation —
 > replacing days of manual spreadsheet work with minutes.
 
@@ -29,7 +29,7 @@
 
 ## Table of Contents
 
-- [Why Wab](#-why-wab)
+- [Why PSXL](#-why-wab)
 - [Features](#-features)
 - [Architecture](#-architecture)
 - [Tech Stack](#-tech-stack)
@@ -49,11 +49,11 @@
 
 ---
 
-## Why Wab
+## Why PSXL
 
 Modern financial software is either too generic or too complex. **Traders, financiers, and individuals** need:
 
-|| Pain Point | What Wab Does |
+|| Pain Point | What PSXL Does |
 ||---|---|
 || Broker slips in PDF, photo, CSV formats | Multimodal AI extracts every field with confidence scoring |
 || Manual tax calculation across FIFO lots | Deterministic TypeScript engine — never AI-guessed |
@@ -107,7 +107,7 @@ Every mutation (parse, post, reconcile, compute) writes a `sha256(prev_hash + pa
 ## How it works
 
 1. **Sign in** with email or Google. The first login provisions an organisation, profile, and Basic ($0) subscription.
-2. **Ask Wab** (`/app/parser`) is the workspace. Attach or drop PDFs, images, CSV, or XLSX. The model reads the files and can query the live ledger through tools.
+2. **Ask PSXL** (`/app/parser`) is the workspace. Attach or drop PDFs, images, CSV, or XLSX. The model reads the files and can query the live ledger through tools.
 3. **Ledger / tax / audit trail** are the books of record. FIFO tax math never comes from the LLM.
 4. **Integrations** connect wallets, exchanges, brokerage APIs, bank statement feeds, and CSV imports. A provider is marked Connected only after a live API test succeeds; manual sync is immediate, while background sync requires the Autopilot scheduler below.
 5. **Billing** is Basic $0, Standard $9/mo or $45/yr, Pro $25/mo or $90/yr, plus a dedicated 7-day Standard trial. Checkout is Kelviq; paid windows are counted in strict 30/365-day clocks.
@@ -223,6 +223,8 @@ npm run preview
 
 ## Environment Variables
 
+Set `VITE_PRODUCT_NAME=PSXL` in your deployment environment to control the product name across the UI, metadata and AI assistant. Change this one value to rename the branded application. The existing logo artwork is retained.
+
 Create a `.env` file at the project root (copy from `.env.example`):
 
 ```env
@@ -254,7 +256,7 @@ VITE_GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
 VITE_APP_URL=http://localhost:8080
 
 # Tool approval secret
-TOOL_APPROVAL_SECRET=wab-tool-approval
+TOOL_APPROVAL_SECRET=psxl-tool-approval
 ```
 
 > **Security note:** `.env` is in `.gitignore`. Never commit real keys. For production deployments, inject secrets via your host's environment variable panel.
@@ -319,16 +321,16 @@ A connection is **Connected** only after the adapter's live `test()` succeeds. S
 
 The repository includes `.github/workflows/wab-autopilot.yml`. Once enabled on the default branch, it runs every 15 minutes: enqueue due agent work, poll connected Sheets/OneDrive sources, sync up to 40 connected read-only provider connections per pulse, and drain up to 100 queued jobs. GitHub may delay scheduled workflows, so this is periodic background processing—not a real-time or guaranteed-uptime service. The app-open heartbeat remains a best-effort fallback.
 
-To activate it, first apply the autonomous-agent SQL migrations, deploy `agent-runner`, `sheets-poller`, and `onedrive-poller`, and deploy the Wab server route. Then add these **GitHub Actions repository secrets** (Settings → Secrets and variables → Actions):
+To activate it, first apply the autonomous-agent SQL migrations, deploy `agent-runner`, `sheets-poller`, and `onedrive-poller`, and deploy the PSXL server route. Then add these **GitHub Actions repository secrets** (Settings → Secrets and variables → Actions):
 
 | Secret | Value |
 |---|---|
 | `WAB_SUPABASE_URL` | Your Supabase project URL, e.g. `https://<project-ref>.supabase.co` |
 | `WAB_SUPABASE_SERVICE_ROLE_KEY` | Supabase service-role key; store only as a GitHub secret, never in source or client variables |
-| `WAB_AUTOSYNC_URL` | Deployed Wab server URL ending in `/api/agent/autosync` |
-| `WAB_AUTOSYNC_SECRET` | A unique random secret of at least 32 characters; set the exact same value as a server-only environment variable on the Wab host |
+| `WAB_AUTOSYNC_URL` | Deployed PSXL server URL ending in `/api/agent/autosync` |
+| `WAB_AUTOSYNC_SECRET` | A unique random secret of at least 32 characters; set the exact same value as a server-only environment variable on the PSXL host |
 
-Also configure `WAB_CREDENTIAL_KEY` on the Wab server so connected provider credentials can be decrypted. The workflow can be smoke-tested with **Actions → Wab Autopilot → Run workflow**. Keep the workflow disabled until all four secrets and server-side credentials are configured. Failed syncs are recorded on the connection; automatic retry stops after three consecutive failures to avoid hammering revoked credentials. Re-test the connection to reset it.
+Also configure `WAB_CREDENTIAL_KEY` on the PSXL server so connected provider credentials can be decrypted. The workflow can be smoke-tested with **Actions → PSXL Autopilot → Run workflow**. Keep the workflow disabled until all four secrets and server-side credentials are configured. Failed syncs are recorded on the connection; automatic retry stops after three consecutive failures to avoid hammering revoked credentials. Re-test the connection to reset it.
 
 ---
 
@@ -337,7 +339,7 @@ Also configure `WAB_CREDENTIAL_KEY` on the Wab server so connected provider cred
 ```
 wab/
 ├── public/
-│   ├── favicon.png          # Wab logo
+│   ├── favicon.png          # PSXL logo
 │   ├── favicon.svg          # Modern SVG favicon
 │   ├── dark-logo.png        # Dark theme logo
 │   ├── light-logo.png       # Light theme logo
@@ -371,7 +373,7 @@ wab/
 
 ## AI Pipeline
 
-Wab routes chat through server-only keys. Gemini 2.x models are retired; the default Gemini id is `gemini-3.8-flash`. Three bounded jobs:
+PSXL routes chat through server-only keys. Gemini 2.x models are retired; the default Gemini id is `gemini-3.8-flash`. Three bounded jobs:
 
 ### Document Parsing
 ```
@@ -445,13 +447,13 @@ Please follow the existing code style (Prettier + ESLint config included).
 
 ## License
 
-MIT © Wab Contributors
+MIT © PSXL Contributors
 
 ---
 
 ## Disclaimer
 
-Wab does not provide tax or legal advice. All computations are indicative only. Always consult a qualified tax professional before filing your returns.
+PSXL does not provide tax or legal advice. All computations are indicative only. Always consult a qualified tax professional before filing your returns.
 
 ---
 

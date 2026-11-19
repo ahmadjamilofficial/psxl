@@ -1,3 +1,4 @@
+import { brandText } from "@/lib/brand";
 // ─── Shared contact / project constants ───────────────────────────────────────
 
 export const SUPPORT_EMAIL = "ahmadjamildhami@gmail.com";
@@ -14,11 +15,11 @@ export function upgradeMailto(
   context: { email?: string | undefined; org?: string | undefined },
 ) {
   return mailto(
-    `I want to upgrade my plan — ${plan}`,
+    `I want to upgrade my plan — ${plan}brandText(`,
     [
-      "Hi Wab team,",
+      brandText("Hi {{brand}} team,"),
       "",
-      `I want to upgrade my plan to ${plan}.`,
+      `)I want to upgrade my plan to ${plan}.`,
       "",
       `Account email: ${context.email ?? "(please fill in)"}`,
       `Organisation: ${context.org ?? "(please fill in)"}`,

@@ -18,6 +18,7 @@ export interface Transaction {
   status: TxStatus;
   broker: string;
   exchange: string;
+  currency?: string;
 }
 
 export const DEMO_TRANSACTIONS: Transaction[] = [

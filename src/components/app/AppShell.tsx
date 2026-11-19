@@ -523,13 +523,13 @@ function InnerShell({ children }: { children: ReactNode }) {
                 key={tab.to}
                 to={tab.to}
                 onClick={() => setMoreOpen(false)}
-                className="relative flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-2xl px-1 py-1.5 text-[10px] font-semibold"
+                className="relative flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl px-1 py-1 text-[9px] font-semibold"
                 style={{
                   color: active ? "var(--sidebar-primary)" : "var(--ink-3)",
                   background: active ? "var(--sidebar-accent)" : "transparent",
                 }}
               >
-                <Icon size={18} strokeWidth={active ? 2.1 : 1.7} />
+                <Icon size={17} strokeWidth={active ? 2.1 : 1.7} />
                 <span className="max-w-full truncate">{tab.label}</span>
                 {tab.to === "/app/review" && reviewBadge > 0 && (
                   <span
@@ -545,13 +545,13 @@ function InnerShell({ children }: { children: ReactNode }) {
           <button
             type="button"
             onClick={() => setMoreOpen((v) => !v)}
-            className="relative flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-2xl px-1 py-1.5 text-[10px] font-semibold"
+            className="relative flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl px-1 py-1 text-[9px] font-semibold"
             style={{
               color: moreOpen || !tabActive ? "var(--sidebar-primary)" : "var(--ink-3)",
               background: moreOpen || !tabActive ? "var(--sidebar-accent)" : "transparent",
             }}
           >
-            <MoreHorizontal size={18} strokeWidth={moreOpen || !tabActive ? 2.1 : 1.7} />
+            <MoreHorizontal size={17} strokeWidth={moreOpen || !tabActive ? 2.1 : 1.7} />
             <span className="max-w-full truncate">More</span>
           </button>
         </div>

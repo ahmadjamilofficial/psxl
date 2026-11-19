@@ -724,17 +724,17 @@ function BrokerPanel({ orgId, onClose }: { orgId: string; onClose: () => void })
                 required
               />
               <div className="grid grid-cols-2 gap-2">
-                <select
+                <input
                   className={fieldClass}
                   style={{ borderColor: "var(--hairline)" }}
                   value={form.exchange}
-                  onChange={(e) => set("exchange", e.target.value)}
-                >
-                  <option value="PSX">PSX</option>
-                  <option value="NSE">NSE</option>
-                  <option value="BSE">BSE</option>
-                  <option value="OTHER">Other</option>
-                </select>
+                  onChange={(e) => set("exchange", e.target.value.toUpperCase().trim())}
+                  list="wab-account-exchanges"
+                  placeholder="Exchange (NYSE, LSE, TSE…)"
+                />
+                <datalist id="wab-account-exchanges">
+                  {["NYSE","NASDAQ","AMEX","LSE","TSX","ASX","HKEX","TSE","NSE","BSE","PSX","SGX","SIX","XETRA"].map((exchange) => <option key={exchange} value={exchange} />)}
+                </datalist>
                 <select
                   className={fieldClass}
                   style={{ borderColor: "var(--hairline)" }}
@@ -744,6 +744,15 @@ function BrokerPanel({ orgId, onClose }: { orgId: string; onClose: () => void })
                   <option value="PKR">PKR</option>
                   <option value="INR">INR</option>
                   <option value="USD">USD</option>
+                  <option value="EUR">EUR</option>
+                  <option value="GBP">GBP</option>
+                  <option value="CAD">CAD</option>
+                  <option value="AUD">AUD</option>
+                  <option value="JPY">JPY</option>
+                  <option value="CHF">CHF</option>
+                  <option value="CNY">CNY</option>
+                  <option value="HKD">HKD</option>
+                  <option value="SGD">SGD</option>
                 </select>
               </div>
               <input

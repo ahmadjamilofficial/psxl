@@ -619,7 +619,7 @@ function BrokerPanel({ orgId, onClose }: { orgId: string; onClose: () => void })
         >
           <div className="flex items-center gap-2">
             <Building2 size={16} style={{ color: "var(--color-accent)" }} />
-            <span className="text-sm font-bold">Broker Accounts</span>
+            <span className="text-sm font-bold">Manual broker profiles</span>
           </div>
           <button type="button" onClick={onClose} className="rounded-lg p-1 hover:bg-surface-hover">
             <X size={15} strokeWidth={1.75} style={{ color: "var(--ink-3)" }} />
@@ -633,7 +633,7 @@ function BrokerPanel({ orgId, onClose }: { orgId: string; onClose: () => void })
               className="mb-2 text-[11px] font-semibold uppercase tracking-wide"
               style={{ color: "var(--ink-3)" }}
             >
-              Connected accounts
+              Saved profiles
             </p>
             {isLoading ? (
               <div
@@ -644,7 +644,7 @@ function BrokerPanel({ orgId, onClose }: { orgId: string; onClose: () => void })
               </div>
             ) : brokers.length === 0 ? (
               <p className="py-3 text-xs" style={{ color: "var(--ink-3)" }}>
-                No broker accounts yet.
+                No manual broker profiles yet.
               </p>
             ) : (
               <div className="space-y-2">
@@ -709,7 +709,14 @@ function BrokerPanel({ orgId, onClose }: { orgId: string; onClose: () => void })
               className="mb-3 text-[11px] font-semibold uppercase tracking-wide"
               style={{ color: "var(--ink-3)" }}
             >
-              Add new account
+              Add manual profile
+            </p>
+            <p className="mb-3 text-xs leading-relaxed" style={{ color: "var(--ink-2)" }}>
+              This only saves broker details for ledger tagging. It does not log in to your broker,
+              verify credentials, or sync trades. For supported live connections, use{" "}
+              <a href="/app/integrations" className="font-semibold underline" style={{ color: "var(--color-accent)" }}>
+                Integrations
+              </a>.
             </p>
             <div className="space-y-2.5">
               <input
@@ -772,7 +779,7 @@ function BrokerPanel({ orgId, onClose }: { orgId: string; onClose: () => void })
                 ) : (
                   <Plus size={14} />
                 )}
-                Add Account
+                Add Manual Profile
               </button>
             </div>
           </form>

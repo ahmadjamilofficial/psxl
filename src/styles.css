@@ -653,10 +653,10 @@ body {
 
 /* AVMIRS-inspired command header: one strong anchor, neutral surfaces below. */
 .overview-hero {
-  min-height: 132px;
-  padding: 22px 24px;
-  border: 1px solid oklch(1 0 0 / 8%);
-  border-radius: 14px;
-  background: var(--brand-panel);
-  box-shadow: var(--shadow-card);
+  min-height: 112px;
+  padding: 20px 22px;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: none;
 }

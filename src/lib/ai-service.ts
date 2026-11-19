@@ -1,4 +1,4 @@
-import { brandText } from "@/lib/brand";
+import { ASSISTANT_NAME, BRAND_NAME } from "@/lib/brand";
 // ─── PSXL AI Service — Agentic pipeline on Groq ─────────────────────────────
 //
 // MODEL CASCADE (Groq models):
@@ -232,7 +232,7 @@ async function runWithCascade(opts: RunOptions): Promise<string> {
 
 // ── Document parsing system prompt ────────────────────────────────────────────
 
-const PARSE_SYSTEM = `You are an expert financial document parser specialising in PSX (Pakistan) and NSE (India) trade confirmations, broker slips, contract notes, and dividend vouchers.
+const PARSE_SYSTEM = `You are ${ASSISTANT_NAME}, the document-parsing specialist inside ${BRAND_NAME}. You are a financial assistant specialising in PSX (Pakistan) and NSE (India) trade confirmations, broker slips, contract notes, and dividend vouchers. You extract data accurately but never invent missing values.
 
 Extract every field and return ONLY a valid JSON object — no markdown, no code fences, no explanation.
 

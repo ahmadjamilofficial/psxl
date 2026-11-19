@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
   Link,
+  useRouterState,
   createRootRouteWithContext,
   useRouter,
   HeadContent,
@@ -86,7 +87,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { httpEquiv: "Cache-Control", content: "no-cache" },
 
       // ── Primary SEO ──────────────────────────────────────────────────────
       { title: brandText("{{brand}} — AI-Native Financial Audit & Compliance for PSX, NSE Traders") },
@@ -94,11 +94,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         name: "description",
         content:
           brandText("{{brand}} is an AI-powered trade reconciliation and CGT tax engine for PSX (Pakistan) and NSE (India) traders. Upload broker slips, get a FIFO-accurate, audit-ready ledger in minutes. Free for 50 transactions/month."),
-      },
-      {
-        name: "keywords",
-        content:
-          brandText("PSX tax calculator, NSE CGT calculator, Pakistan capital gains tax, FIFO trade reconciliation, broker slip parser, AI financial audit, portfolio ledger PSX, WHT calculator Pakistan, NSE STCG LTCG, trade confirmation parser, {{brand}}"),
       },
       { name: "author", content: brandText("{{brand}}") },
       { name: "robots", content: "index, follow" },
@@ -108,12 +103,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { name: "theme-color", content: "#0B0C0E" },
       { name: "rating", content: "general" },
-      { name: "revisit-after", content: "7 days" },
-      { name: "language", content: "English" },
 
       // ── Open Graph ───────────────────────────────────────────────────────
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://psxl.live/" },
       { property: "og:site_name", content: brandText("{{brand}}") },
       {
         property: "og:title",
@@ -124,29 +116,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           brandText("Replace hours of manual ledger work with {{brand}}. Upload any PSX or NSE broker slip — AI extracts every field, FIFO math computes your CGT, and an immutable audit trail keeps you filing-ready."),
       },
-      { property: "og:image", content: "https://psxl.live/og-image.png" },
-      { property: "og:image:width", content: "1200" },
-      { property: "og:image:height", content: "630" },
-      {
-        property: "og:image:alt",
-        content: brandText("{{brand}} dashboard showing portfolio reconciliation and tax computation"),
-      },
       { property: "og:locale", content: "en_US" },
 
       // ── Twitter / X ──────────────────────────────────────────────────────
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@wabapp" },
-      { name: "twitter:creator", content: "@wabapp" },
       { name: "twitter:title", content: brandText("{{brand}} — AI-Native Trade Reconciliation & CGT Engine") },
       {
         name: "twitter:description",
         content:
           "Upload your PSX/NSE broker slips. AI extracts the data, FIFO math computes your capital gains tax, and an immutable audit trail keeps you filing-ready.",
       },
-      { name: "twitter:image", content: "https://psxl.live/og-image.png" },
-      { name: "twitter:image:alt", content: brandText("{{brand}} — AI-powered trade reconciliation dashboard") },
 
-      // ── App / Mobile ─────────────────────────────────────────────────────
+      // ── App/ / Mobile ─────────────────────────────────────────────────────
       { name: "application-name", content: brandText("{{brand}}") },
       { name: "apple-mobile-web-app-title", content: brandText("{{brand}}") },
       { name: "apple-mobile-web-app-capable", content: "yes" },
@@ -171,7 +152,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { rel: "icon", href: "/favicon.png", type: "image/png", sizes: "64x64" },
       { rel: "apple-touch-icon", href: "/favicon.png", sizes: "64x64" },
-      { rel: "canonical", href: "https://psxl.live/" },
       { rel: "manifest", href: "/site.webmanifest" },
     ],
   }),
@@ -183,6 +163,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: ReactNode }) {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const canonicalPath = pathname === "/" ? "/" : pathname.replace(/\\/+$/, "");
   const jsonLd = JSON.stringify({
     "@context": "https://schema.org",
     "@graph": [
@@ -194,7 +176,7 @@ function RootShell({ children }: { children: ReactNode }) {
         applicationCategory: "FinanceApplication",
         operatingSystem: "Web",
         description:
-          "AI-native financial audit and compliance agent for PSX and NSE traders. Multimodal document parsing, FIFO CGT computation, and immutable audit trails.",
+          "Financial record parsing, trade reconciliation, discrepancy detection, and deterministic FIFO capital-gains calculations for supported PSX and NSE workflows.",
         offers: [
           {
             "@type": "Offer",
@@ -223,13 +205,12 @@ function RootShell({ children }: { children: ReactNode }) {
         featureList: [
           "Multimodal trade confirmation parser (PDF, image, CSV)",
           "FIFO capital gains tax computation for PSX and NSE",
-          "Immutable hash-chained audit log",
+          "Traceable audit history",
           "AI anomaly detection and reconciliation",
           "Tax-loss harvesting suggestions",
           "Google OAuth and email authentication",
           "Multi-tenant row-level security",
         ],
-        screenshot: "https://psxl.live/og-image.png",
       },
       {
         "@type": "Organization",
@@ -237,7 +218,6 @@ function RootShell({ children }: { children: ReactNode }) {
         name: brandText("{{brand}}"),
         url: "https://psxl.live",
         logo: "https://psxl.live/favicon.png",
-        sameAs: ["https://twitter.com/wabapp", "https://linkedin.com/company/wab"],
       },
       {
         "@type": "WebSite",
@@ -246,43 +226,6 @@ function RootShell({ children }: { children: ReactNode }) {
         name: brandText("{{brand}}"),
         description: "AI-Native Financial Audit & Compliance for PSX and NSE Traders",
         publisher: { "@id": "https://psxl.live/#org" },
-        potentialAction: {
-          "@type": "SearchAction",
-          target: {
-            "@type": "EntryPoint",
-            urlTemplate: "https://psxl.live/?q={search_term_string}",
-          },
-          "query-input": "required name=search_term_string",
-        },
-      },
-      {
-        "@type": "FAQPage",
-        mainEntity: [
-          {
-            "@type": "Question",
-            name: brandText("What is {{brand}}?"),
-            acceptedAnswer: {
-              "@type": "Answer",
-              text: brandText("{{brand}} is an AI-native financial audit and compliance agent for retail traders and micro-brokerages trading on PSX (Pakistan Stock Exchange) and NSE (India National Stock Exchange). It parses broker trade confirmations and computes capital gains tax automatically."),
-            },
-          },
-          {
-            "@type": "Question",
-            name: brandText("How does {{brand}} compute capital gains tax?"),
-            acceptedAnswer: {
-              "@type": "Answer",
-              text: brandText("{{brand}} uses a deterministic FIFO (First In, First Out) lot-matching engine written in TypeScript. The AI model never computes numbers — it only extracts data from documents. Tax math is 100% code-based and auditable."),
-            },
-          },
-          {
-            "@type": "Question",
-            name: brandText("Which stock exchanges does {{brand}} support?"),
-            acceptedAnswer: {
-              "@type": "Answer",
-              text: brandText("{{brand}} currently supports PSX (Pakistan) with CGT slabs and Filer/Non-Filer WHT rates, and NSE (India) with STCG/LTCG rules per the 2024 Union Budget. More jurisdictions are coming."),
-            },
-          },
-        ],
       },
     ],
   });
@@ -291,6 +234,8 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="en">
       <head>
         <HeadContent />
+        <link rel="canonical" href={`https://psxl.live${canonicalPath}`} />
+        <meta property="og:url" content={`https://psxl.live${canonicalPath}`} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
       </head>
       <body>

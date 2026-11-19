@@ -4,6 +4,7 @@ import { AppShell } from "@/components/app/AppShell";
 import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/app")({
+  head: () => ({ meta: [{ name: "robots", content: "noindex, nofollow" }] }),
   component: AppLayout,
 });
 

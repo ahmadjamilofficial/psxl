@@ -12,6 +12,7 @@ import { signInWithEmail, signInWithGoogle, supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/signin")({
+  head: () => ({ meta: [{ name: "robots", content: "noindex, nofollow" }] }),
   component: SignIn,
 });
 

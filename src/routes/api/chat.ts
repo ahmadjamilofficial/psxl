@@ -20,7 +20,6 @@ import {
   markProviderUnhealthy,
   orderModelCascade,
   resolveAgentModel,
-  selectWorkingModel,
   type ResolvedModel,
 } from "@/lib/audit-agent.server";
 import { serverEnv, supabaseServerConfig } from "@/lib/env.server";
@@ -497,23 +496,11 @@ export const Route = createFileRoute("/api/chat")({
             );
           }
 
-          // Prove a provider really answers before streaming, otherwise the user
-          // gets a generic failure on every single prompt.
-          const selected = await selectWorkingModel(resolved);
-          if (!selected.model) {
-            const detail = describeAttempts(selected.attempts);
-            console.error(brandText("[{{brand}} Chat] No AI provider answered:"), detail);
-            return new Response(
-              JSON.stringify({
-                code: "ai_provider_unavailable",
-                message: `${BRAND_NAME} AI could not reach its model provider. ${detail}`,
-                attempts: selected.attempts,
-              }),
-              { status: 503, headers: { "Content-Type": "application/json" } },
-            );
-          }
-
-          const workingModel = selected.model;
+          // Do not probe every provider before every chat turn. Cold serverless
+          // isolates made those parallel probes add seconds before the first token.
+          // Start with the plan-selected model immediately; the stream loop below
+          // falls back to the next configured provider if the first connection fails.
+          const workingModel = { ...resolved, attempts: [] as Array<{ provider: string; modelId: string; ok: boolean }> };
           console.log(brandText("[{{brand}} Chat] AI Model Resolved:"), {
             provider: workingModel.provider,
             modelId: workingModel.modelId,
@@ -573,12 +560,19 @@ export const Route = createFileRoute("/api/chat")({
           // Enforce the same limit shown in the Usage screen on the server.
           // Client-side counters are informational and must never be trusted.
           const usageSince = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-          const { data: usageRows } = await supabase
+          const { data: usageRows, error: usageReadError } = await supabase
             .from("ai_usage")
             .select("credits_used")
             .eq("user_id", authData.user.id)
             .eq("status", "ok")
             .gte("created_at", usageSince);
+          if (usageReadError) {
+            console.error("[PSXL Chat] Usage quota lookup failed:", usageReadError.message);
+            return new Response(
+              JSON.stringify({ code: "quota_check_unavailable", message: "PSXL could not verify your AI quota. Please retry shortly." }),
+              { status: 503, headers: { "Content-Type": "application/json" } },
+            );
+          }
           const creditsUsed = (usageRows ?? []).reduce(
             (total, row) => total + Number(row.credits_used ?? 0),
             0,
@@ -604,14 +598,9 @@ export const Route = createFileRoute("/api/chat")({
           const monthlyTxLimit = limits.transactionsPerMonth; // null = unlimited
           const canDelegate = limits.features.specialistAgents;
 
-          const healthyCascade = workingModel.cascade.filter((entry) =>
-            workingModel.attempts.some(
-              (a) => a.ok && a.provider === entry.provider && a.modelId === entry.modelId,
-            ),
-          );
-          const cascadeFallback = healthyCascade[0] ?? workingModel.cascade[0];
+          const cascadeFallback = workingModel.cascade[0];
           if (cascadeFallback) {
-            const picked = pickCascadeForPlan(healthyCascade, plan, cascadeFallback);
+            const picked = pickCascadeForPlan(workingModel.cascade, plan, cascadeFallback);
             const selectedModel: ResolvedModel = {
               ...workingModel,
               modelId: picked.modelId,
@@ -623,9 +612,10 @@ export const Route = createFileRoute("/api/chat")({
             model = selectedModel.model;
           }
 
-          // Track usage for analytics (but don't block on it)
+          // Record usage synchronously so a failed write cannot silently bypass
+          // plan limits. Charge against the actual plan-selected model.
           const usageId = crypto.randomUUID();
-          supabase
+          const { error: usageWriteError } = await supabase
             .from("ai_usage")
             .insert({
               id: usageId,
@@ -633,17 +623,18 @@ export const Route = createFileRoute("/api/chat")({
               org_id: thread.org_id,
               plan,
               thread_id: thread.id,
-              model: resolved.modelId,
+              model: chosenModel.modelId,
               inference_requests: 1,
               credits_used: 1,
               status: "ok",
-            } as never)
-            .then(
-              () => undefined,
-              (err: unknown) => {
-                // Silent error handling for ai_usage insert
-              },
+            } as never);
+          if (usageWriteError) {
+            console.error("[PSXL Chat] Usage quota write failed:", usageWriteError.message);
+            return new Response(
+              JSON.stringify({ code: "quota_accounting_unavailable", message: "PSXL could not record AI usage, so this request was not started. Please retry shortly." }),
+              { status: 503, headers: { "Content-Type": "application/json" } },
             );
+          }
 
           // ── Convert UI messages to AI messages ─────────────────────────────
           let uiMessages: UIMessage[];
@@ -694,7 +685,7 @@ export const Route = createFileRoute("/api/chat")({
           const tools = {
             plan_task: tool({
               description:
-                "Understand the objective and publish the work plan before doing anything else. Call this first on every non-trivial request. Also use it to surface a public progress stage.",
+                "For genuinely complex, multi-stage audits only: publish a concise work plan and current public progress stage. Do not call for simple lookups, scans, summaries, or one-step tasks.",
               inputSchema: z.object({
                 objective: z.string(),
                 steps: z.array(z.string()),
@@ -1831,6 +1822,7 @@ NEW TOOLS ADDED:
             // AI SDK 7 ignores maxSteps; without stopWhen the loop ends after the
             // first tool call and the user never gets a written answer.
             stopWhen: stepCountIs(maxSteps),
+            maxOutputTokens: limits.aiQuality === "limited" ? 900 : limits.aiQuality === "standard" ? 1800 : 3200,
             // Groq on-demand frequently returns transient TPM 429s with a
             // short retry-after window. Allow the SDK's exponential backoff to
             // retry before we declare this provider unavailable and fail over.
@@ -1873,11 +1865,12 @@ NEW TOOLS ADDED:
           // Prefer models that passed the live probe. In particular, do not
           // send a complex tool request first to a provider already known to be
           // unavailable just because it appeared earlier in configuration.
-          const failoverQueue = orderModelCascade(
-            resolved.cascade,
-            workingModel.attempts,
+          const failoverQueue = [
             chosenModel,
-          );
+            ...resolved.cascade.filter(
+              (entry) => entry.provider !== chosenModel.provider || entry.modelId !== chosenModel.modelId,
+            ),
+          ];
 
           // One place that turns any failure into a safe, categorised message.
           // The underlying error is always logged server-side so the real cause

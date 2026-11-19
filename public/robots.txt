@@ -1,10 +1,7 @@
 # PSXL crawler policy
 User-agent: *
 Allow: /
-Disallow: /app/
 Disallow: /api/
-Disallow: /signin
-Disallow: /signup
 Disallow: /auth/
 Disallow: /_/
 

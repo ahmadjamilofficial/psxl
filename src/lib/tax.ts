@@ -5,12 +5,15 @@ import type { Transaction } from "./demo-data";
 
 // ── Tax profile types ─────────────────────────────────────────────────────────
 
-export type Jurisdiction = "PSX" | "NSE";
+export type Jurisdiction = "PSX" | "NSE" | "CUSTOM";
 
 export interface TaxProfile {
   jurisdiction: Jurisdiction;
   filerStatus: "Filer" | "Non-Filer"; // PSX only
   taxYear: string; // e.g. "2025"
+  customShortTermRate?: number;
+  customLongTermRate?: number;
+  customLongTermDays?: number;
 }
 
 // ── Result types ──────────────────────────────────────────────────────────────
@@ -66,14 +69,14 @@ function nseCgtRate(holdingDays: number): number {
 
 export function computeTax(txs: Transaction[], profile: TaxProfile): TaxComputation {
   // Filter to the relevant tax year (calendar year for simplicity)
-  const yearTxs = txs.filter((t) => t.trade_date.startsWith(profile.taxYear));
+  const yearTxs = txs.filter((t) => t.status === "posted" && t.trade_date.startsWith(profile.taxYear));
 
   // Build FIFO buy queues per ticker
   const buyQueues: Record<string, Array<{ date: string; qty: number; price: number }>> = {};
 
   // Process ALL buy transactions in chronological order
   const allBuys = [...txs]
-    .filter((t) => t.action === "BUY")
+    .filter((t) => t.status === "posted" && t.action === "BUY")
     .sort((a, b) => a.trade_date.localeCompare(b.trade_date));
 
   for (const tx of allBuys) {
@@ -84,7 +87,7 @@ export function computeTax(txs: Transaction[], profile: TaxProfile): TaxComputat
   // Match sells against buy lots using FIFO
   const lots: FifoLot[] = [];
   const sellTxs = yearTxs
-    .filter((t) => t.action === "SELL")
+    .filter((t) => t.status === "posted" && t.action === "SELL")
     .sort((a, b) => a.trade_date.localeCompare(b.trade_date));
 
   for (const sell of sellTxs) {
@@ -102,8 +105,13 @@ export function computeTax(txs: Transaction[], profile: TaxProfile): TaxComputat
       );
 
       const gain = (sell.price - lot.price) * matched;
-      const taxRate =
-        profile.jurisdiction === "PSX" ? psxCgtRate(holdingDays) : nseCgtRate(holdingDays);
+      const longTermDays = profile.customLongTermDays ?? 365;
+      const isShortTerm = holdingDays < (profile.jurisdiction === "CUSTOM" ? longTermDays : 365);
+      const taxRate = profile.jurisdiction === "PSX"
+        ? psxCgtRate(holdingDays)
+        : profile.jurisdiction === "NSE"
+          ? nseCgtRate(holdingDays)
+          : Math.max(0, Math.min(1, (isShortTerm ? profile.customShortTermRate : profile.customLongTermRate) ?? 0));
 
       lots.push({
         buyDate: lot.date,
@@ -114,7 +122,7 @@ export function computeTax(txs: Transaction[], profile: TaxProfile): TaxComputat
         salePrice: sell.price,
         holdingDays,
         gain,
-        isShortTerm: holdingDays < 365,
+        isShortTerm,
         taxRate,
         taxDue: Math.max(0, gain * taxRate),
       });

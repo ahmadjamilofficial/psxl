@@ -948,8 +948,8 @@ function Chat({
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
       <header
-        className="flex shrink-0 items-center justify-between gap-3 border-b px-4 py-2.5 sm:px-6"
-        style={{ borderColor: "var(--hairline)", background: "var(--surface)" }}
+        className="flex shrink-0 items-center justify-between gap-3 px-4 py-2.5 sm:px-6"
+        style={{ background: "var(--color-login-bg)" }}
       >
         <ChatSidebar activeId={threadId} />
         {isStreaming && (

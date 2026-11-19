@@ -229,7 +229,7 @@ function FoundSomethingSection({
 
 function MissionControl() {
   const { profile } = useAuth();
-  const { jurisdiction: detectedJurisdiction, currency } = useLedgerContext();
+  const { jurisdiction: detectedJurisdiction, currency: ledgerCurrency } = useLedgerContext();
 
   const { data: transactions = [], isLoading: txLoading } = useTransactions(profile?.org_id);
   const { data: flags = [] } = useReconciliationFlags(profile?.org_id);
@@ -237,6 +237,7 @@ function MissionControl() {
   const currentYear = String(new Date().getFullYear());
   const { score, isLoading: scoreLoading } = useHealthScore();
   const { summary, isLoading: summaryLoading } = usePortfolioSummary();
+  const currency = summary?.currency ?? ledgerCurrency;
   const { priorities, isLoading: prioritiesLoading } = usePriorities();
   const { data: events = [], isLoading: eventsLoading } = useFinancialEvents(30);
   const { data: insights = [] } = useFinancialInsights(5);

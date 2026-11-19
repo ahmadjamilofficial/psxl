@@ -4,5 +4,10 @@ Allow: /
 Disallow: /api/
 Disallow: /auth/
 Disallow: /_/
+Disallow: /app/
+Disallow: /signin
+Disallow: /signup
+Disallow: /forgot-password
+Disallow: /reset-password
 
 Sitemap: https://psxl.live/sitemap.xml

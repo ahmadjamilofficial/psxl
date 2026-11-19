@@ -17,7 +17,7 @@ export interface Transaction {
   confidence_score: number;
   status: TxStatus;
   broker: string;
-  exchange: "PSX" | "NSE";
+  exchange: string;
 }
 
 export const DEMO_TRANSACTIONS: Transaction[] = [

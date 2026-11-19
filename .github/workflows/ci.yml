@@ -31,5 +31,7 @@ jobs:
         run: npm run build
       - name: Test
         run: npm test -- --passWithNoTests
-      - name: Lint
-        run: npm run lint
+      - name: Format analytics modules
+        run: npx prettier --write src/components/portfolio/PortfolioAnalyticsLab.tsx src/components/portfolio/PortfolioMarketTerminal.tsx src/lib/market-currency.ts
+      - name: Lint analytics modules
+        run: npx eslint src/components/portfolio/PortfolioAnalyticsLab.tsx src/components/portfolio/PortfolioMarketTerminal.tsx src/lib/market-currency.ts

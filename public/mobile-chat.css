@@ -73,6 +73,12 @@
     min-height: 36px;
   }
 
+  .chat-scroll [class*="max-w-[48rem]"] {
+    width: 100%;
+    max-width: 100%;
+    padding-inline: 16px;
+  }
+
   .wab-composer-area .wab-composer {
     width: 100%;
     max-width: 100%;
@@ -85,6 +91,12 @@
 
   .chat-scroll::-webkit-scrollbar {
     display: none;
+  }
+
+  .chat-scroll [class*="max-w-[48rem]"] {
+    width: 100%;
+    max-width: 42rem;
+    margin-inline: auto;
   }
 
   [data-slot="conversation-content"],

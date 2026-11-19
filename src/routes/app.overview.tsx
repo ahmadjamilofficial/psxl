@@ -382,10 +382,6 @@ function MissionControl() {
         </Link>
       </div>
 
-      {/* AVMIRS-inspired, ledger-derived analytics suite */}
-      <PortfolioAnalyticsLab transactions={transactions} currency={currency} />
-      <PortfolioMarketTerminal transactions={transactions} currency={currency} />
-
       {/* Daily Briefing */}
       <DailyBriefing />
 
@@ -435,6 +431,10 @@ function MissionControl() {
           />
         </div>
       </div>
+
+      {/* AVMIRS-inspired, ledger-derived analytics suite */}
+      <PortfolioAnalyticsLab transactions={transactions} currency={currency} />
+      <PortfolioMarketTerminal transactions={transactions} currency={currency} />
 
       <section className="grid gap-4 lg:grid-cols-2" aria-label="Ledger analytics">
         <div className="rounded-2xl p-5" style={{ background: "var(--surface)", border: "1px solid var(--hairline)" }}>

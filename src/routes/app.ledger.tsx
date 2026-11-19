@@ -553,8 +553,8 @@ function BrokerPanel({ orgId, onClose }: { orgId: string; onClose: () => void })
   const [form, setForm] = useState<BrokerInput>({
     name: "",
     broker_name: "",
-    currency: "PKR",
-    exchange: "PSX",
+    currency: "USD",
+    exchange: "",
     external_ref: "",
   });
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -570,7 +570,7 @@ function BrokerPanel({ orgId, onClose }: { orgId: string; onClose: () => void })
     try {
       await connect.mutateAsync({ orgId, broker: form });
       toast.success("Broker account added");
-      setForm({ name: "", broker_name: "", currency: "PKR", exchange: "PSX", external_ref: "" });
+      setForm({ name: "", broker_name: "", currency: "USD", exchange: "", external_ref: "" });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to add broker");
     }

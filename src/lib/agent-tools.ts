@@ -64,7 +64,7 @@ export const TOOL_DECLARATIONS = [
         trade_date: { type: "STRING", description: "Date in YYYY-MM-DD format" },
         ref_id: { type: "STRING", description: "Broker reference ID" },
         broker: { type: "STRING", description: "Broker name" },
-        exchange: { type: "STRING", description: "PSX or NSE" },
+        exchange: { type: "STRING", description: "Exchange code or Yahoo Finance market symbol suffix (for example NYSE, NASDAQ, LSE, TSX, ASX, HKEX, NSE, PSX)" },
       },
     },
   },

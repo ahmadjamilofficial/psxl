@@ -34,6 +34,7 @@ export function useTransactions(orgId: string | undefined) {
         confidence_score: Number(row.confidence_score),
         status: row.status as Transaction["status"],
         broker: row.broker,
+        brokerAccountId: row.broker_account_id ?? undefined,
         exchange: row.exchange as Transaction["exchange"],
         currency: (row as unknown as { broker_accounts?: { currency?: string } | null }).broker_accounts?.currency ?? currencyForExchange(row.exchange),
       })) as Transaction[];
@@ -53,6 +54,7 @@ export interface TransactionInput {
   ref_id: string;
   broker: string;
   exchange: string;
+  broker_account_id?: string;
 }
 
 export function useCreateTransaction() {
@@ -66,6 +68,7 @@ export function useCreateTransaction() {
         .from("transactions")
         .insert({
           org_id: orgId,
+          broker_account_id: values.broker_account_id || null,
           ticker: values.ticker.trim().toUpperCase(),
           action: values.action,
           quantity: values.quantity,
@@ -115,6 +118,7 @@ export function useUpdateTransaction() {
         "ref_id",
         "broker",
         "exchange",
+        "broker_account_id",
       ];
       for (const field of fields) {
         if (values[field] !== undefined) {

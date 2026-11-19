@@ -24,11 +24,14 @@ export const Route = createFileRoute("/app/tax")({
 
 function TaxCenter() {
   const { profile } = useAuth();
-  const { jurisdiction: detectedJ, taxYear: currentYear } = useLedgerContext();
+  const { jurisdiction: detectedJ, taxYear: currentYear, currency: detectedCurrency } = useLedgerContext();
 
   const [jurisdiction, setJurisdiction] = useState<Jurisdiction | null>(null);
   const [filerStatus, setFilerStatus] = useState<"Filer" | "Non-Filer">("Filer");
   const [taxYear, setTaxYear] = useState<string | null>(null);
+  const [customShortTermRate, setCustomShortTermRate] = useState("15");
+  const [customLongTermRate, setCustomLongTermRate] = useState("10");
+  const [customLongTermDays, setCustomLongTermDays] = useState("365");
   const [aiExplanation, setAiExplanation] = useState<string | null>(null);
   const [loadingAI, setLoadingAI] = useState(false);
 
@@ -36,12 +39,18 @@ function TaxCenter() {
 
   // Use detected values unless the user has overridden them via the dropdowns
   const activeJurisdiction = jurisdiction ?? detectedJ;
-  const activeYear = taxYear ?? currentYear;
+  const transactionYears = [...new Set(transactions.map((transaction) => transaction.trade_date.slice(0, 4)).filter(Boolean))].sort((a, b) => Number(b) - Number(a));
+  const defaultTaxYear = transactionYears[0] ?? currentYear;
+  const activeYear = taxYear ?? defaultTaxYear;
+  const availableTaxYears = [...new Set([currentYear, ...transactionYears])].sort((a, b) => Number(b) - Number(a));
 
   const tax = computeTax(transactions, {
     jurisdiction: activeJurisdiction,
     filerStatus,
     taxYear: activeYear,
+    customShortTermRate: Number(customShortTermRate) / 100,
+    customLongTermRate: Number(customLongTermRate) / 100,
+    customLongTermDays: Number(customLongTermDays) || 365,
   });
   const harvest = suggestHarvesting(transactions, tax.totalGain);
 
@@ -53,7 +62,7 @@ function TaxCenter() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           systemPrompt:
-            "You are a tax computation expert for PSX (Pakistan) and NSE (India) traders. Explain the provided tax calculation in plain English, covering FIFO lot matching, holding period tiers, and CGT bands. Be concise (3-4 sentences) and include key actionable advice.",
+            "You are a global securities tax analyst. Explain only the tax rules and assumptions supplied in the computation. Never invent jurisdiction-specific tax law. Clearly state when custom rates are user-configured. Be concise and practical.",
           userPrompt: `Tax computation for ${activeJurisdiction} — Filer status: ${filerStatus}\nShort-term gain: ${tax.shortTermGain}\nLong-term gain: ${tax.longTermGain}\nEstimated tax due: ${tax.estimatedTaxDue}\nTax year: ${activeYear}`,
         }),
       });
@@ -79,7 +88,7 @@ function TaxCenter() {
 
   const fmt = (n: number) => n.toLocaleString("en-PK", { maximumFractionDigits: 0 });
 
-  const currency = activeJurisdiction === "PSX" ? "PKR" : "INR";
+  const currency = detectedCurrency;
 
   return (
     <div className="space-y-6 p-3 sm:p-6">
@@ -103,14 +112,9 @@ function TaxCenter() {
               className="rounded-[10px] border bg-surface px-3 py-2.5 text-sm outline-none"
               style={{ borderColor: "var(--hairline)" }}
             >
-              {[0, 1, 2].map((offset) => {
-                const y = String(new Date().getFullYear() - offset);
-                return (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                );
-              })}
+              {availableTaxYears.map((year) => (
+                <option key={year} value={year}>{year}</option>
+              ))}
             </select>
           </div>
           <div>
@@ -125,6 +129,7 @@ function TaxCenter() {
             >
               <option value="PSX">PSX — Pakistan</option>
               <option value="NSE">NSE — India</option>
+              <option value="CUSTOM">Other / Custom jurisdiction</option>
             </select>
           </div>
           {activeJurisdiction === "PSX" && (
@@ -141,6 +146,22 @@ function TaxCenter() {
                 <option>Filer</option>
                 <option>Non-Filer</option>
               </select>
+            </div>
+          )}
+          {activeJurisdiction === "CUSTOM" && (
+            <div className="grid min-w-[260px] flex-1 gap-3 sm:grid-cols-3">
+              <label className="text-xs font-medium" style={{ color: "var(--ink-2)" }}>
+                Short-term CGT %
+                <input type="number" min="0" max="100" step="0.1" value={customShortTermRate} onChange={(e) => setCustomShortTermRate(e.target.value)} className="mt-1 w-full rounded-[10px] border bg-surface px-3 py-2.5 text-sm" style={{ borderColor: "var(--hairline)" }} />
+              </label>
+              <label className="text-xs font-medium" style={{ color: "var(--ink-2)" }}>
+                Long-term CGT %
+                <input type="number" min="0" max="100" step="0.1" value={customLongTermRate} onChange={(e) => setCustomLongTermRate(e.target.value)} className="mt-1 w-full rounded-[10px] border bg-surface px-3 py-2.5 text-sm" style={{ borderColor: "var(--hairline)" }} />
+              </label>
+              <label className="text-xs font-medium" style={{ color: "var(--ink-2)" }}>
+                Long-term after (days)
+                <input type="number" min="1" max="3650" step="1" value={customLongTermDays} onChange={(e) => setCustomLongTermDays(e.target.value)} className="mt-1 w-full rounded-[10px] border bg-surface px-3 py-2.5 text-sm" style={{ borderColor: "var(--hairline)" }} />
+              </label>
             </div>
           )}
           <div className="flex items-end ml-auto">
@@ -188,14 +209,14 @@ function TaxCenter() {
           {
             label: "Short-term Gain",
             value: `${currency} ${fmt(tax.shortTermGain)}`,
-            sublabel: `Tax @ ${activeJurisdiction === "PSX" ? "15%" : "20%"}`,
+            sublabel: tax.shortTermGain > 0 ? `${"${((tax.shortTermTax / tax.shortTermGain) * 100).toFixed(1)}%"} effective` : activeJurisdiction === "CUSTOM" ? "Configure custom rules" : "No realized gain this year",
             tone: tax.shortTermGain >= 0 ? ("ok" as const) : ("bad" as const),
             i: 0,
           },
           {
             label: "Long-term Gain",
             value: `${currency} ${fmt(tax.longTermGain)}`,
-            sublabel: `Tax @ ${activeJurisdiction === "PSX" ? "12.5%" : "12.5%"}`,
+            sublabel: tax.longTermGain > 0 ? `${"${((tax.longTermTax / tax.longTermGain) * 100).toFixed(1)}%"} effective` : activeJurisdiction === "CUSTOM" ? "Configure custom rules" : "No realized gain this year",
             tone: tax.longTermGain >= 0 ? ("ok" as const) : ("bad" as const),
             i: 1,
           },
@@ -398,7 +419,7 @@ function TaxCenter() {
                   </p>
                   <p className="tnum text-xs" style={{ color: "var(--ok)" }}>
                     saves ~{currency}{" "}
-                    {fmt(h.potentialOffset * (jurisdiction === "PSX" ? 0.15 : 0.2))}
+                    {fmt(h.potentialOffset * (jurisdiction === "PSX" ? 0.15 : jurisdiction === "NSE" ? 0.2 : Number(customShortTermRate) / 100))}
                   </p>
                 </div>
               </div>
@@ -415,7 +436,7 @@ function TaxCenter() {
             className="mx-auto mb-3"
             style={{ color: "var(--ink-3)" }}
           />
-          <p className="font-medium">No realized gains in {taxYear}</p>
+          <p className="font-medium">No realized gains in {activeYear}</p>
           <p className="mt-1 text-sm" style={{ color: "var(--ink-3)" }}>
             Add sell transactions for FY {taxYear} to see FIFO lot matching.
           </p>

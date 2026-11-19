@@ -102,7 +102,7 @@ export async function fetchMarketPrices(
 
 export async function fetchMarketPrice(
   ticker: string,
-  exchange: "PSX" | "NSE",
+  exchange: string,
 ): Promise<MarketPrice | null> {
   const prices = await fetchMarketPrices([{ ticker, exchange }]);
   return prices.get(`${exchange}:${ticker}`) || null;
@@ -110,7 +110,7 @@ export async function fetchMarketPrice(
 
 // ─── Get cached price without network call ───────────────────────────────────
 
-export function getCachedPrice(ticker: string, exchange: "PSX" | "NSE"): MarketPrice | null {
+export function getCachedPrice(ticker: string, exchange: string): MarketPrice | null {
   const key = `${exchange}:${ticker}`;
   const cached = PRICE_CACHE.get(key);
   if (cached && cached.expires > Date.now()) {
@@ -144,7 +144,7 @@ export async function storePriceSnapshot(orgId: string, prices: MarketPrice[]): 
 
 export async function getHistoricalPrice(
   ticker: string,
-  exchange: "PSX" | "NSE",
+  exchange: string,
   date: string,
 ): Promise<number | null> {
   const { data, error } = await supabase

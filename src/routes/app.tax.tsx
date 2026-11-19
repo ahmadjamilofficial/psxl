@@ -29,6 +29,7 @@ function TaxCenter() {
   const [jurisdiction, setJurisdiction] = useState<Jurisdiction | null>(null);
   const [filerStatus, setFilerStatus] = useState<"Filer" | "Non-Filer">("Filer");
   const [taxYear, setTaxYear] = useState<string | null>(null);
+  const [taxCurrency, setTaxCurrency] = useState<string | null>(null);
   const [customShortTermRate, setCustomShortTermRate] = useState("");
   const [customLongTermRate, setCustomLongTermRate] = useState("");
   const [customLongTermDays, setCustomLongTermDays] = useState("365");
@@ -37,15 +38,18 @@ function TaxCenter() {
 
   const { data: transactions = [] } = useTransactions(profile?.org_id);
 
-  // Use detected values unless the user has overridden them via the dropdowns
+  // Tax computations must never add gains from different currencies together.
   const activeJurisdiction = jurisdiction ?? detectedJ;
-  const transactionYears = [...new Set(transactions.map((transaction) => transaction.trade_date.slice(0, 4)).filter(Boolean))].sort((a, b) => Number(b) - Number(a));
+  const currencyOptions = [...new Set(transactions.map((transaction) => transaction.currency ?? detectedCurrency).filter((value) => value && value !== "MIXED"))].sort();
+  const activeCurrency = taxCurrency ?? (currencyOptions.includes(detectedCurrency) ? detectedCurrency : currencyOptions[0] ?? "USD");
+  const taxTransactions = transactions.filter((transaction) => (transaction.currency ?? detectedCurrency) === activeCurrency);
+  const transactionYears = [...new Set(taxTransactions.map((transaction) => transaction.trade_date.slice(0, 4)).filter(Boolean))].sort((a, b) => Number(b) - Number(a));
   const defaultTaxYear = transactionYears[0] ?? currentYear;
   const activeYear = taxYear ?? defaultTaxYear;
   const customRatesConfigured = activeJurisdiction !== "CUSTOM" || (customShortTermRate.trim() !== "" && customLongTermRate.trim() !== "" && Number.isFinite(Number(customShortTermRate)) && Number.isFinite(Number(customLongTermRate)) && Number(customShortTermRate) >= 0 && Number(customShortTermRate) <= 100 && Number(customLongTermRate) >= 0 && Number(customLongTermRate) <= 100);
   const availableTaxYears = [...new Set([currentYear, ...transactionYears])].sort((a, b) => Number(b) - Number(a));
 
-  const tax = computeTax(transactions, {
+  const tax = computeTax(taxTransactions, {
     jurisdiction: activeJurisdiction,
     filerStatus,
     taxYear: activeYear,
@@ -53,8 +57,8 @@ function TaxCenter() {
     customLongTermRate: Number(customLongTermRate) / 100,
     customLongTermDays: Number(customLongTermDays) || 365,
   });
-  const harvest = activeJurisdiction === "CUSTOM" ? [] : suggestHarvesting(transactions, tax.totalGain);
-  const yearTransactions = transactions.filter((transaction) => transaction.status === "posted" && transaction.trade_date.startsWith(activeYear));
+  const harvest = activeJurisdiction === "CUSTOM" ? [] : suggestHarvesting(taxTransactions, tax.totalGain);
+  const yearTransactions = taxTransactions.filter((transaction) => transaction.status === "posted" && transaction.trade_date.startsWith(activeYear));
   const purchaseValue = yearTransactions.filter((transaction) => transaction.action === "BUY").reduce((sum, transaction) => sum + transaction.quantity * transaction.price + transaction.fees, 0);
   const saleProceeds = yearTransactions.filter((transaction) => transaction.action === "SELL").reduce((sum, transaction) => sum + transaction.quantity * transaction.price - transaction.fees, 0);
   const dividendIncome = yearTransactions.filter((transaction) => transaction.action === "DIV").reduce((sum, transaction) => sum + transaction.quantity * transaction.price, 0);
@@ -68,7 +72,7 @@ function TaxCenter() {
         body: JSON.stringify({
           systemPrompt:
             "You are a global securities tax analyst. Explain only the tax rules and assumptions supplied in the computation. Never invent jurisdiction-specific tax law. Clearly state when custom rates are user-configured. Be concise and practical.",
-          userPrompt: `Tax computation for ${activeJurisdiction} — Filer status: ${filerStatus}\nShort-term gain: ${tax.shortTermGain}\nLong-term gain: ${tax.longTermGain}\nEstimated tax due: ${tax.estimatedTaxDue}\nTax year: ${activeYear}`,
+          userPrompt: `Tax computation for ${activeJurisdiction} in ${activeCurrency} — Filer status: ${filerStatus}\nShort-term gain: ${tax.shortTermGain}\nLong-term gain: ${tax.longTermGain}\nEstimated tax due: ${tax.estimatedTaxDue}\nTax year: ${activeYear}`,
         }),
       });
       let explanation = "";
@@ -93,7 +97,7 @@ function TaxCenter() {
 
   const fmt = (n: number) => n.toLocaleString("en-PK", { maximumFractionDigits: 0 });
 
-  const currency = detectedCurrency;
+  const currency = activeCurrency;
 
   return (
     <div className="space-y-6 p-3 sm:p-6">
@@ -120,6 +124,12 @@ function TaxCenter() {
               {availableTaxYears.map((year) => (
                 <option key={year} value={year}>{year}</option>
               ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-medium" style={{ color: "var(--ink-2)" }}>Reporting currency</label>
+            <select value={activeCurrency} onChange={(e) => setTaxCurrency(e.target.value)} className="rounded-[10px] border bg-surface px-3 py-2.5 text-sm outline-none" style={{ borderColor: "var(--hairline)" }}>
+              {currencyOptions.map((code) => <option key={code} value={code}>{code}</option>)}
             </select>
           </div>
           <div>
@@ -257,7 +267,7 @@ function TaxCenter() {
       <Panel>
         <div className="mb-4">
           <p className="text-sm font-semibold">Ledger activity · {activeYear}</p>
-          <p className="mt-1 text-xs" style={{ color: "var(--ink-3)" }}>Actual posted records for the selected year. Buy-only activity does not create a realised capital gain until a disposal is recorded.</p>
+          <p className="mt-1 text-xs" style={{ color: "var(--ink-3)" }}>Actual posted records in ${activeCurrency} for the selected year. Other currencies are calculated separately. Buy-only activity does not create a realised capital gain until a disposal is recorded.</p>
         </div>
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {[

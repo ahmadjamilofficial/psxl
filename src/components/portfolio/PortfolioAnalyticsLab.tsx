@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Activity, BarChart3, Calculator, CandlestickChart, Layers3, PieChart as PieIcon, TrendingDown, TrendingUp } from "lucide-react";
+import { Activity, BarChart3, Calculator, CandlestickChart, Layers3, TrendingDown, TrendingUp } from "lucide-react";
 import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Line, LineChart, Pie, PieChart,
   ResponsiveContainer, Tooltip, XAxis, YAxis, Legend, ReferenceLine,
@@ -8,16 +8,14 @@ import type { Transaction } from "@/lib/demo-data";
 import { currencyForExchange } from "@/lib/market-currency";
 
 type Props = { transactions: Transaction[]; currency: string };
-type Tab = "equity" | "ticker" | "activity" | "allocation" | "dividends" | "drawdown";
+type Tab = "equity" | "ticker" | "activity" | "dividends" | "drawdown";
 const tabs: { id: Tab; label: string; icon: typeof Activity }[] = [
   { id: "equity", label: "Cash flow", icon: TrendingUp },
   { id: "ticker", label: "Ticker cash flow", icon: BarChart3 },
   { id: "activity", label: "Trade activity", icon: Activity },
-  { id: "allocation", label: "Allocation", icon: PieIcon },
   { id: "dividends", label: "Dividends", icon: Layers3 },
   { id: "drawdown", label: "Cash-flow drawdown", icon: TrendingDown },
 ];
-const colors = ["#34D399", "#60A5FA", "#A78BFA", "#FBBF24", "#F472B6", "#22D3EE", "#FB7185", "#A3E635"];
 const card = { border: "1px solid var(--hairline)", background: "var(--color-sheet)" };
 
 export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
@@ -64,9 +62,8 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
     const actionCounts = (["BUY", "SELL", "DIV"] as const).map(action => ({ action, count: filtered.filter(t => t.action === action).length })).filter(item => item.count > 0);
     let flow = 0, peak = 0;
     const equity = activity.map(d => { flow += d.netFlow; peak = Math.max(peak,flow); return { ...d, cumulative: flow, drawdown: peak ? (flow-peak)/peak*100 : 0 }; });
-    const alloc = [...byTicker.values()].map(v=>({name:v.ticker + " · " + v.exchange,value:v.positionCost,weight:v.positionCost})).filter(v=>v.weight>0);
     const tickerRows = [...byTicker.values()].map(v=>({ticker:v.ticker + " · " + v.exchange, buys:v.buyValue, sells:v.sellValue, dividends:v.dividends, netCash:v.sellValue+v.dividends-v.buyValue, shares:v.shares})).sort((a,b)=>b.netCash-a.netCash);
-    return { activity, equity, alloc, tickerRows, divs: activity.filter(d=>d.dividends>0), monthly, actionCounts };
+    return { activity, equity, tickerRows, divs: activity.filter(d=>d.dividends>0), monthly, actionCounts };
   }, [filtered]);
 
   const fmt = (v:number) => v.toLocaleString("en-PK",{maximumFractionDigits:2});
@@ -90,18 +87,11 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
       {tab==="equity" ? <AreaChart data={data.equity}><defs><linearGradient id="wab-lab-equity" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#34D399" stopOpacity={.28}/><stop offset="100%" stopColor="#34D399" stopOpacity={0}/></linearGradient></defs><CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis dataKey="date" tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><Tooltip formatter={(v:number)=>[(activeCurrency || "—")+" "+fmt(v),"Net cash flow"]} contentStyle={{background:"#111",border:"1px solid rgba(255,255,255,0.1)",borderRadius:12,color:"#fff",padding:"10px 14px"}}/><Area dataKey="cumulative" type="monotone" stroke="#34D399" strokeWidth={2.2} fill="url(#wab-lab-equity)" activeDot={{r:4}}/></AreaChart>
       : tab==="ticker" ? <BarChart data={data.tickerRows}><CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis dataKey="ticker" tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><Tooltip formatter={(v:number)=>[(activeCurrency || "—")+" "+fmt(v)]} contentStyle={{background:"#111",border:"1px solid rgba(255,255,255,0.1)",borderRadius:12,color:"#fff",padding:"10px 14px"}}/><Bar dataKey="netCash" name="Net cash flow" radius={[4,4,0,0]}>{data.tickerRows.map((r,i)=><Cell key={r.ticker} fill={r.netCash>=0?"#34D399":"#FB7185"}/>)}</Bar></BarChart>
       : tab==="activity" ? <BarChart data={data.activity}><CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis dataKey="date" tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><Tooltip formatter={(v:number)=>[(activeCurrency || "—")+" "+fmt(v)]} contentStyle={{background:"#111",border:"1px solid rgba(255,255,255,0.1)",borderRadius:12,color:"#fff",padding:"10px 14px"}}/><Bar dataKey="buys" name="Buy turnover" fill="#60A5FA" radius={[3,3,0,0]}/><Bar dataKey="sells" name="Sell turnover" fill="#34D399" radius={[3,3,0,0]}/></BarChart>
-      : tab==="allocation" ? <PieChart><Pie data={data.alloc} dataKey="weight" nameKey="name" innerRadius="48%" outerRadius="78%" paddingAngle={3}>{data.alloc.map((d,i)=><Cell key={d.name} fill={colors[i%colors.length]}/>)}</Pie><Tooltip formatter={(v:number)=>[(activeCurrency || "—")+" "+fmt(v),"Cost basis"]} contentStyle={{background:"#111",border:"1px solid rgba(255,255,255,0.1)",borderRadius:12,color:"#fff",padding:"10px 14px"}}/></PieChart>
       : tab==="dividends" ? <BarChart data={data.divs}><CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis dataKey="date" tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><Tooltip formatter={(v:number)=>[(activeCurrency || "—")+" "+fmt(v),"Net dividend"]} contentStyle={{background:"#111",border:"1px solid rgba(255,255,255,0.1)",borderRadius:12,color:"#fff",padding:"10px 14px"}}/><Bar dataKey="dividends" fill="#A78BFA" radius={[4,4,0,0]}/></BarChart>
       : <AreaChart data={data.equity}><CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis dataKey="date" tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis tickFormatter={v=>v.toFixed(1)+"%"} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><Tooltip formatter={(v:number)=>[v.toFixed(2)+"%","Drawdown on cumulative net flow"]} contentStyle={{background:"#111",border:"1px solid rgba(255,255,255,0.1)",borderRadius:12,color:"#fff",padding:"10px 14px"}}/><Area dataKey="drawdown" type="monotone" stroke="#FB7185" strokeWidth={2} fill="#FB718522" activeDot={{r:4}}/></AreaChart>}
       </ResponsiveContainer>
     </div>
     <div className="grid gap-4 lg:grid-cols-2">
-      <div className="rounded-2xl p-4" style={card}>
-        <div className="mb-2"><h3 className="text-sm font-semibold">Position allocation</h3><p className="text-[11px]" style={{color:"var(--ink-3)"}}>Remaining cost basis · {activeCurrency || "choose currency"}</p></div>
-        <ResponsiveContainer width="100%" height={230}>
-          <PieChart><Pie data={data.alloc} dataKey="weight" nameKey="name" innerRadius={54} outerRadius={84} paddingAngle={3}>{data.alloc.map((item,i)=><Cell key={item.name} fill={colors[i%colors.length]}/>)}</Pie><Tooltip formatter={(v:number)=>[(activeCurrency||"—")+" "+fmt(v),"Cost basis"]} contentStyle={{background:"#111",border:"1px solid rgba(255,255,255,0.1)",borderRadius:12,color:"#fff",padding:"10px 14px"}}/><Legend wrapperStyle={{fontSize:10,color:"var(--ink-3)"}}/></PieChart>
-        </ResponsiveContainer>
-      </div>
       <div className="rounded-2xl p-4" style={card}>
         <div className="mb-2"><h3 className="text-sm font-semibold">Monthly cash-flow trend</h3><p className="text-[11px]" style={{color:"var(--ink-3)"}}>Cumulative net ledger flow by month</p></div>
         <ResponsiveContainer width="100%" height={230}>

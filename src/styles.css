@@ -660,3 +660,41 @@ body {
   background: var(--surface);
   box-shadow: none;
 }
+
+/* Slightly more compact app density on phones without changing desktop sizing. */
+@media (max-width: 767px) {
+  .app-mobile-main {
+    font-size: 15px;
+  }
+
+  .app-mobile-main h1 {
+    font-size: 1.25rem !important;
+  }
+
+  .app-mobile-main h2 {
+    font-size: 1.05rem;
+  }
+
+  .app-mobile-main [class~="text-sm"] {
+    font-size: 0.8125rem;
+  }
+
+  .app-mobile-main [class~="text-base"] {
+    font-size: 0.9375rem;
+  }
+
+  .app-mobile-main [class~="p-6"] {
+    padding: 1.25rem;
+  }
+
+  .app-mobile-main [class~="px-6"] {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+
+  .app-mobile-main [class~="py-6"] {
+    padding-top: 1.25rem;
+    padding-bottom: 1.25rem;
+  }
+}
+

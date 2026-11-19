@@ -73,7 +73,7 @@ export function useCreateTransaction() {
           trade_date: values.trade_date,
           ref_id: values.ref_id ?? "",
           broker: values.broker ?? "",
-          exchange: values.exchange || "PSX",
+          exchange: values.exchange || "NYSE",
           confidence_score: 1,
           status: "posted",
         } as never)

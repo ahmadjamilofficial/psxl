@@ -34,8 +34,9 @@ import {
 import { usePendingApprovals } from "@/lib/data-hooks";
 import { useAgentHeartbeat } from "@/lib/use-agent-heartbeat";
 import { useTheme } from "@/lib/theme-context";
+import { brandText } from "@/lib/brand";
 
-const SIDEBAR_KEY = "wab.sidebar.expanded";
+const SIDEBAR_KEY = "psxl.sidebar.expanded";
 function readSidebarPref(): boolean {
   if (typeof window === "undefined") return false;
   try {
@@ -53,7 +54,7 @@ function writeSidebarPref(v: boolean) {
   }
 }
 
-const primaryItem = { label: "Ask Wab", icon: Sparkles, to: "/app/parser" } as const;
+const primaryItem = { label: brandText("Ask {{brand}}"), icon: Sparkles, to: "/app/parser" } as const;
 
 const navGroups = [
   {
@@ -86,7 +87,7 @@ const navGroups = [
 ] as const;
 
 const mobileTabs = [
-  { label: "Ask Wab", icon: Sparkles, to: "/app/parser" },
+  { label: brandText("Ask {{brand}}"), icon: Sparkles, to: "/app/parser" },
   { label: "Portfolio", icon: LayoutDashboard, to: "/app/overview" },
   { label: "Ledger", icon: BookOpen, to: "/app/ledger" },
   { label: "Review", icon: Inbox, to: "/app/review" },
@@ -225,7 +226,7 @@ function InnerShell({ children }: { children: ReactNode }) {
               </button>
             ) : (
               <>
-                <Link to="/app/parser" aria-label="Wab home">
+                <Link to="/app/parser" aria-label={brandText("{{brand}} home")}>
                   <Logo />
                 </Link>
                 <button
@@ -483,7 +484,7 @@ function InnerShell({ children }: { children: ReactNode }) {
                 }}
               >
                 <Sparkles size={14} strokeWidth={2} />
-                Ask Wab
+                {brandText("Ask {{brand}}")}
               </Link>
             )}
 

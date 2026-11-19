@@ -1,3 +1,4 @@
+import { brandText } from "@/lib/brand";
 // ─── Integrations & Connections workspace ────────────────────────────────────
 // Everything on this page reflects real backend state. A provider is only
 // shown as Connected after the server adapter verified it; failures show the
@@ -206,7 +207,7 @@ function IntegrationsPage() {
         <h1 className="mt-2 text-2xl font-bold">Integrations</h1>
         <p className="mt-1 max-w-2xl text-sm" style={{ color: "var(--ink-2)" }}>
           Connect a supported read-only provider once. Manual sync is available immediately;
-          background refresh runs every 15 minutes only after the deployment's Wab Autopilot
+          background refresh runs every 15 minutes only after the deployment's PSXL Autopilot
           workflow and required secrets are configured. Credentials are encrypted server-side and
           never returned to this browser. A provider is only marked Connected after it confirms the
           connection itself.
@@ -292,7 +293,7 @@ function IntegrationsPage() {
                           className="mt-2 text-xs font-medium"
                           style={{ color: "var(--color-accent)" }}
                         >
-                          Connected. Manual sync is ready; background refresh depends on Wab
+                          {brandText("Connected. Manual sync is ready; background refresh depends on {{brand}}")}
                           Autopilot being configured. Last sync {formatWhen(c.last_sync_at)}
                           {c.last_sync_status ? ` (${c.last_sync_status})` : ""}.
                         </p>

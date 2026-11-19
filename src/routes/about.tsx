@@ -1,3 +1,4 @@
+import { brandText } from "@/lib/brand";
 import { createFileRoute } from "@tanstack/react-router";
 import { Panel, Reveal, StatusPill } from "@/components/kit";
 import { PageShell } from "@/components/site/PageShell";
@@ -5,13 +6,13 @@ import { PageShell } from "@/components/site/PageShell";
 export const Route = createFileRoute("/about")({
   head: () => ({
     meta: [
-      { title: "About Wab — Audit Infrastructure for Emerging Markets" },
+      { title: brandText("About {{brand}} — Audit Infrastructure for Emerging Markets") },
       {
         name: "description",
         content:
-          "Wab builds audit-grade reconciliation and tax tooling for traders and micro-brokerages on emerging-market exchanges.",
+          brandText("{{brand}} builds audit-grade reconciliation and tax tooling for traders and micro-brokerages on emerging-market exchanges."),
       },
-      { property: "og:title", content: "About Wab" },
+      { property: "og:title", content: brandText("About {{brand}}") },
       {
         property: "og:description",
         content: "Why we build deterministic, explainable audit tooling for regional exchanges.",
@@ -41,7 +42,7 @@ function About() {
     <PageShell
       eyebrow="About"
       title="Audit infrastructure for the exchanges nobody built tools for"
-      sub="Reconciliation in emerging markets still runs on printed slips, WhatsApp screenshots and spreadsheets. Wab exists to make that book provable."
+      sub={brandText("Reconciliation in emerging markets still runs on printed slips, WhatsApp screenshots and spreadsheets. {{brand}} exists to make that book provable.")}
     >
       <div className="grid gap-6 md:grid-cols-3">
         {values.map(([t, d], i) => (

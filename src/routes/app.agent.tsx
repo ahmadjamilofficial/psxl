@@ -1,3 +1,4 @@
+import { brandText } from "@/lib/brand";
 import { createFileRoute } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bot, Sparkles, User } from "lucide-react";
@@ -167,7 +168,7 @@ function AgentPage() {
             </div>
             <div>
               <h2 style={{ fontFamily: "var(--font-heading)", fontSize: "1.5rem" }}>
-                Wab AI Agent
+                {brandText("{{brand}} AI Agent")}
               </h2>
               <p className="mt-2 text-sm" style={{ color: "var(--ink-2)" }}>
                 Upload any broker slip, contract note, CSV or dividend voucher. Ask me to extract

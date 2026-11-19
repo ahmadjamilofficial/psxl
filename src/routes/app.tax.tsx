@@ -1,3 +1,4 @@
+import { brandText } from "@/lib/brand";
 import { createFileRoute } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import {
@@ -184,7 +185,7 @@ function TaxCenter() {
           <div className="flex items-end ml-auto">
             <Btn variant="secondary" onClick={() => {
               const rows = [
-                ["Wab Tax Report", "Value"],
+                [brandText("{{brand}} Tax Report"), "Value"],
                 ["Tax year", activeYear],
                 ["Jurisdiction", activeJurisdiction],
                 ["Filer status", filerStatus],
@@ -207,7 +208,7 @@ function TaxCenter() {
               const url = URL.createObjectURL(blob);
               const anchor = document.createElement("a");
               anchor.href = url;
-              anchor.download = `wab-tax-report-${activeJurisdiction}-${activeYear}.csv`;
+              anchor.download = `psxl-tax-report-${activeJurisdiction}-${activeYear}.csv`;
               document.body.appendChild(anchor);
               anchor.click();
               anchor.remove();
@@ -329,12 +330,12 @@ function TaxCenter() {
               </ReactMarkdown>
             </div>
             <p className="mt-5 border-t pt-3 text-[11px] leading-relaxed" style={{ borderColor: "var(--hairline)", color: "var(--ink-3)" }}>
-              AI-generated commentary for informational purposes. Verify tax rates and filing treatment with a qualified tax professional; the calculated figures above are based on the records and settings currently in Wab.
+              {brandText("AI-generated commentary for informational purposes. Verify tax rates and filing treatment with a qualified tax professional; the calculated figures above are based on the records and settings currently in {{brand}}.")}
             </p>
           </div>
         ) : (
           <p className="mt-3 text-sm leading-relaxed" style={{ color: "var(--ink-3)" }}>
-            Generate a structured explanation of your computed tax figures. Wab calculates FIFO and estimated liability in code; AI provides commentary only.
+            {brandText("Generate a structured explanation of your computed tax figures. {{brand}} calculates FIFO and estimated liability in code; AI provides commentary only.")}
           </p>
         )}
       </Panel>

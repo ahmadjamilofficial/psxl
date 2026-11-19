@@ -449,7 +449,7 @@ function Settings() {
                 <p className="mb-3 text-sm font-semibold">What counts?</p>
                 <ul className="space-y-2 text-xs leading-relaxed" style={{ color: "var(--ink-2)" }}>
                   <li>
-                    • Each successful Wab AI request uses one AI credit. Requests are blocked once
+                    • Each successful PSXL AI request uses one AI credit. Requests are blocked once
                     the plan limit is reached.
                   </li>
                   <li>
@@ -649,7 +649,7 @@ function Settings() {
               <Panel>
                 <p className="mb-1 text-sm font-semibold">Import Data</p>
                 <p className="mb-5 text-xs" style={{ color: "var(--ink-3)" }}>
-                  Upload an Excel / CSV file or connect a Google Sheet. Wab will ask for permission
+                  Upload an Excel / CSV file or connect a Google Sheet. PSXL will ask for permission
                   before touching any of your data.
                 </p>
                 <DirectSourceConnect

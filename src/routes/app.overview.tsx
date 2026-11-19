@@ -1,4 +1,5 @@
-// ─── Wab Mission Control Dashboard ────────────────────────────────────────
+import { brandText } from "@/lib/brand";
+// ─── PSXL Mission Control Dashboard ────────────────────────────────────────
 // "What is happening in my financial world right now?"
 // Every number is deterministic. AI only explains.
 
@@ -104,7 +105,7 @@ function MetricCard({
   );
 }
 
-// ── "Wab Found Something" ─────────────────────────────────────────────────
+// ── brandText("{{brand}} Found Something") ─────────────────────────────────────────────────
 
 function FoundSomethingSection({
   insights,
@@ -170,7 +171,7 @@ function FoundSomethingSection({
         type: "ANOMALY_DETECTED",
         severity: "HIGH",
         title: `${warnFlags.length} Potential Discrepanc${warnFlags.length > 1 ? "ies" : "y"} Detected`,
-        summary: `Wab identified ${warnFlags.length} transactions with reconciliation warnings that may affect your financial records.`,
+        summary: `${BRAND_NAME} identified ${warnFlags.length} transactions with reconciliation warnings that may affect your financial records.`,
         confidence: 0.88,
         evidenceCount: warnFlags.length,
         actionLabel: "Review",
@@ -190,7 +191,7 @@ function FoundSomethingSection({
             <Sparkles size={15} style={{ color: "var(--color-accent)" }} />
           </div>
           <div>
-            <h2 className="text-sm font-bold">Wab Found Something</h2>
+            <h2 className="text-sm font-bold">{brandText("{{brand}} Found Something")}</h2>
             <p className="text-xs" style={{ color: "var(--ink-3)" }}>
               Proactively surfaced findings from your financial data
             </p>
@@ -326,7 +327,7 @@ function MissionControl() {
           No transactions yet
         </h1>
         <p className="mt-3 max-w-md text-sm leading-relaxed" style={{ color: "var(--ink-2)" }}>
-          Upload your first broker statement and Wab will extract and reconcile it.
+          {brandText("Upload your first broker statement and {{brand}} will extract and reconcile it.")}
         </p>
         <Link
           to="/app/parser"
@@ -540,7 +541,7 @@ function MissionControl() {
             </div>
           )}
 
-          {/* Wab Found Something */}
+          {/* PSXL Found Something */}
           <FoundSomethingSection insights={insights} flags={flags} currency={currency} />
 
           {/* Financial Timeline */}

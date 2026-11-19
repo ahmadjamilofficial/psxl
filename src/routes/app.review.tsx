@@ -1,3 +1,4 @@
+import { brandText } from "@/lib/brand";
 // ─── Review Inbox ─────────────────────────────────────────────────────────────
 import { createFileRoute } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
@@ -265,7 +266,7 @@ function ReviewInbox() {
         <div>
           <h1 className="text-xl font-bold">Review Inbox</h1>
           <p className="mt-0.5 text-sm" style={{ color: "var(--ink-2)" }}>
-            Items that need your decision before Wab can proceed.
+            {brandText("Items that need your decision before {{brand}} can proceed.")}
           </p>
         </div>
 

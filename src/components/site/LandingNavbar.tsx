@@ -1,3 +1,4 @@
+import { brandText } from "@/lib/brand";
 // ─── LandingNavbar — premium minimal top navigation for the home page ─────────
 
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -36,7 +37,7 @@ export function LandingNavbar() {
         }}
       >
         {/* Logo */}
-        <Link to="/" aria-label="Wab home" className="shrink-0">
+        <Link to="/" aria-label={brandText("{{brand}} home")} className="shrink-0">
           <LogoIcon size={30} />
         </Link>
 

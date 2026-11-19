@@ -1,8 +1,9 @@
-// ─── Wab agent service ─────────────────────────────────────────────────────
+// ─── PSXL agent service ─────────────────────────────────────────────────────
 // UI-agnostic orchestration layer:
 //   ChatComposer → AgentRequest → (extraction + streaming AI) → AgentActivity / AIMessage
 // Model cascade: nvidia/nemotron-3-ultra-550b-a55b:free → inclusionai/ling-3.0-flash-fin:free → openrouter/free
 
+import { BRAND_NAME, ASSISTANT_NAME, brandText } from "@/lib/brand";
 import { parseDocument, parseTextDocument, type ExtractedField } from "@/lib/ai-service";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -103,7 +104,7 @@ function getApiKey(): string {
   const key = (import.meta.env["VITE_OPENROUTER_API_KEY"] as string | undefined) ?? "";
   if (!key || key.length < 10) {
     throw new Error(
-      "Wab Intelligence: AI API key not configured. Add VITE_OPENROUTER_API_KEY to your .env file.",
+      brandText("{{brand}} Intelligence: AI API key not configured. Add VITE_OPENROUTER_API_KEY to your .env file."),
     );
   }
   return key;
@@ -147,7 +148,7 @@ async function streamWithCascade(
           Authorization: `Bearer ${key}`,
           "Content-Type": "application/json",
           "HTTP-Referer": "https://psxl.live",
-          "X-Title": "Wab",
+          "X-Title": brandText("{{brand}}"),
         },
         body: JSON.stringify({
           model,
@@ -167,7 +168,7 @@ async function streamWithCascade(
           i < STREAM_MODELS.length - 1
         ) {
           console.warn(
-            `[Wab agent] Provider error ${resp.status} on ${model}, trying ${STREAM_MODELS[i + 1]}…`,
+            `[${BRAND_NAME} agent] Provider error ${resp.status} on ${model}, trying ${STREAM_MODELS[i + 1]}…`,
           );
           continue;
         }
@@ -212,7 +213,7 @@ async function streamWithCascade(
         msg.includes("upstream error") ||
         msg.includes("provider_unavailable");
       if (isQuota && i < STREAM_MODELS.length - 1) {
-        console.warn(`[Wab agent] Quota on ${model}, trying ${STREAM_MODELS[i + 1]}…`);
+        console.warn(`[${BRAND_NAME} agent] Quota on ${model}, trying ${STREAM_MODELS[i + 1]}…`);
         continue;
       }
       throw e;
@@ -223,7 +224,7 @@ async function streamWithCascade(
 
 // ── Analyst system prompt ─────────────────────────────────────────────────────
 
-const ANALYST_SYSTEM = `You are Wab, made by Wab. You are not ChatGPT or any other third-party model. If asked who you are or who made you, say you are Wab, made by Wab.
+const ANALYST_SYSTEM = `You are ${ASSISTANT_NAME}, the financial assistant built into ${BRAND_NAME}. Be transparent that configured third-party model providers may power your responses; never claim to be a proprietary foundation model.
 
 You are a financial audit and compliance analyst for retail investors in PSX (Pakistan) and NSE (India) markets.
 

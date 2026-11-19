@@ -1,3 +1,4 @@
+import { brandText } from "@/lib/brand";
 import { createFileRoute } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -575,7 +576,7 @@ function Reconciliation() {
                                         className="text-xs font-semibold"
                                         style={{ color: "var(--color-accent)" }}
                                       >
-                                        Wab AI
+                                        {brandText("{{brand}} AI")}
                                       </span>
                                     </div>
                                     <p style={{ color: "var(--ink-2)" }}>

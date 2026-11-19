@@ -23,6 +23,7 @@ import {
   useAiUsageToday,
   useDeleteOrganization,
   useMonthlyTransactionCount,
+  useTransactions,
 } from "@/lib/data-hooks";
 import { normalizePlanId, planOf } from "@/lib/plans";
 import { DirectSourceConnect } from "@/components/app/DirectSourceConnect";
@@ -70,6 +71,7 @@ function Settings() {
   const deleteOrgMutation = useDeleteOrganization();
   const { data: aiUsage } = useAiUsageToday(user?.id);
   const { data: monthlyTransactions = 0 } = useMonthlyTransactionCount(profile?.org_id);
+  const { data: ledgerTransactions = [] } = useTransactions(profile?.org_id);
   const activePlan = planOf(normalizePlanId(profile?.plan));
   const aiLimit = activePlan.dailyAiCredits;
   const transactionLimit = activePlan.transactionsPerMonth;
@@ -430,11 +432,18 @@ function Settings() {
                     suffix="credits / rolling 24h"
                   />
                   <UsageMeter
-                    label="Ledger transactions"
+                    label="Ledger records"
+                    used={ledgerTransactions.length}
+                    limit={null}
+                    percent={0}
+                    suffix="All imported and manually entered records in this organisation"
+                  />
+                  <UsageMeter
+                    label="Monthly transaction allowance"
                     used={monthlyTransactions}
                     limit={transactionLimit}
                     percent={transactionPercent}
-                    suffix="transactions / calendar month"
+                    suffix="New records created this calendar month"
                   />
                 </div>
               </Panel>

@@ -244,8 +244,12 @@ function MissionControl() {
   const { data: insights = [] } = useFinancialInsights(5);
 
   const reportingTransactions = transactions.filter((tx) => (tx.currency ?? currencyForExchange(tx.exchange)) === currency);
+  const reportingExchangeCounts = new Map<string, number>();
+  for (const tx of reportingTransactions) reportingExchangeCounts.set(tx.exchange, (reportingExchangeCounts.get(tx.exchange) ?? 0) + 1);
+  const reportingExchange = [...reportingExchangeCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+  const reportingJurisdiction = reportingExchange === "PSX" ? "PSX" : reportingExchange === "NSE" ? "NSE" : "CUSTOM";
   const tax = computeTax(reportingTransactions, {
-    jurisdiction: detectedJurisdiction,
+    jurisdiction: reportingJurisdiction,
     filerStatus: "Filer",
     taxYear: currentYear,
   });
@@ -426,8 +430,8 @@ function MissionControl() {
           />
           <MetricCard
             label="Estimated Tax Liability"
-            value={`${currency} ${fmt(tax.estimatedTaxDue)}`}
-            sub={`FIFO · ${detectedJurisdiction} tax profile`}
+            value={reportingJurisdiction === "CUSTOM" ? "Configure tax rules" : `${currency} ${fmt(tax.estimatedTaxDue)}`}
+            sub={reportingJurisdiction === "CUSTOM" ? "Custom jurisdiction · set rates in Tax Center" : `FIFO · ${reportingJurisdiction} tax profile`}
             tone="warn"
             i={3}
             askWhy="Why did my estimated tax change?"

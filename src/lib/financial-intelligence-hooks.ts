@@ -28,7 +28,6 @@ export function usePortfolioSummary() {
   const { data: flags = [] } = useReconciliationFlags(profile?.org_id);
 
   // Detect jurisdiction from actual transaction exchanges
-  const nseCount = transactions.filter((t) => t.exchange === "NSE").length;
   const exchangeCounts = new Map<string, number>();
   for (const tx of transactions) exchangeCounts.set(tx.exchange, (exchangeCounts.get(tx.exchange) ?? 0) + 1);
   const dominantExchange = [...exchangeCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];

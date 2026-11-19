@@ -467,7 +467,7 @@ export function buildAIContext(
     realized_gains: portfolio.realizedGains,
     total_transactions: portfolio.totalTransactions,
     open_flags: portfolio.openFlags,
-    jurisdiction: portfolio.currency === "PKR" ? "PSX" : "NSE",
+    jurisdiction: portfolio.currency === "PKR" ? "PSX" : portfolio.currency === "INR" ? "NSE" : "CUSTOM",
     recent_financial_events: events.slice(0, 5),
     active_insights: insights.slice(0, 5),
   };

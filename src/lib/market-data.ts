@@ -60,7 +60,7 @@ async function fetchFromServer(
 // ─── Fetch multiple ticker prices (batched) ─────────────────────────────────
 
 export async function fetchMarketPrices(
-  tickers: Array<{ ticker: string; exchange: "PSX" | "NSE" }>,
+  tickers: Array<{ ticker: string; exchange: string }>,
 ): Promise<Map<string, MarketPrice>> {
   const prices = new Map<string, MarketPrice>();
   const now = Date.now();

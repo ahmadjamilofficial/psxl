@@ -325,3 +325,42 @@ describe("computeTax — FIFO lot matching", () => {
     expect(r.lots.length).toBe(0);
   });
 });
+
+
+describe("computeTax — global markets and custom tax profiles", () => {
+  it("uses the exchange as part of the FIFO matching key", () => {
+    const txs: Transaction[] = [
+      tx({ id: "buy-us", ticker: "ABC", exchange: "NYSE", action: "BUY", quantity: 10, price: 100, trade_date: "2025-01-01" }),
+      tx({ id: "sell-uk", ticker: "ABC", exchange: "LSE", action: "SELL", quantity: 10, price: 120, trade_date: "2025-06-01" }),
+    ];
+    const result = computeTax(txs, { ...BASE_PROFILE, jurisdiction: "CUSTOM" });
+    expect(result.lots).toHaveLength(0);
+  });
+
+  it("does not match a future purchase to an earlier sale", () => {
+    const txs: Transaction[] = [
+      tx({ id: "sell", ticker: "XYZ", exchange: "NYSE", action: "SELL", quantity: 10, price: 120, trade_date: "2025-01-01" }),
+      tx({ id: "buy", ticker: "XYZ", exchange: "NYSE", action: "BUY", quantity: 10, price: 100, trade_date: "2025-02-01" }),
+    ];
+    const result = computeTax(txs, { ...BASE_PROFILE, jurisdiction: "CUSTOM" });
+    expect(result.lots).toHaveLength(0);
+  });
+
+  it("applies user-configured short- and long-term rates for custom jurisdictions", () => {
+    const txs: Transaction[] = [
+      tx({ id: "buy", ticker: "XYZ", exchange: "NYSE", action: "BUY", quantity: 10, price: 100, trade_date: "2025-01-01" }),
+      tx({ id: "sell", ticker: "XYZ", exchange: "NYSE", action: "SELL", quantity: 10, price: 150, trade_date: "2025-06-01" }),
+    ];
+    const result = computeTax(txs, {
+      jurisdiction: "CUSTOM",
+      filerStatus: "Filer",
+      taxYear: "2025",
+      customShortTermRate: 0.25,
+      customLongTermRate: 0.1,
+      customLongTermDays: 365,
+    });
+    expect(result.lots[0]?.exchange).toBe("NYSE");
+    expect(result.lots[0]?.taxRate).toBeCloseTo(0.25);
+    expect(result.estimatedTaxDue).toBeCloseTo(125);
+  });
+});

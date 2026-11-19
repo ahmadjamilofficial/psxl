@@ -77,7 +77,7 @@ export function Footer() {
           style={{ borderColor: "var(--hairline)", color: "var(--ink-3)" }}
         >
           <span>© {new Date().getFullYear()} {BRAND_NAME}. All rights reserved.</span>
-          <span>{brandText("{{brand}} does not provide tax or legal advice.")}</span>
+          <span>{BRAND_NAME} does not provide tax or legal advice.</span>
         </div>
       </Container>
     </footer>

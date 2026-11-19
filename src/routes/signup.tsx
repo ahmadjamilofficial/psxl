@@ -14,6 +14,7 @@ import { supabase } from "@/lib/supabase";
 import { kelviqCheckoutUrl, normalizePlanId } from "@/lib/plans";
 
 export const Route = createFileRoute("/signup")({
+  head: () => ({ meta: [{ name: "robots", content: "noindex, nofollow" }] }),
   component: SignUp,
 });
 

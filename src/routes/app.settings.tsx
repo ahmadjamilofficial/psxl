@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useRouterState } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import {
   Bell,
@@ -12,7 +12,7 @@ import {
   Trash2,
   Users,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Btn, Panel } from "@/components/kit";
@@ -48,15 +48,12 @@ function Settings() {
   const { profile, user, signOut } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [tab, setTab] = useState<Tab>(() => {
-    if (
-      typeof window !== "undefined" &&
-      new URLSearchParams(window.location.search).get("tab") === "usage"
-    ) {
-      return "usage";
-    }
-    return "org";
-  });
+  const currentHref = useRouterState({ select: (state) => state.location.href });
+  const [tab, setTab] = useState<Tab>("org");
+  useEffect(() => {
+    const params = new URL(currentHref, window.location.origin).searchParams;
+    setTab(params.get("tab") === "usage" ? "usage" : "org");
+  }, [currentHref]);
   const [orgName, setOrgName] = useState(profile?.org_name ?? "My Organisation");
   const [jurisdiction, setJurisdiction] = useState(profile?.jurisdiction ?? "CUSTOM");
   const [saved, setSaved] = useState(false);

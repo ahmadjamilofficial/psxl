@@ -6,6 +6,7 @@
 import { supabase } from "./supabase";
 import { computeTax } from "./tax";
 import type { Transaction } from "./demo-data";
+import { currencyForExchange } from "./market-currency";
 
 // ── Event Types ───────────────────────────────────────────────────────────────
 
@@ -109,73 +110,65 @@ export interface PortfolioSummary {
 
 export async function computePortfolioSummary(
   transactions: Transaction[],
-  jurisdiction: "PSX" | "NSE",
+  jurisdiction: "PSX" | "NSE" | "CUSTOM",
   taxYear: string,
 ): Promise<PortfolioSummary> {
-  // Detect actual exchange from transaction data — don't blindly trust org default.
-  // If any transaction uses NSE, treat the ledger as NSE for currency purposes.
-  const hasNSE = transactions.some((t) => t.exchange === "NSE");
-  const hasPSX = transactions.some((t) => t.exchange === "PSX" || !t.exchange);
-  // Mixed-exchange portfolios use the dominant one (more transactions)
-  const nseCount = transactions.filter((t) => t.exchange === "NSE").length;
-  const psxCount = transactions.length - nseCount;
-  const detectedJurisdiction: "PSX" | "NSE" =
-    nseCount > psxCount ? "NSE" : hasPSX ? "PSX" : hasNSE ? "NSE" : jurisdiction;
-  const currency = detectedJurisdiction === "NSE" ? "INR" : "PKR";
+  // A summary is reported in one currency only. Mixed-currency ledgers are
+  // scoped to their most common transaction currency until FX-normalised.
+  const currencyCounts = new Map<string, number>();
+  for (const tx of transactions) {
+    const code = tx.currency ?? currencyForExchange(tx.exchange);
+    currencyCounts.set(code, (currencyCounts.get(code) ?? 0) + 1);
+  }
+  const currency = [...currencyCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0]
+    ?? (jurisdiction === "PSX" ? "PKR" : jurisdiction === "NSE" ? "INR" : "USD");
+  const scoped = transactions.filter((tx) => (tx.currency ?? currencyForExchange(tx.exchange)) === currency);
 
-  // Build current positions (net BUY - SELL) with avg cost
-  const positions: Record<string, { qty: number; avgCost: number; exchange: "PSX" | "NSE" }> = {};
-  for (const tx of transactions.sort((a, b) => a.trade_date.localeCompare(b.trade_date))) {
-    if (!positions[tx.ticker]) {
-      positions[tx.ticker] = { qty: 0, avgCost: 0, exchange: tx.exchange || detectedJurisdiction };
-    }
-    const p = positions[tx.ticker]!;
+  const exchangeCounts = new Map<string, number>();
+  for (const tx of scoped) exchangeCounts.set(tx.exchange, (exchangeCounts.get(tx.exchange) ?? 0) + 1);
+  const exchange = [...exchangeCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "";
+  const detectedJurisdiction: "PSX" | "NSE" | "CUSTOM" =
+    exchange === "PSX" ? "PSX" : exchange === "NSE" ? "NSE" : jurisdiction;
+
+  // Keep the same ticker listed on different exchanges as separate positions.
+  const positions: Record<string, { ticker: string; exchange: string; qty: number; avgCost: number }> = {};
+  for (const tx of [...scoped].sort((a, b) => a.trade_date.localeCompare(b.trade_date))) {
+    const key = tx.exchange + ":" + tx.ticker;
+    if (!positions[key]) positions[key] = { ticker: tx.ticker, exchange: tx.exchange, qty: 0, avgCost: 0 };
+    const position = positions[key]!;
     if (tx.action === "BUY") {
-      const totalCost = p.avgCost * p.qty + tx.price * tx.quantity;
-      p.qty += tx.quantity;
-      p.avgCost = p.qty > 0 ? totalCost / p.qty : 0;
+      const totalCost = position.avgCost * position.qty + tx.price * tx.quantity + tx.fees;
+      position.qty += tx.quantity;
+      position.avgCost = position.qty > 0 ? totalCost / position.qty : 0;
     } else if (tx.action === "SELL") {
-      p.qty = Math.max(0, p.qty - tx.quantity);
+      position.qty = Math.max(0, position.qty - tx.quantity);
     }
   }
 
-  // No external quote provider is used. Wab reports the recorded cost basis
-  // until the user supplies a verified current-price source.
   let totalValue = 0;
   const tickerBreakdown: Array<{ ticker: string; value: number; pct: number }> = [];
-
-  for (const [ticker, p] of Object.entries(positions)) {
-    if (p.qty <= 0) continue;
-    const costBasis = p.qty * p.avgCost;
+  for (const position of Object.values(positions)) {
+    if (position.qty <= 0) continue;
+    const costBasis = position.qty * position.avgCost;
     totalValue += costBasis;
-    tickerBreakdown.push({ ticker, value: costBasis, pct: 0 });
+    tickerBreakdown.push({ ticker: position.ticker + " · " + position.exchange, value: costBasis, pct: 0 });
   }
-
   const finalTickerBreakdown = tickerBreakdown
     .sort((a, b) => b.value - a.value)
     .slice(0, 8)
-    .map((item) => ({
-      ...item,
-      pct: totalValue > 0 ? (item.value / totalValue) * 100 : 0,
-    }));
+    .map((item) => ({ ...item, pct: totalValue > 0 ? (item.value / totalValue) * 100 : 0 }));
 
-  // Tax computation uses the detected jurisdiction
-  const tax = computeTax(transactions, {
-    jurisdiction: detectedJurisdiction,
-    filerStatus: "Filer",
-    taxYear,
-  });
-
-  const unreconciledCount = transactions.filter((t) => t.status === "needs_review").length;
-
+  // Global/custom jurisdictions intentionally have no assumed tax rate.
+  const tax = computeTax(scoped, { jurisdiction: detectedJurisdiction, filerStatus: "Filer", taxYear });
+  const unreconciledCount = scoped.filter((tx) => tx.status === "needs_review").length;
   return {
     totalValue: Math.round(totalValue),
     realizedGains: Math.round(tax.totalGain),
     unrealizedGains: null,
     taxLiability: Math.round(tax.estimatedTaxDue),
     unreconciledCount,
-    totalTransactions: transactions.length,
-    openFlags: 0, // fetched separately
+    totalTransactions: scoped.length,
+    openFlags: 0,
     tickerBreakdown: finalTickerBreakdown,
     currency,
   };

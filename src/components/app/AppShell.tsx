@@ -430,7 +430,7 @@ function InnerShell({ children }: { children: ReactNode }) {
         className="relative hidden h-dvh h-screen min-h-0 shrink-0 overflow-hidden lg:sticky lg:top-0 lg:flex lg:flex-col"
         style={{ background: "var(--sidebar)", borderRight: "1px solid var(--sidebar-border)" }}
       >
-        <SidebarContent collapsed={!expanded} />
+        {SidebarContent({ collapsed: !expanded })}
         {!expanded && (
           <button
             type="button"

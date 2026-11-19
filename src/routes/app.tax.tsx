@@ -57,7 +57,7 @@ function TaxCenter() {
     customLongTermRate: Number(customLongTermRate) / 100,
     customLongTermDays: Number(customLongTermDays) || 365,
   });
-  const harvest = activeJurisdiction === "CUSTOM" ? [] : suggestHarvesting(taxTransactions, tax.totalGain);
+  const harvest = []; // No fabricated quote feed: harvesting requires verified current prices and jurisdiction-specific loss rules.
   const yearTransactions = taxTransactions.filter((transaction) => transaction.status === "posted" && transaction.trade_date.startsWith(activeYear));
   const purchaseValue = yearTransactions.filter((transaction) => transaction.action === "BUY").reduce((sum, transaction) => sum + transaction.quantity * transaction.price + transaction.fees, 0);
   const saleProceeds = yearTransactions.filter((transaction) => transaction.action === "SELL").reduce((sum, transaction) => sum + transaction.quantity * transaction.price - transaction.fees, 0);
@@ -473,9 +473,9 @@ function TaxCenter() {
             className="mx-auto mb-3"
             style={{ color: "var(--ink-3)" }}
           />
-          <p className="font-medium">No realized gains in {activeYear}</p>
+          <p className="font-medium">No realised gains in {activeYear}</p>
           <p className="mt-1 text-sm" style={{ color: "var(--ink-3)" }}>
-            Add sell transactions for FY {taxYear} to see FIFO lot matching.
+            Add sell transactions for {activeYear} to see FIFO lot matching.
           </p>
         </Panel>
       )}

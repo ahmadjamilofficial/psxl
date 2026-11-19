@@ -461,6 +461,6 @@ PSXL does not provide tax or legal advice. All computations are indicative only.
 
 **Built for traders, financiers, and individuals who deserve better financial tooling.**
 
-[Website](https://psxl.live) · [Twitter](https://psxl.live) · [LinkedIn](https://psxl.live)
+[Website](https://psxl.live)
 
 </div>

@@ -1,5 +1,5 @@
 /**
- * WAB brand mark — a monochrome geometric "WAB" monogram.
+ * PSXL brand mark — a monochrome geometric "PSXL" monogram.
  *
  * Two uploaded variants, each meant for the surface it sits on:
  *  - light-logo.png: solid ink mark on white  → light theme
@@ -10,7 +10,9 @@
  * but ignored, because choosing by colour would break that rule.
  */
 
-const WORDMARK = "WAB";
+import { BRAND_NAME } from "@/lib/brand";
+
+const WORDMARK = BRAND_NAME.toUpperCase();
 
 /** Mark only (no wordmark) — nav bars, sidebar rail, compact spots. */
 export function LogoIcon({
@@ -33,13 +35,13 @@ export function LogoIcon({
         <>
           <img
             src="/light-logo.png"
-            alt="WAB"
+            alt={BRAND_NAME}
             className="block size-full object-contain dark:hidden"
             draggable={false}
           />
           <img
             src="/dark-logo.png"
-            alt="WAB"
+            alt={BRAND_NAME}
             className="hidden size-full object-contain dark:block"
             draggable={false}
           />
@@ -47,7 +49,7 @@ export function LogoIcon({
       ) : (
         <img
           src={tone === "onDark" ? "/dark-logo.png" : "/light-logo.png"}
-          alt="WAB"
+          alt={BRAND_NAME}
           className="block size-full object-contain"
           draggable={false}
         />

@@ -1,3 +1,4 @@
+import { brandText } from "@/lib/brand";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import {
@@ -31,22 +32,22 @@ import {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Wab — AI-Native Financial Operations & Audit Platform" },
+      { title: brandText("{{brand}} — AI-Native Financial Operations & Audit Platform") },
       {
         name: "description",
         content:
-          "Upload financial records, statements, CSVs, PDFs, or trade data. Wab extracts the data, reconciles it against your records, detects discrepancies, and produces a traceable audit-ready ledger.",
+          brandText("Upload financial records, statements, CSVs, PDFs, or trade data. {{brand}} extracts the data, reconciles it against your records, detects discrepancies, and produces a traceable audit-ready ledger."),
       },
       {
         name: "keywords",
         content:
-          "financial operations, trade reconciliation, broker slip parser, capital gains tax, FIFO tax engine, audit trail, Wab",
+          brandText("financial operations, trade reconciliation, broker slip parser, capital gains tax, FIFO tax engine, audit trail, {{brand}}"),
       },
-      { property: "og:title", content: "Wab — AI-Native Financial Operations & Audit Platform" },
+      { property: "og:title", content: brandText("{{brand}} — AI-Native Financial Operations & Audit Platform") },
       {
         property: "og:description",
         content:
-          "Upload financial records, statements, CSVs, PDFs, or trade data. Wab extracts the data, reconciles it against your records, detects discrepancies, and produces a traceable audit-ready ledger.",
+          brandText("Upload financial records, statements, CSVs, PDFs, or trade data. {{brand}} extracts the data, reconciles it against your records, detects discrepancies, and produces a traceable audit-ready ledger."),
       },
       { property: "og:url", content: "https://psxl.live/" },
     ],
@@ -96,7 +97,7 @@ const features = [
   {
     icon: BarChart3,
     title: "Review Inbox",
-    desc: "Low-confidence items and material decisions batch into a single inbox. Approve, reject, or skip — Wab learns from each choice.",
+    desc: brandText("Low-confidence items and material decisions batch into a single inbox. Approve, reject, or skip — {{brand}} learns from each choice."),
   },
 ];
 
@@ -111,7 +112,7 @@ const steps = [
   {
     n: "02",
     title: "Watch",
-    desc: "Wab monitors sources continuously — no button to press, no prompt to write.",
+    desc: brandText("{{brand}} monitors sources continuously — no button to press, no prompt to write."),
   },
   {
     n: "03",
@@ -195,7 +196,7 @@ const faqs = [
   ],
   [
     "Which brokers are supported?",
-    "Wab is format-driven: any PSX or NSE contract note, dividend voucher, CSV or Excel export can be parsed — including photographed slips.",
+    brandText("{{brand}} is format-driven: any PSX or NSE contract note, dividend voucher, CSV or Excel export can be parsed — including photographed slips."),
   ],
   [
     "Is the tax math AI-generated?",
@@ -219,7 +220,7 @@ const faqs = [
   ],
   [
     "What happens when extraction confidence is low?",
-    "Fields with confidence scores below 0.75 are automatically routed for manual review. Wab never silently guesses — it asks you to verify.",
+    brandText("Fields with confidence scores below 0.75 are automatically routed for manual review. {{brand}} never silently guesses — it asks you to verify."),
   ],
 ];
 
@@ -265,7 +266,7 @@ function Home() {
     setIsBusy(true);
     // Navigate to parser with the prompt and attachments
     const message = chatValue.trim() || "Analyze the attached document(s).";
-    // Hand the prompt and files to the Wab workspace
+    // Hand the prompt and files to the PSXL workspace
     setPendingPrompt(message);
     setPendingFiles(pendingFileList);
     navigate({ to: !loading && session ? "/app/parser" : "/signin" });
@@ -323,7 +324,7 @@ function Home() {
             className="mx-auto mb-10 max-w-[560px] text-base leading-relaxed sm:text-lg"
             style={{ color: "var(--ink-2)" }}
           >
-            Wab acts on your data continuously — extracting, reconciling, and flagging anomalies
+            PSXL acts on your data continuously — extracting, reconciling, and flagging anomalies
             without waiting for a prompt. Every change is traceable and reversible.
           </motion.p>
 
@@ -449,7 +450,7 @@ function Home() {
                 letterSpacing: "-0.01em",
               }}
             >
-              See Wab in action
+              See PSXL in action
             </h2>
             <p className="mt-3 text-sm" style={{ color: "var(--ink-2)" }}>
               Demo visualization — not actual production data
@@ -636,7 +637,7 @@ function Home() {
               className="mb-4 text-xs font-semibold uppercase tracking-widest"
               style={{ color: "var(--color-accent)" }}
             >
-              Why trust Wab?
+              Why trust PSXL?
             </p>
             <h2
               className="mb-4"
@@ -744,7 +745,7 @@ function Home() {
                 letterSpacing: "-0.01em",
               }}
             >
-              Wab handles the problems spreadsheets can't
+              PSXL handles the problems spreadsheets can't
             </h2>
           </div>
           <div className="grid gap-5 md:grid-cols-3">
@@ -1005,7 +1006,7 @@ function Home() {
             className="mt-4 text-xs"
             style={{ color: "color-mix(in srgb, var(--accent-fg) 65%, transparent)" }}
           >
-            Wab does not provide tax or legal advice.
+            PSXL does not provide tax or legal advice.
           </p>
         </Container>
       </section>

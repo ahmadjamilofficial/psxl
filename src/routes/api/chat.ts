@@ -1714,7 +1714,6 @@ export const Route = createFileRoute("/api/chat")({
             "get_open_flags",
             "insert_transaction",
             "update_transaction",
-            "delete_transaction",
             "flag_anomaly",
             "resolve_flag",
             "get_unfinished_records",

@@ -96,7 +96,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           brandText("{{brand}} is an AI-powered trade reconciliation and CGT tax engine for PSX (Pakistan) and NSE (India) traders. Upload broker slips, get a FIFO-accurate, audit-ready ledger in minutes. Free for 50 transactions/month."),
       },
       { name: "author", content: brandText("{{brand}}") },
-      { name: "robots", content: "index, follow" },
+      { name: "robots", content: "index, follow, max-image-preview:large" },
+      { name: "keywords", content: "PSXL, financial operations, trade reconciliation, broker statement parser, PSX, NSE, FIFO capital gains tax, audit trail, portfolio ledger" },
       {
         name: "googlebot",
         content: "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
@@ -117,9 +118,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           brandText("Replace hours of manual ledger work with {{brand}}. Upload any PSX or NSE broker slip — AI extracts every field, FIFO math computes your CGT, and an immutable audit trail keeps you filing-ready."),
       },
       { property: "og:locale", content: "en_US" },
+      { property: "og:image", content: "https://psxl.live/favicon.png" },
+      { property: "og:image:alt", content: "PSXL financial operations and audit platform" },
 
       // ── Twitter / X ──────────────────────────────────────────────────────
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: "https://psxl.live/favicon.png" },
       { name: "twitter:title", content: brandText("{{brand}} — AI-Native Trade Reconciliation & CGT Engine") },
       {
         name: "twitter:description",

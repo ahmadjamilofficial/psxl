@@ -19,6 +19,7 @@ export interface Transaction {
   broker: string;
   exchange: string;
   currency?: string;
+  brokerAccountId?: string;
 }
 
 export const DEMO_TRANSACTIONS: Transaction[] = [

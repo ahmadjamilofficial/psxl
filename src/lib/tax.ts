@@ -22,6 +22,7 @@ export interface FifoLot {
   buyDate: string;
   sellDate: string;
   ticker: string;
+  exchange: string;
   quantity: number;
   costBasis: number; // per unit
   salePrice: number; // per unit
@@ -80,8 +81,9 @@ export function computeTax(txs: Transaction[], profile: TaxProfile): TaxComputat
     .sort((a, b) => a.trade_date.localeCompare(b.trade_date));
 
   for (const tx of allBuys) {
-    if (!buyQueues[tx.ticker]) buyQueues[tx.ticker] = [];
-    buyQueues[tx.ticker]!.push({ date: tx.trade_date, qty: tx.quantity, price: tx.price });
+    const marketKey = tx.exchange + ":" + tx.ticker;
+    if (!buyQueues[marketKey]) buyQueues[marketKey] = [];
+    buyQueues[marketKey]!.push({ date: tx.trade_date, qty: tx.quantity, price: tx.price });
   }
 
   // Match sells against buy lots using FIFO
@@ -92,7 +94,7 @@ export function computeTax(txs: Transaction[], profile: TaxProfile): TaxComputat
 
   for (const sell of sellTxs) {
     let remaining = sell.quantity;
-    const queue = buyQueues[sell.ticker] ?? [];
+    const queue = buyQueues[sell.exchange + ":" + sell.ticker] ?? [];
 
     while (remaining > 0 && queue.length > 0) {
       const lot = queue[0]!;
@@ -119,6 +121,7 @@ export function computeTax(txs: Transaction[], profile: TaxProfile): TaxComputat
         buyDate: lot.date,
         sellDate: sell.trade_date,
         ticker: sell.ticker,
+        exchange: sell.exchange,
         quantity: matched,
         costBasis: lot.price,
         salePrice: sell.price,

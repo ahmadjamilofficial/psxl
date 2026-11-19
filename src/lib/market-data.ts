@@ -6,7 +6,7 @@ import { supabase } from "./supabase";
 
 export interface MarketPrice {
   ticker: string;
-  exchange: "PSX" | "NSE";
+  exchange: string;
   price: number;
   change: number;
   changePercent: number;
@@ -30,7 +30,7 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 // ─── Fetch market prices from server-side API ───────────────────────────────
 
 async function fetchFromServer(
-  tickers: Array<{ ticker: string; exchange: "PSX" | "NSE" }>,
+  tickers: Array<{ ticker: string; exchange: string }>,
 ): Promise<Map<string, MarketPrice>> {
   try {
     const response = await fetch("/api/market-data", {

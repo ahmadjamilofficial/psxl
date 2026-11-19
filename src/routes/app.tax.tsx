@@ -184,8 +184,8 @@ function TaxCenter() {
                 ["Estimated tax due", tax.estimatedTaxDue],
                 ["Computed at", tax.computedAt],
                 [],
-                ["Ticker", "Buy date", "Sell date", "Quantity", "Cost basis", "Sale price", "Holding days", "Gain", "Tax rate", "Tax due"],
-                ...tax.lots.map((lot) => [lot.ticker, lot.buyDate, lot.sellDate, lot.quantity, lot.costBasis, lot.salePrice, lot.holdingDays, lot.gain, lot.taxRate, lot.taxDue]),
+                ["Ticker", "Exchange", "Buy date", "Sell date", "Quantity", "Cost basis", "Sale price", "Holding days", "Gain", "Tax rate", "Tax due"],
+                ...tax.lots.map((lot) => [lot.ticker, lot.exchange, lot.buyDate, lot.sellDate, lot.quantity, lot.costBasis, lot.salePrice, lot.holdingDays, lot.gain, lot.taxRate, lot.taxDue]),
               ];
               const csv = rows.map((row) => row.map((cell) => {
                 const value = String(cell ?? "");
@@ -337,6 +337,7 @@ function TaxCenter() {
                 <tr style={{ borderBottom: "1px solid var(--hairline)" }}>
                   {[
                     "Ticker",
+                    "Exchange",
                     "Buy date",
                     "Sell date",
                     "Qty",
@@ -365,6 +366,7 @@ function TaxCenter() {
                     className="ledger-row transition-colors"
                   >
                     <td className="px-3 py-3 text-sm font-semibold">{lot.ticker}</td>
+                    <td className="px-3 py-3 text-xs" style={{ color: "var(--ink-3)" }}>{lot.exchange}</td>
                     <td className="px-3 py-3 text-xs" style={{ color: "var(--ink-2)" }}>
                       {lot.buyDate}
                     </td>

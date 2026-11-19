@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { parseDocument, parseTextDocument } from "./ai-service";
 import { supabase } from "./supabase";
 import type { Transaction } from "./demo-data";
+import { currencyForExchange } from "./market-currency";
 
 // ── Transactions ──────────────────────────────────────────────────────────────
 
@@ -14,7 +15,7 @@ export function useTransactions(orgId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("transactions")
-        .select("*")
+         .select("*, broker_accounts(currency)")
         .eq("org_id", orgId!)
         .order("trade_date", { ascending: false });
 
@@ -34,6 +35,7 @@ export function useTransactions(orgId: string | undefined) {
         status: row.status as Transaction["status"],
         broker: row.broker,
         exchange: row.exchange as Transaction["exchange"],
+        currency: (row as unknown as { broker_accounts?: { currency?: string } | null }).broker_accounts?.currency ?? currencyForExchange(row.exchange),
       })) as Transaction[];
     },
     staleTime: 0,

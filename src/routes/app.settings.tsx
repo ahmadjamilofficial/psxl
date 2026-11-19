@@ -58,7 +58,7 @@ function Settings() {
     return "org";
   });
   const [orgName, setOrgName] = useState(profile?.org_name ?? "My Organisation");
-  const [jurisdiction, setJurisdiction] = useState(profile?.jurisdiction ?? "PSX");
+  const [jurisdiction, setJurisdiction] = useState(profile?.jurisdiction ?? "CUSTOM");
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");

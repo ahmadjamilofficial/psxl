@@ -18,7 +18,6 @@ import {
   describeAttempts,
   isCapacityError,
   markProviderUnhealthy,
-  orderModelCascade,
   resolveAgentModel,
   type ResolvedModel,
 } from "@/lib/audit-agent.server";

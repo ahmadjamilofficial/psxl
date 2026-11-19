@@ -53,6 +53,10 @@ function TaxCenter() {
     customLongTermDays: Number(customLongTermDays) || 365,
   });
   const harvest = activeJurisdiction === "CUSTOM" ? [] : suggestHarvesting(transactions, tax.totalGain);
+  const yearTransactions = transactions.filter((transaction) => transaction.status === "posted" && transaction.trade_date.startsWith(activeYear));
+  const purchaseValue = yearTransactions.filter((transaction) => transaction.action === "BUY").reduce((sum, transaction) => sum + transaction.quantity * transaction.price + transaction.fees, 0);
+  const saleProceeds = yearTransactions.filter((transaction) => transaction.action === "SELL").reduce((sum, transaction) => sum + transaction.quantity * transaction.price - transaction.fees, 0);
+  const dividendIncome = yearTransactions.filter((transaction) => transaction.action === "DIV").reduce((sum, transaction) => sum + transaction.quantity * transaction.price, 0);
 
   async function getAIExplanation() {
     setLoadingAI(true);
@@ -248,6 +252,26 @@ function TaxCenter() {
           </motion.div>
         ))}
       </div>
+
+      <Panel>
+        <div className="mb-4">
+          <p className="text-sm font-semibold">Ledger activity · {activeYear}</p>
+          <p className="mt-1 text-xs" style={{ color: "var(--ink-3)" }}>Actual posted records for the selected year. Buy-only activity does not create a realised capital gain until a disposal is recorded.</p>
+        </div>
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {[
+            { label: "Purchases", value: purchaseValue },
+            { label: "Sale proceeds", value: saleProceeds },
+            { label: "Dividend income", value: dividendIncome },
+            { label: "Posted records", value: yearTransactions.length },
+          ].map((item) => (
+            <div key={item.label} className="rounded-xl p-4" style={{ background: "var(--color-login-bg)", border: "1px solid var(--hairline)" }}>
+              <p className="text-xs" style={{ color: "var(--ink-3)" }}>{item.label}</p>
+              <p className="tnum mt-2 text-lg font-semibold">{item.label === "Posted records" ? item.value : `${currency} ${fmt(item.value)}`}</p>
+            </div>
+          ))}
+        </div>
+      </Panel>
 
       {/* AI Explanation */}
       <Panel>

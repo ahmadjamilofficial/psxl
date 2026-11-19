@@ -1,23 +1,11 @@
-# Wab — robots.txt
-# https://psxl.live
-
+# PSXL crawler policy
 User-agent: *
 Allow: /
 Disallow: /app/
 Disallow: /api/
+Disallow: /signin
+Disallow: /signup
+Disallow: /auth/
 Disallow: /_/
 
-# Allow key marketing pages
-Allow: /pricing
-Allow: /security
-Allow: /how-it-works
-Allow: /about
-Allow: /contact
-Allow: /help
-Allow: /news
-
-# Sitemap
 Sitemap: https://psxl.live/sitemap.xml
-
-# Crawl delay (be nice to servers)
-Crawl-delay: 10

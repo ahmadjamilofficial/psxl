@@ -20,6 +20,9 @@ import {
 import {
   Area,
   AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
   Cell,
   Pie,
   PieChart,
@@ -290,6 +293,34 @@ function MissionControl() {
 
   const fmt = (n: number) => n.toLocaleString("en-PK", { maximumFractionDigits: 0 });
 
+  const actionChartData = ["BUY", "SELL", "DIV"].map((action) => ({
+    action,
+    count: transactions.filter((transaction) => transaction.action === action).length,
+  }));
+  const quantityBuckets = [
+    { range: "1–10", min: 1, max: 10 },
+    { range: "11–50", min: 11, max: 50 },
+    { range: "51–100", min: 51, max: 100 },
+    { range: "101–500", min: 101, max: 500 },
+    { range: "500+", min: 501, max: Number.POSITIVE_INFINITY },
+  ].map((bucket) => ({
+    range: bucket.range,
+    count: transactions.filter((transaction) => {
+      const quantity = Number(transaction.quantity) || 0;
+      return quantity >= bucket.min && quantity <= bucket.max;
+    }).length,
+  }));
+  const tickerActivity = Object.entries(
+    transactions.reduce<Record<string, number>>((counts, transaction) => {
+      const ticker = transaction.ticker || "Other";
+      counts[ticker] = (counts[ticker] ?? 0) + 1;
+      return counts;
+    }, {}),
+  )
+    .map(([ticker, count]) => ({ ticker, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 8);
+
   // Empty state
   if (!txLoading && transactions.length === 0) {
     return (
@@ -402,6 +433,61 @@ function MissionControl() {
           />
         </div>
       </div>
+
+      <section className="grid gap-4 lg:grid-cols-2" aria-label="Ledger analytics">
+        <div className="rounded-2xl p-5" style={{ background: "var(--surface)", border: "1px solid var(--hairline)" }}>
+          <div className="mb-4">
+            <p className="text-sm font-bold">Trade activity</p>
+            <p className="text-xs" style={{ color: "var(--ink-3)" }}>Ledger transactions by action type</p>
+          </div>
+          {transactions.length > 0 ? (
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={actionChartData} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
+                <CartesianGrid stroke="var(--hairline)" vertical={false} />
+                <XAxis dataKey="action" tick={{ fontSize: 11, fill: "var(--ink-3)" }} axisLine={false} tickLine={false} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "var(--ink-3)" }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{ background: "var(--sidebar)", border: "1px solid var(--hairline)", borderRadius: 10, fontSize: 12 }} />
+                <Bar dataKey="count" name="Transactions" fill="var(--chart-1)" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : <p className="flex h-[220px] items-center justify-center text-xs" style={{ color: "var(--ink-3)" }}>No transactions to chart yet.</p>}
+        </div>
+        <div className="rounded-2xl p-5" style={{ background: "var(--surface)", border: "1px solid var(--hairline)" }}>
+          <div className="mb-4">
+            <p className="text-sm font-bold">Trade-size histogram</p>
+            <p className="text-xs" style={{ color: "var(--ink-3)" }}>Distribution by recorded share quantity</p>
+          </div>
+          {transactions.length > 0 ? (
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={quantityBuckets} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
+                <CartesianGrid stroke="var(--hairline)" vertical={false} />
+                <XAxis dataKey="range" tick={{ fontSize: 10, fill: "var(--ink-3)" }} axisLine={false} tickLine={false} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "var(--ink-3)" }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{ background: "var(--sidebar)", border: "1px solid var(--hairline)", borderRadius: 10, fontSize: 12 }} />
+                <Bar dataKey="count" name="Transactions" fill="var(--chart-2)" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : <p className="flex h-[220px] items-center justify-center text-xs" style={{ color: "var(--ink-3)" }}>No transaction sizes available yet.</p>}
+        </div>
+        <div className="rounded-2xl p-5 lg:col-span-2" style={{ background: "var(--surface)", border: "1px solid var(--hairline)" }}>
+          <div className="mb-4">
+            <p className="text-sm font-bold">Ticker activity blocks</p>
+            <p className="text-xs" style={{ color: "var(--ink-3)" }}>Your most active ledger symbols</p>
+          </div>
+          {tickerActivity.length > 0 ? (
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {tickerActivity.map((item, index) => (
+                <div key={item.ticker} className="flex min-h-20 flex-col justify-between rounded-xl p-3"
+                  style={{ background: index % 2 === 0 ? "var(--accent-10)" : "var(--color-login-bg)", border: "1px solid var(--hairline)" }}>
+                  <span className="truncate text-xs font-semibold">{item.ticker}</span>
+                  <span className="tnum text-xl font-bold">{item.count.toLocaleString()}</span>
+                  <span className="text-[10px]" style={{ color: "var(--ink-3)" }}>transactions</span>
+                </div>
+              ))}
+            </div>
+          ) : <p className="flex h-20 items-center justify-center text-xs" style={{ color: "var(--ink-3)" }}>Ticker blocks appear when transactions are recorded.</p>}
+        </div>
+      </section>
 
       {/* Two-column layout */}
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_340px] xl:gap-6">

@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
 import { Activity, BarChart3, Calculator, CandlestickChart, Layers3, PieChart as PieIcon, TrendingDown, TrendingUp } from "lucide-react";
 import {
-  Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart,
+  Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Line, LineChart, Pie, PieChart,
   ResponsiveContainer, Tooltip, XAxis, YAxis, Legend, ReferenceLine,
 } from "recharts";
 import type { Transaction } from "@/lib/demo-data";
+import { currencyForExchange } from "@/lib/market-currency";
 
 type Props = { transactions: Transaction[]; currency: string };
 type Tab = "equity" | "ticker" | "activity" | "allocation" | "dividends" | "drawdown";
@@ -30,10 +31,10 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
   const [period, setPeriod] = useState("ALL");
 
   const posted = useMemo(() => transactions.filter(t => t.status === "posted").slice().sort((a,b) => a.trade_date.localeCompare(b.trade_date)), [transactions]);
-  const currencies = useMemo(() => [...new Set(posted.map(t => t.currency ?? currency))].sort(), [posted, currency]);
+  const currencies = useMemo(() => [...new Set(posted.map(t => t.currency ?? currencyForExchange(t.exchange)))].sort(), [posted, currency]);
   const activeCurrency = currencies.includes(selectedCurrency) ? selectedCurrency : currencies.length === 1 ? currencies[0]! : "";
   const tickers = useMemo(() => [...new Set(posted.map(t => ({ key: t.exchange + ":" + t.ticker, label: t.ticker + " · " + t.exchange })))].sort((a,b)=>a.label.localeCompare(b.label)), [posted]);
-  const filtered = useMemo(() => posted.filter(t => (activeCurrency !== "" && (t.currency ?? currency) === activeCurrency) && (ticker === "ALL" || t.exchange + ":" + t.ticker === ticker) && (period === "ALL" || t.trade_date >= period)), [posted, ticker, period, activeCurrency, currency]);
+  const filtered = useMemo(() => posted.filter(t => (activeCurrency !== "" && (t.currency ?? currencyForExchange(t.exchange)) === activeCurrency) && (ticker === "ALL" || t.exchange + ":" + t.ticker === ticker) && (period === "ALL" || t.trade_date >= period)), [posted, ticker, period, activeCurrency, currency]);
 
   const data = useMemo(() => {
     const byTicker = new Map<string, { ticker: string; exchange: string; buys: number; sells: number; shares: number; positionCost: number; dividends: number; sellValue: number; buyValue: number }>();
@@ -104,7 +105,7 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
       <div className="rounded-2xl p-4" style={card}>
         <div className="mb-2"><h3 className="text-sm font-semibold">Monthly cash-flow trend</h3><p className="text-[11px]" style={{color:"var(--ink-3)"}}>Cumulative net ledger flow by month</p></div>
         <ResponsiveContainer width="100%" height={230}>
-          <AreaChart data={data.monthly}><CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis dataKey="month" tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><Tooltip formatter={(v:number)=>[(activeCurrency||"—")+" "+fmt(v)]} contentStyle={{border:"1px solid var(--hairline)",borderRadius:12,background:"var(--color-sheet)"}}/><Area dataKey="cumulative" name="Cumulative cash flow" type="monotone" stroke="#2563EB" fill="#2563EB22" strokeWidth={2}/><Line dataKey="buys" name="Buy turnover" type="monotone" stroke="#F59E0B" dot={false}/></AreaChart>
+          <ComposedChart data={data.monthly}><CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis dataKey="month" tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><Tooltip formatter={(v:number)=>[(activeCurrency||"—")+" "+fmt(v)]} contentStyle={{border:"1px solid var(--hairline)",borderRadius:12,background:"var(--color-sheet)"}}/><Area dataKey="cumulative" name="Cumulative cash flow" type="monotone" stroke="#2563EB" fill="#2563EB22" strokeWidth={2}/><Line dataKey="buys" name="Buy turnover" type="monotone" stroke="#F59E0B" dot={false}/></AreaChart>
         </ResponsiveContainer>
       </div>
       <div className="rounded-2xl p-4" style={card}>

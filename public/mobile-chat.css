@@ -157,3 +157,54 @@
     max-width: 42rem;
   }
 }
+
+/* Compact, viewport-fitted mobile chat: balanced like a native chat client. */
+@media (max-width: 767px) {
+  .app-mobile-main:has(.wab-composer) {
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    flex: 1 1 0%;
+    overflow: hidden !important;
+    padding-bottom: 0 !important;
+  }
+  .app-mobile-main:has(.wab-composer) > * { height: 100%; min-height: 0; }
+  .app-mobile-main:has(.wab-composer) header { padding-top: 7px; padding-bottom: 7px; }
+  .app-mobile-main [data-slot="conversation-content"] {
+    gap: 1.25rem !important;
+    padding: 12px 14px 8px !important;
+  }
+  .app-mobile-main [data-slot="conversation-content"] > .wab-fade-up {
+    flex: 1 1 auto;
+    min-height: 0 !important;
+    justify-content: center;
+    padding: 12px 8px 18px;
+  }
+  .app-mobile-main [data-slot="conversation-content"] > .wab-fade-up h1 {
+    max-width: 320px;
+    font-size: 1.4rem !important;
+    line-height: 1.2 !important;
+    letter-spacing: -0.04em;
+  }
+  .app-mobile-main [data-slot="conversation-content"] > .wab-fade-up p {
+    max-width: 310px;
+    margin-top: 10px;
+    font-size: 0.98rem !important;
+    line-height: 1.5 !important;
+  }
+  .wab-composer-area { padding: 6px 12px max(8px, env(safe-area-inset-bottom, 0px)) !important; }
+  .wab-composer [data-slot="input-group"] { min-height: 108px; border-radius: 22px; }
+  .wab-composer textarea {
+    min-height: 42px !important;
+    max-height: min(22dvh, 120px) !important;
+    padding: 10px 14px 4px !important;
+    font-size: 15px !important;
+    line-height: 1.45 !important;
+  }
+  .wab-composer [data-slot="input-group-addon"] { padding-inline: 8px; padding-bottom: 7px; }
+  .wab-composer .wab-send,
+  .wab-composer button[aria-label="Attach files"] {
+    width: 34px; height: 34px; min-width: 34px; min-height: 34px;
+  }
+}
+

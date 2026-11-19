@@ -1,3 +1,4 @@
+import { brandText } from "@/lib/brand";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Shimmer } from "@/components/ai-elements/shimmer";
@@ -22,7 +23,7 @@ function ParserIndex() {
     void (async () => {
       try {
         // Deliberately do not reuse sessionStorage or the last thread here.
-        // Entering Ask Wab is a clean working session; explicit thread URLs
+        // Entering Ask {{brand}} is a clean working session; explicit thread URLs
         // remain the way to reopen a saved conversation.
         let { data: profile, error: profileError } = await withTimeout(
           supabase.from("profiles").select("org_id").eq("user_id", user.id).maybeSingle(),
@@ -59,7 +60,7 @@ function ParserIndex() {
           throw new Error(error?.message ?? "Could not open a new AI workspace.");
         navigate({ to: "/app/parser/$threadId", params: { threadId: created.id }, replace: true });
       } catch (cause) {
-        console.error("[Wab][ParserIndex] failed to create fresh chat", cause);
+        console.error(brandText("[{{brand}}][ParserIndex] failed to create fresh chat"), cause);
         setFailure(cause instanceof Error ? cause.message : "Could not open the AI workspace.");
         started.current = false;
       }
@@ -85,7 +86,7 @@ function ParserIndex() {
   }
   return (
     <div className="flex h-[70vh] items-center justify-center">
-      <Shimmer>Starting a fresh Ask Wab conversation…</Shimmer>
+      <Shimmer>{brandText("Starting a fresh Ask {{brand}} conversation…")}</Shimmer>
     </div>
   );
 }

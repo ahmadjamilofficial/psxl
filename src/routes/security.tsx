@@ -1,3 +1,4 @@
+import { brandText } from "@/lib/brand";
 import { createFileRoute } from "@tanstack/react-router";
 import { Fingerprint, KeyRound, Lock, ScrollText, ServerCog, ShieldCheck } from "lucide-react";
 import { Btn, Panel, Reveal, StatusPill } from "@/components/kit";
@@ -6,13 +7,13 @@ import { PageShell } from "@/components/site/PageShell";
 export const Route = createFileRoute("/security")({
   head: () => ({
     meta: [
-      { title: "Security & Audit Architecture — Wab" },
+      { title: brandText("Security & Audit Architecture — {{brand}}") },
       {
         name: "description",
         content:
-          "How Wab protects trade data: hash-chained immutable audit logs, per-organisation row-level security, encrypted storage and deterministic tax math.",
+          brandText("How {{brand}} protects trade data: hash-chained immutable audit logs, per-organisation row-level security, encrypted storage and deterministic tax math."),
       },
-      { property: "og:title", content: "Security & Audit Architecture — Wab" },
+      { property: "og:title", content: brandText("Security & Audit Architecture — {{brand}}") },
       {
         property: "og:description",
         content:
@@ -61,7 +62,7 @@ function Security() {
     <PageShell
       eyebrow="Security"
       title="Zero-manual-error architecture"
-      sub="Wab is built so that a number can always be traced back to a document, and a document can always be traced back to an unbroken chain."
+      sub={brandText(brandText("{{brand}} is built so that a number can always be traced back to a document, and a document can always be traced back to an unbroken chain."))}
     >
       <div className="grid gap-6 md:grid-cols-3">
         {pillars.map((p, i) => (

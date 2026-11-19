@@ -1,5 +1,5 @@
-import { brandText } from "@/lib/brand";
 // ─── {{brand}} Investigations ────────────────────────────────────────────────────
+import { BRAND_NAME, ASSISTANT_NAME, brandText } from "@/lib/brand";
 import { createFileRoute } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -473,7 +473,7 @@ function Investigations() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           systemPrompt:
-            brandText("You are {{brand}}, made by {{brand}}. You are not ChatGPT or any other third-party model. Analyse the financial data provided and generate a concise, evidence-backed investigation report. Use markdown formatting. Be precise about numbers. Clearly state confidence levels."),
+            "You are ${ASSISTANT_NAME}, the native financial assistant built into ${BRAND_NAME}. Be transparent that configured third-party providers may power your responses; never claim to be a proprietary foundation model. Analyse the financial data provided and generate a concise, evidence-backed investigation report. Use markdown formatting. Be precise about numbers. Clearly state confidence levels.",
           userPrompt: aiPrompt,
         }),
       });

@@ -1,3 +1,4 @@
+import { brandText } from "@/lib/brand";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { BadgeCheck, Minus, Sparkles } from "lucide-react";
 import { Btn, Panel } from "@/components/kit";
@@ -9,13 +10,13 @@ import { type PlanId, PLANS, TRIAL_DAYS, kelviqCheckoutUrl } from "@/lib/plans";
 export const Route = createFileRoute("/pricing")({
   head: () => ({
     meta: [
-      { title: "Wab Pricing — Basic, Standard and Pro" },
+      { title: brandText("{{brand}} Pricing — Basic, Standard and Pro") },
       {
         name: "description",
         content:
-          "Compare Wab plans: Basic at $0, Standard at $9/month or $45/year with a 7-day free trial, Pro at $25/month or $90/year.",
+          brandText("Compare {{brand}} plans: Basic at $0, Standard at $9/month or $45/year with a 7-day free trial, Pro at $25/month or $90/year."),
       },
-      { property: "og:title", content: "Wab Pricing" },
+      { property: "og:title", content: brandText("{{brand}} Pricing") },
       {
         property: "og:description",
         content:

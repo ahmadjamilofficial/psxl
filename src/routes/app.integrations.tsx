@@ -1,3 +1,4 @@
+import { brandText } from "@/lib/brand";
 // ─── Integrations & Connections workspace ────────────────────────────────────
 // Everything on this page reflects real backend state. A provider is only
 // shown as Connected after the server adapter verified it; failures show the
@@ -177,7 +178,7 @@ function IntegrationsPage() {
         setNotice({
           tone: result["ok"] ? "ok" : "bad",
           text: result["ok"]
-            ? `${connection.label} is connected. ${String(result["message"] ?? "")}`
+            ? `${connection.label} is connected. ${String(result["message"] ?? "")}brandText(`
             : String(result["message"] ?? ""),
         });
       } else {
@@ -206,7 +207,7 @@ function IntegrationsPage() {
         <h1 className="mt-2 text-2xl font-bold">Integrations</h1>
         <p className="mt-1 max-w-2xl text-sm" style={{ color: "var(--ink-2)" }}>
           Connect a supported read-only provider once. Manual sync is available immediately;
-          background refresh runs every 15 minutes only after the deployment's Wab Autopilot
+          background refresh runs every 15 minutes only after the deployment's {{brand}} Autopilot
           workflow and required secrets are configured. Credentials are encrypted server-side and
           never returned to this browser. A provider is only marked Connected after it confirms the
           connection itself.
@@ -221,7 +222,7 @@ function IntegrationsPage() {
               notice.tone === "ok"
                 ? "var(--accent-4)"
                 : "color-mix(in srgb, var(--bad) 8%, transparent)",
-            border: `1px solid ${notice.tone === "ok" ? "var(--hairline)" : "color-mix(in srgb, var(--bad) 25%, transparent)"}`,
+            border: `)1px solid ${notice.tone === "ok" ? "var(--hairline)" : "color-mix(in srgb, var(--bad) 25%, transparent)"}brandText(`,
             color: notice.tone === "ok" ? "var(--ink-2)" : "var(--bad)",
           }}
         >
@@ -292,9 +293,9 @@ function IntegrationsPage() {
                           className="mt-2 text-xs font-medium"
                           style={{ color: "var(--color-accent)" }}
                         >
-                          Connected. Manual sync is ready; background refresh depends on Wab
+                          Connected. Manual sync is ready; background refresh depends on {{brand}}
                           Autopilot being configured. Last sync {formatWhen(c.last_sync_at)}
-                          {c.last_sync_status ? ` (${c.last_sync_status})` : ""}.
+                          {c.last_sync_status ? `) (${c.last_sync_status})` : ""}.
                         </p>
                       )}
                       {c.last_error && (

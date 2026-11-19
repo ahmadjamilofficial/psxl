@@ -1,4 +1,5 @@
-// ─── Wab Financial Insights ────────────────────────────────────────────────
+import { brandText } from "@/lib/brand";
+// ─── {{brand}} Financial Insights ────────────────────────────────────────────────
 // Proactively surfaced findings from deterministic financial data.
 
 import { createFileRoute } from "@tanstack/react-router";
@@ -69,7 +70,7 @@ function InsightsPage() {
         type: "FEE_DISCREPANCY",
         severity: "CRITICAL",
         title: `${criticalFlags.length} Critical Reconciliation Flag${criticalFlags.length > 1 ? "s" : ""} Detected`,
-        summary: `Wab detected ${criticalFlags.length} critical reconciliation issue${criticalFlags.length > 1 ? "s" : ""} that may affect your financial records. ${criticalFlags[0]?.flag_type ?? "Discrepancy"}: ${criticalFlags[0]?.description ?? ""}`,
+        summary: brandText(`{{brand}} detected ${criticalFlags.length} critical reconciliation issue${criticalFlags.length > 1 ? "s" : ""} that may affect your financial records. ${criticalFlags[0]?.flag_type ?? "Discrepancy"}: ${criticalFlags[0]?.description ?? ""}`),
         confidence: 0.97,
         financialImpact: totalImpact,
         currency,
@@ -120,7 +121,7 @@ function InsightsPage() {
         type: "TAX_OPPORTUNITY",
         severity: "LOW",
         title: `Tax-Loss Harvesting Opportunity — ${currency} ${totalSaving.toLocaleString("en-PK", { maximumFractionDigits: 0 })} Potential Saving`,
-        summary: `Wab identified ${harvestOpportunities.length} position${harvestOpportunities.length > 1 ? "s" : ""} with unrealized losses that could offset your realized gains of ${currency} ${tax.totalGain.toLocaleString("en-PK", { maximumFractionDigits: 0 })}, reducing your estimated tax liability.`,
+        summary: brandText(`{{brand}} identified ${harvestOpportunities.length} position${harvestOpportunities.length > 1 ? "s" : ""} with unrealized losses that could offset your realized gains of ${currency} ${tax.totalGain.toLocaleString("en-PK", { maximumFractionDigits: 0 })}, reducing your estimated tax liability.`),
         confidence: 0.82,
         financialImpact: totalSaving,
         currency,
@@ -152,7 +153,7 @@ function InsightsPage() {
         type: "DOCUMENT_MISSING",
         severity: "MEDIUM",
         title: `${missingDocs.length} Transaction${missingDocs.length > 1 ? "s" : ""} Missing Reference Documents`,
-        summary: `${missingDocs.length} transaction${missingDocs.length > 1 ? "s" : ""} ${missingDocs.length > 1 ? "are" : "is"} missing source reference documentation. Upload the corresponding broker statements to complete your audit trail.`,
+        summary: `${missingDocs.length} transaction${missingDocs.length > 1 ? "s" : ""} ${missingDocs.length > 1 ? "are" : "is"} missing source reference documentation. Upload the corresponding broker statements to complete your audit trail.brandText(`,
         confidence: 0.95,
         evidenceCount: missingDocs.length,
         actionLabel: "Upload Documents",
@@ -228,7 +229,7 @@ function InsightsPage() {
             Financial Insights
           </h1>
           <p className="mt-0.5 text-sm" style={{ color: "var(--ink-2)" }}>
-            Wab continuously monitors your financial data and surfaces findings proactively.
+            {{brand}} continuously monitors your financial data and surfaces findings proactively.
           </p>
         </div>
         <div
@@ -248,7 +249,7 @@ function InsightsPage() {
               type="button"
               onClick={() => setActiveFilter(filterVal)}
               className="w-full rounded-2xl p-4 text-left transition-shadow hover:shadow-md"
-              style={{ background: bg, border: `1px solid ${border}` }}
+              style={{ background: bg, border: `)1px solid ${border}` }}
             >
               <Ic size={16} style={{ color }} />
               <p className="tnum mt-2 text-2xl font-bold" style={{ color }}>

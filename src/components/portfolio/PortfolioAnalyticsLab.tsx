@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Activity, BarChart3, Calculator, CandlestickChart, Layers3, TrendingDown, TrendingUp } from "lucide-react";
+import { Activity, BarChart3, Calculator, CandlestickChart, TrendingDown, TrendingUp } from "lucide-react";
 import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Line, LineChart, Pie, PieChart,
   ResponsiveContainer, Tooltip, XAxis, YAxis, Legend, ReferenceLine,
@@ -8,12 +8,11 @@ import type { Transaction } from "@/lib/demo-data";
 import { currencyForExchange } from "@/lib/market-currency";
 
 type Props = { transactions: Transaction[]; currency: string };
-type Tab = "equity" | "ticker" | "activity" | "dividends" | "drawdown";
+type Tab = "equity" | "ticker" | "activity" | "drawdown";
 const tabs: { id: Tab; label: string; icon: typeof Activity }[] = [
   { id: "equity", label: "Cash flow", icon: TrendingUp },
   { id: "ticker", label: "Ticker cash flow", icon: BarChart3 },
   { id: "activity", label: "Trade activity", icon: Activity },
-  { id: "dividends", label: "Dividends", icon: Layers3 },
   { id: "drawdown", label: "Cash-flow drawdown", icon: TrendingDown },
 ];
 const card = { border: "1px solid var(--hairline)", background: "var(--color-sheet)" };
@@ -87,7 +86,6 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
       {tab==="equity" ? <AreaChart data={data.equity}><defs><linearGradient id="wab-lab-equity" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#34D399" stopOpacity={.28}/><stop offset="100%" stopColor="#34D399" stopOpacity={0}/></linearGradient></defs><CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis dataKey="date" tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><Tooltip formatter={(v:number)=>[(activeCurrency || "—")+" "+fmt(v),"Net cash flow"]} contentStyle={{background:"#111",border:"1px solid rgba(255,255,255,0.1)",borderRadius:12,color:"#fff",padding:"10px 14px"}}/><Area dataKey="cumulative" type="monotone" stroke="#34D399" strokeWidth={2.2} fill="url(#wab-lab-equity)" activeDot={{r:4}}/></AreaChart>
       : tab==="ticker" ? <BarChart data={data.tickerRows}><CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis dataKey="ticker" tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><Tooltip formatter={(v:number)=>[(activeCurrency || "—")+" "+fmt(v)]} contentStyle={{background:"#111",border:"1px solid rgba(255,255,255,0.1)",borderRadius:12,color:"#fff",padding:"10px 14px"}}/><Bar dataKey="netCash" name="Net cash flow" radius={[4,4,0,0]}>{data.tickerRows.map((r,i)=><Cell key={r.ticker} fill={r.netCash>=0?"#34D399":"#FB7185"}/>)}</Bar></BarChart>
       : tab==="activity" ? <BarChart data={data.activity}><CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis dataKey="date" tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><Tooltip formatter={(v:number)=>[(activeCurrency || "—")+" "+fmt(v)]} contentStyle={{background:"#111",border:"1px solid rgba(255,255,255,0.1)",borderRadius:12,color:"#fff",padding:"10px 14px"}}/><Bar dataKey="buys" name="Buy turnover" fill="#60A5FA" radius={[3,3,0,0]}/><Bar dataKey="sells" name="Sell turnover" fill="#34D399" radius={[3,3,0,0]}/></BarChart>
-      : tab==="dividends" ? <BarChart data={data.divs}><CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis dataKey="date" tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><Tooltip formatter={(v:number)=>[(activeCurrency || "—")+" "+fmt(v),"Net dividend"]} contentStyle={{background:"#111",border:"1px solid rgba(255,255,255,0.1)",borderRadius:12,color:"#fff",padding:"10px 14px"}}/><Bar dataKey="dividends" fill="#A78BFA" radius={[4,4,0,0]}/></BarChart>
       : <AreaChart data={data.equity}><CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis dataKey="date" tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis tickFormatter={v=>v.toFixed(1)+"%"} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><Tooltip formatter={(v:number)=>[v.toFixed(2)+"%","Drawdown on cumulative net flow"]} contentStyle={{background:"#111",border:"1px solid rgba(255,255,255,0.1)",borderRadius:12,color:"#fff",padding:"10px 14px"}}/><Area dataKey="drawdown" type="monotone" stroke="#FB7185" strokeWidth={2} fill="#FB718522" activeDot={{r:4}}/></AreaChart>}
       </ResponsiveContainer>
     </div>

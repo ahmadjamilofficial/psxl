@@ -40,7 +40,8 @@ function TaxCenter() {
 
   // Tax computations must never add gains from different currencies together.
   const activeJurisdiction = jurisdiction ?? detectedJ;
-  const currencyOptions = [...new Set(transactions.map((transaction) => transaction.currency ?? detectedCurrency).filter((value) => value && value !== "MIXED"))].sort();
+  const detectedCurrencies = [...new Set(transactions.map((transaction) => transaction.currency ?? detectedCurrency).filter((value) => value && value !== "MIXED"))].sort();
+  const currencyOptions = detectedCurrencies.length ? detectedCurrencies : [detectedCurrency !== "MIXED" ? detectedCurrency : "USD"];
   const activeCurrency = taxCurrency ?? (currencyOptions.includes(detectedCurrency) ? detectedCurrency : currencyOptions[0] ?? "USD");
   const taxTransactions = transactions.filter((transaction) => (transaction.currency ?? detectedCurrency) === activeCurrency);
   const transactionYears = [...new Set(taxTransactions.map((transaction) => transaction.trade_date.slice(0, 4)).filter(Boolean))].sort((a, b) => Number(b) - Number(a));

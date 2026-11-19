@@ -162,7 +162,7 @@ export function computeTax(txs: Transaction[], profile: TaxProfile): TaxComputat
 
 export interface HarvestSuggestion {
   ticker: string;
-  exchange: "PSX" | "NSE";
+  exchange: string;
   unrealizedLoss: number;
   potentialOffset: number;
   holdingDays: number;
@@ -185,7 +185,7 @@ export function suggestHarvesting(txs: Transaction[], realizedGain: number): Har
   // Build open positions (net buy qty)
   const positions: Record<
     string,
-    { qty: number; avgCost: number; exchange: "PSX" | "NSE"; firstBuy: string }
+    { qty: number; avgCost: number; exchange: string; firstBuy: string }
   > = {};
 
   for (const tx of txs.sort((a, b) => a.trade_date.localeCompare(b.trade_date))) {

@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
   Link,
+  useRouterState,
   createRootRouteWithContext,
   useRouter,
   HeadContent,
@@ -86,7 +87,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { httpEquiv: "Cache-Control", content: "no-cache" },
 
       // ── Primary SEO ──────────────────────────────────────────────────────
       { title: brandText("{{brand}} — AI-Native Financial Audit & Compliance for PSX, NSE Traders") },
@@ -94,11 +94,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         name: "description",
         content:
           brandText("{{brand}} is an AI-powered trade reconciliation and CGT tax engine for PSX (Pakistan) and NSE (India) traders. Upload broker slips, get a FIFO-accurate, audit-ready ledger in minutes. Free for 50 transactions/month."),
-      },
-      {
-        name: "keywords",
-        content:
-          brandText("PSX tax calculator, NSE CGT calculator, Pakistan capital gains tax, FIFO trade reconciliation, broker slip parser, AI financial audit, portfolio ledger PSX, WHT calculator Pakistan, NSE STCG LTCG, trade confirmation parser, {{brand}}"),
       },
       { name: "author", content: brandText("{{brand}}") },
       { name: "robots", content: "index, follow" },
@@ -108,12 +103,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { name: "theme-color", content: "#0B0C0E" },
       { name: "rating", content: "general" },
-      { name: "revisit-after", content: "7 days" },
-      { name: "language", content: "English" },
 
       // ── Open Graph ───────────────────────────────────────────────────────
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://psxl.live/" },
       { property: "og:site_name", content: brandText("{{brand}}") },
       {
         property: "og:title",
@@ -135,8 +127,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
       // ── Twitter / X ──────────────────────────────────────────────────────
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@wabapp" },
-      { name: "twitter:creator", content: "@wabapp" },
       { name: "twitter:title", content: brandText("{{brand}} — AI-Native Trade Reconciliation & CGT Engine") },
       {
         name: "twitter:description",
@@ -171,7 +161,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { rel: "icon", href: "/favicon.png", type: "image/png", sizes: "64x64" },
       { rel: "apple-touch-icon", href: "/favicon.png", sizes: "64x64" },
-      { rel: "canonical", href: "https://psxl.live/" },
       { rel: "manifest", href: "/site.webmanifest" },
     ],
   }),
@@ -183,6 +172,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: ReactNode }) {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const canonicalPath = pathname === "/" ? "/" : pathname.replace(/\\/+$/, "");
   const jsonLd = JSON.stringify({
     "@context": "https://schema.org",
     "@graph": [
@@ -194,7 +185,7 @@ function RootShell({ children }: { children: ReactNode }) {
         applicationCategory: "FinanceApplication",
         operatingSystem: "Web",
         description:
-          "AI-native financial audit and compliance agent for PSX and NSE traders. Multimodal document parsing, FIFO CGT computation, and immutable audit trails.",
+          "Financial record parsing, trade reconciliation, discrepancy detection, and deterministic FIFO capital-gains calculations for supported PSX and NSE workflows.",
         offers: [
           {
             "@type": "Offer",
@@ -223,7 +214,7 @@ function RootShell({ children }: { children: ReactNode }) {
         featureList: [
           "Multimodal trade confirmation parser (PDF, image, CSV)",
           "FIFO capital gains tax computation for PSX and NSE",
-          "Immutable hash-chained audit log",
+          "Traceable audit history",
           "AI anomaly detection and reconciliation",
           "Tax-loss harvesting suggestions",
           "Google OAuth and email authentication",
@@ -237,7 +228,6 @@ function RootShell({ children }: { children: ReactNode }) {
         name: brandText("{{brand}}"),
         url: "https://psxl.live",
         logo: "https://psxl.live/favicon.png",
-        sameAs: ["https://twitter.com/wabapp", "https://linkedin.com/company/wab"],
       },
       {
         "@type": "WebSite",
@@ -246,14 +236,6 @@ function RootShell({ children }: { children: ReactNode }) {
         name: brandText("{{brand}}"),
         description: "AI-Native Financial Audit & Compliance for PSX and NSE Traders",
         publisher: { "@id": "https://psxl.live/#org" },
-        potentialAction: {
-          "@type": "SearchAction",
-          target: {
-            "@type": "EntryPoint",
-            urlTemplate: "https://psxl.live/?q={search_term_string}",
-          },
-          "query-input": "required name=search_term_string",
-        },
       },
       {
         "@type": "FAQPage",
@@ -291,6 +273,8 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="en">
       <head>
         <HeadContent />
+        <link rel="canonical" href={`https://psxl.live${canonicalPath}`} />
+        <meta property="og:url" content={`https://psxl.live${canonicalPath}`} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
       </head>
       <body>

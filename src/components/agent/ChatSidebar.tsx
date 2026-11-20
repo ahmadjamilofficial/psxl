@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { Check, Loader2, MessageSquare, Plus, Search, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";

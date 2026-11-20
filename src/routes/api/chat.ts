@@ -593,7 +593,8 @@ export const Route = createFileRoute("/api/chat")({
           }
 
           // Higher plans get larger tool budgets and better models.
-          // A compact ceiling prevents agent loops from spending the whole turn on repeated tool cycles.\n          const maxSteps = Math.min(limits.maxAgentSteps, 6);
+          // A compact ceiling prevents agent loops from spending the whole turn on repeated tool cycles.
+          const maxSteps = Math.min(limits.maxAgentSteps, 6);
           const monthlyTxLimit = limits.transactionsPerMonth; // null = unlimited
           const canDelegate = limits.features.specialistAgents;
 
@@ -704,7 +705,11 @@ export const Route = createFileRoute("/api/chat")({
                   ])
                   .nullable(),
               }),
-              execute: async (input) => {\n                if (planTaskUsed) return { ...input, accepted: false, note: "A work plan has already been published. Continue with execution and provide the answer." };\n                planTaskUsed = true;\n                return { ...input, accepted: true };\n              },
+              execute: async (input) => {
+                if (planTaskUsed) return { ...input, accepted: false, note: "A work plan has already been published. Continue with execution and provide the answer." };
+                planTaskUsed = true;
+                return { ...input, accepted: true };
+              },
             }),
             delegate_agent: tool({
               description:
@@ -1191,7 +1196,11 @@ export const Route = createFileRoute("/api/chat")({
                 ]),
                 detail: z.string().nullable(),
               }),
-              execute: async (input) => {\n                if (progressUpdatesUsed >= 3) return { ...input, suppressed: true };\n                progressUpdatesUsed += 1;\n                return input;\n              },
+              execute: async (input) => {
+                if (progressUpdatesUsed >= 3) return { ...input, suppressed: true };
+                progressUpdatesUsed += 1;
+                return input;
+              },
             }),
             get_unfinished_records: tool({
               description:

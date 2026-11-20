@@ -107,6 +107,11 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
     return { activity, equity, tickerRows, divs: activity.filter(d=>d.dividends>0), monthly, actionCounts };
   }, [filtered]);
 
+  // Keep Recharts hover cards readable in both light and dark themes.
+  // Explicit label/item colors override series colors that can disappear against the tooltip surface.
+  const tooltipContentStyle = { backgroundColor: "var(--color-sheet)", border: "1px solid var(--hairline)", borderRadius: 12, color: "var(--color-text)", padding: "10px 14px", boxShadow: "0 8px 28px rgba(0,0,0,.16)", opacity: 1 };
+  const tooltipLabelStyle = { color: "var(--color-text)", fontWeight: 700, marginBottom: 6 };
+  const tooltipItemStyle = { color: "var(--ink-2)", fontWeight: 500 };
   const fmt = (v:number) => v.toLocaleString("en-PK",{maximumFractionDigits:2});
   const dateFmt = (value: string) => new Date(`${value}T00:00:00.000Z`).toLocaleDateString("en-GB",{day:"2-digit",month:"short",timeZone:"UTC"});
   const entryNum = Number(entry), stopNum = Number(stop), capitalNum = Number(capital), riskNum = Number(riskPct);
@@ -169,7 +174,7 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
                 cursor={{stroke:"var(--ink-3)",strokeOpacity:.65,strokeDasharray:"4 4"}}
                 labelFormatter={(label)=>dateFmt(String(label))}
                 formatter={(value:number,name:string)=>[activeCurrency+" "+fmt(value),name]}
-                contentStyle={{background:"var(--color-sheet)",border:"1px solid var(--hairline)",borderRadius:12,color:"var(--color-text)",padding:"10px 14px",boxShadow:"0 8px 28px rgba(0,0,0,.14)"}}
+                contentStyle={tooltipContentStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle}
               />
               {chartStyle==="area"
                 ? <Area dataKey="cumulative" name="Cumulative cash flow" type="monotone" stroke="var(--color-accent)" strokeWidth={2.2} fill="url(#psxl-cashflow-fill)" dot={false} activeDot={{r:4,strokeWidth:0}} isAnimationActive={false}/>
@@ -192,10 +197,10 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
                 <XAxis dataKey="point" hide/>
                 <YAxis width={72} tickFormatter={fmt} tick={{fontSize:9,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/>
                 <Tooltip
-                  cursor={{fill:"var(--color-accent)",fillOpacity:.07}}
+                  cursor={{fill:"var(--ink-3)",fillOpacity:.08}}
                   labelFormatter={(label)=>String(label).split(" · ")[0]}
                   formatter={(value:number)=>[activeCurrency+" "+fmt(value),"Transaction cash flow"]}
-                  contentStyle={{background:"var(--color-sheet)",border:"1px solid var(--hairline)",borderRadius:12,color:"var(--color-text)",padding:"8px 12px",boxShadow:"0 8px 28px rgba(0,0,0,.14)"}}
+                  contentStyle={tooltipContentStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle}
                 />
                 <ReferenceLine y={0} stroke="var(--ink-3)" strokeOpacity={.4}/>
                 <Bar dataKey="netFlow" name="Transaction cash flow" barSize={8} isAnimationActive={false}>{data.equity.map(point=><Cell key={point.point} fill={point.netFlow>=0?"var(--ok)":"var(--bad)"}/>)}</Bar>
@@ -211,19 +216,19 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
       <div className="rounded-2xl p-4" style={card}>
         <div className="mb-2"><h3 className="text-sm font-semibold">Monthly cash-flow trend</h3><p className="text-[11px]" style={{color:"var(--ink-3)"}}>Cumulative net ledger flow by month</p></div>
         <ResponsiveContainer width="100%" height={230}>
-          <ComposedChart data={data.monthly}><CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis dataKey="month" tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><Tooltip formatter={(v:number)=>[(activeCurrency||"—")+" "+fmt(v)]} contentStyle={{background:"var(--color-sheet)",border:"1px solid var(--hairline)",borderRadius:12,color:"var(--color-text)",padding:"10px 14px",boxShadow:"0 8px 28px rgba(0,0,0,.14)"}}/><Area dataKey="cumulative" name="Cumulative cash flow" type="monotone" stroke="#2563EB" fill="#2563EB22" strokeWidth={2}/><Line dataKey="buys" name="Buy turnover" type="monotone" stroke="#F59E0B" dot={false}/></ComposedChart>
+          <ComposedChart data={data.monthly}><CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis dataKey="month" tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><Tooltip formatter={(v:number)=>[(activeCurrency||"—")+" "+fmt(v)]} contentStyle={tooltipContentStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle}/><Area dataKey="cumulative" name="Cumulative cash flow" type="monotone" stroke="#2563EB" fill="#2563EB22" strokeWidth={2}/><Line dataKey="buys" name="Buy turnover" type="monotone" stroke="#F59E0B" dot={false}/></ComposedChart>
         </ResponsiveContainer>
       </div>
       <div className="rounded-2xl p-4" style={card}>
         <div className="mb-2"><h3 className="text-sm font-semibold">Ticker cash-flow ranking</h3><p className="text-[11px]" style={{color:"var(--ink-3)"}}>Sell proceeds + dividends − purchases</p></div>
         <ResponsiveContainer width="100%" height={250}>
-          <BarChart data={data.tickerRows.slice(0,8)} layout="vertical" margin={{left:8,right:12}}><CartesianGrid horizontal={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis type="number" tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis type="category" dataKey="ticker" width={118} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><ReferenceLine x={0} stroke="var(--ink-3)" strokeOpacity={0.4}/><Tooltip formatter={(v:number)=>[(activeCurrency||"—")+" "+fmt(v)]} contentStyle={{background:"var(--color-sheet)",border:"1px solid var(--hairline)",borderRadius:12,color:"var(--color-text)",padding:"10px 14px",boxShadow:"0 8px 28px rgba(0,0,0,.14)"}}/><Bar dataKey="netCash" name="Net cash flow" radius={[0,4,4,0]}>{data.tickerRows.slice(0,8).map((item,i)=><Cell key={item.ticker} fill={item.netCash>=0?"#059669":"#DC2626"}/>)}</Bar></BarChart>
+          <BarChart data={data.tickerRows.slice(0,8)} layout="vertical" margin={{left:8,right:12}}><CartesianGrid horizontal={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis type="number" tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis type="category" dataKey="ticker" width={118} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><ReferenceLine x={0} stroke="var(--ink-3)" strokeOpacity={0.4}/><Tooltip formatter={(v:number)=>[(activeCurrency||"—")+" "+fmt(v)]} contentStyle={tooltipContentStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle}/><Bar dataKey="netCash" name="Net cash flow" radius={[0,4,4,0]}>{data.tickerRows.slice(0,8).map((item,i)=><Cell key={item.ticker} fill={item.netCash>=0?"#059669":"#DC2626"}/>)}</Bar></BarChart>
         </ResponsiveContainer>
       </div>
       <div className="rounded-2xl p-4" style={card}>
         <div className="mb-2"><h3 className="text-sm font-semibold">Transaction mix</h3><p className="text-[11px]" style={{color:"var(--ink-3)"}}>Posted buy, sell and dividend records</p></div>
         <ResponsiveContainer width="100%" height={250}>
-          <PieChart><Pie data={data.actionCounts} dataKey="count" nameKey="action" innerRadius={54} outerRadius={86} paddingAngle={3}>{data.actionCounts.map((item,i)=><Cell key={item.action} fill={["#2563EB","#059669","#A78BFA"][i%3]}/>)}</Pie><Tooltip formatter={(v:number)=>[v,"Records"]} contentStyle={{background:"var(--color-sheet)",border:"1px solid var(--hairline)",borderRadius:12,color:"var(--color-text)",padding:"10px 14px",boxShadow:"0 8px 28px rgba(0,0,0,.14)"}}/><Legend wrapperStyle={{fontSize:10,color:"var(--ink-3)"}}/></PieChart>
+          <PieChart><Pie data={data.actionCounts} dataKey="count" nameKey="action" innerRadius={54} outerRadius={86} paddingAngle={3}>{data.actionCounts.map((item,i)=><Cell key={item.action} fill={["#2563EB","#059669","#A78BFA"][i%3]}/>)}</Pie><Tooltip formatter={(v:number)=>[v,"Records"]} contentStyle={tooltipContentStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle}/><Legend wrapperStyle={{fontSize:10,color:"var(--ink-3)"}}/></PieChart>
         </ResponsiveContainer>
       </div>
     </div>

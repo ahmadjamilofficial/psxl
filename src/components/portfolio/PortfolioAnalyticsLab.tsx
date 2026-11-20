@@ -67,54 +67,52 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
       return { ...item, cumulative: monthlyFlow };
     });
     const actionCounts = (["BUY", "SELL", "DIV"] as const).map(action => ({ action, count: filtered.filter(t => t.action === action).length })).filter(item => item.count > 0);
-    // Preserve one point per posted transaction. Grouping only by date collapsed
-    // same-day activity into a single dot, hiding the actual cash-flow movement.
-    let flow = 0, peak = 0;
-    const equity = filtered.length
-      ? [
-          {
-            date: filtered[0]!.trade_date,
-            point: `${filtered[0]!.trade_date} · 000`,
-            ticker: "Opening balance",
-            action: "OPEN",
-            netFlow: 0,
-            cumulative: 0,
-            drawdown: 0,
-          },
-          ...filtered.map((t, index) => {
-      const gross = t.quantity * t.price;
-      const netFlow = t.action === "BUY"
-        ? -(gross + t.fees)
-        : t.action === "SELL"
-          ? gross - t.fees
-          : gross - t.wht;
-      flow += netFlow;
-      peak = Math.max(peak, flow);
-      return {
-        date: t.trade_date,
-        point: `${t.trade_date} · ${String(index + 1).padStart(3, "0")}`,
-        ticker: t.ticker,
-        action: t.action,
-        netFlow,
-        cumulative: flow,
-        drawdown: peak > 0 ? ((flow - peak) / peak) * 100 : 0,
-      };
-          }),
-        ]
-      : [];
+    // Build a continuous calendar-day series. Empty dates are explicit zero-flow
+    // sessions, so the chart remains a real time series rather than disconnected
+    // transaction dots. Ledger records have date (not intraday timestamp) precision.
+    const dayMap = new Map(activity.map(day => [day.date, day]));
+    const firstDate = periodStart ?? activity[0]?.date ?? "";
+    const lastDate = activity.at(-1)?.date ?? "";
+    const equity: { date: string; point: string; ticker: string; action: string; netFlow: number; cumulative: number; drawdown: number; buys: number; sells: number; dividends: number }[] = [];
+    if (firstDate && lastDate) {
+      const cursor = new Date(`${firstDate}T00:00:00.000Z`);
+      const end = new Date(`${lastDate}T00:00:00.000Z`);
+      let flow = 0, peak = 0;
+      while (cursor <= end && equity.length < 1100) {
+        const date = cursor.toISOString().slice(0, 10);
+        const day = dayMap.get(date);
+        const netFlow = day?.netFlow ?? 0;
+        flow += netFlow;
+        peak = Math.max(peak, flow);
+        equity.push({
+          date,
+          point: date,
+          ticker: day ? "Daily ledger activity" : "No transactions",
+          action: day ? "DAY" : "NO ACTIVITY",
+          netFlow,
+          cumulative: flow,
+          drawdown: peak > 0 ? ((flow - peak) / peak) * 100 : 0,
+          buys: day?.buys ?? 0,
+          sells: day?.sells ?? 0,
+          dividends: day?.dividends ?? 0,
+        });
+        cursor.setUTCDate(cursor.getUTCDate() + 1);
+      }
+    }
     const tickerRows = [...byTicker.values()].map(v=>({ticker:v.ticker + " · " + v.exchange, buys:v.buyValue, sells:v.sellValue, dividends:v.dividends, netCash:v.sellValue+v.dividends-v.buyValue, shares:v.shares})).sort((a,b)=>b.netCash-a.netCash);
     return { activity, equity, tickerRows, divs: activity.filter(d=>d.dividends>0), monthly, actionCounts };
   }, [filtered]);
 
   const fmt = (v:number) => v.toLocaleString("en-PK",{maximumFractionDigits:2});
+  const dateFmt = (value: string) => new Date(`${value}T00:00:00.000Z`).toLocaleDateString("en-GB",{day:"2-digit",month:"short",timeZone:"UTC"});
   const entryNum = Number(entry), stopNum = Number(stop), capitalNum = Number(capital), riskNum = Number(riskPct);
   const riskAmount = capitalNum * riskNum/100;
   const perShareRisk = Math.abs(entryNum-stopNum);
   const size = perShareRisk > 0 ? Math.floor(riskAmount/perShareRisk) : 0;
 
-  return <section className="space-y-4 rounded-[24px] p-4 sm:p-6" style={{...card, boxShadow:"0 8px 30px color-mix(in oklch,var(--color-text) 3%,transparent)"}}>
+  return <section className="space-y-6 rounded-[28px] p-4 sm:p-7" style={{...card, boxShadow:"0 18px 55px rgba(15,23,42,.055)"}}>
     <header className="flex flex-wrap items-start justify-between gap-4">
-      <div><p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[.16em]" style={{color:"var(--ink-3)"}}><CandlestickChart size={14}/> Analytics lab</p><h2 className="mt-2 text-xl font-semibold">Interactive portfolio intelligence</h2><p className="mt-1 text-xs" style={{color:"var(--ink-3)"}}>Ledger-first charts with transaction-level detail. Filter by symbol, timeframe and reporting currency; separate currencies are never combined.</p></div>
+      <div><p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.2em]" style={{color:"var(--color-accent)"}}><CandlestickChart size={14}/> PSXL MARKETS · ANALYTICS</p><h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-[28px]">Portfolio performance</h2><p className="mt-1 max-w-2xl text-xs leading-5" style={{color:"var(--ink-3)"}}>A precise view of your ledger activity, cash movements and symbol-level exposure.</p></div>
       <div className="flex flex-wrap gap-2">
         <select aria-label="Currency filter" value={activeCurrency} onChange={e=>setSelectedCurrency(e.target.value)} className="rounded-xl px-3 py-2 text-xs" style={card}><option value="">Choose currency</option>{currencies.map(code=><option key={code} value={code}>{code}</option>)}</select>
         <select aria-label="Ticker filter" value={ticker} onChange={e=>setTicker(e.target.value)} className="rounded-xl px-3 py-2 text-xs" style={card}><option value="ALL">All tickers</option>{tickers.map(t=><option key={t.key} value={t.key}>{t.label}</option>)}</select>
@@ -122,7 +120,7 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
       </div>
     </header>
     <div className="flex gap-1 overflow-x-auto rounded-xl p-1" style={{background:"var(--color-login-bg)"}}>{tabs.map(t=>{const Icon=t.icon;return <button key={t.id} onClick={()=>setTab(t.id)} className="flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition-all" style={{background:tab===t.id?"var(--color-sheet)":"transparent",color:tab===t.id?"var(--color-text)":"var(--ink-3)",boxShadow:tab===t.id?"0 1px 5px #00000012":"none"}}><Icon size={14}/>{t.label}</button>})}</div>
-    <div className="space-y-3">
+    <div className="space-y-4 rounded-2xl p-3 sm:p-5" style={{background:"var(--color-login-bg)",border:"1px solid var(--hairline)"}}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-1 rounded-xl p-1" style={{background:"var(--color-login-bg)"}}>
           {["1D","1W","1M","3M","6M","1Y","ALL"].map(range => (
@@ -150,7 +148,7 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
             <p className="mt-1 text-[11px]" style={{color:"var(--ink-2)"}}>Posted ledger events · {activeCurrency}</p>
           </div>
         </div>
-        <div className="h-[260px] min-w-0 sm:h-[330px]">
+        <div className="h-[280px] min-w-0 sm:h-[360px]">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={data.equity} syncId="psxl-cashflow-range" margin={{top:12,right:12,left:2,bottom:2}}>
               <defs>
@@ -160,12 +158,12 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
                 </linearGradient>
               </defs>
               <CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 5"/>
-              <XAxis dataKey="point" tickFormatter={(value:string)=>String(value).split(" · ")[0]} interval="preserveStartEnd" minTickGap={32} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/>
+              <XAxis dataKey="date" tickFormatter={dateFmt} interval="preserveStartEnd" minTickGap={36} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/>
               <YAxis width={72} tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false} />
               <ReferenceLine y={0} stroke="var(--ink-3)" strokeOpacity={.45} strokeDasharray="4 4"/>
               <Tooltip
                 cursor={{stroke:"var(--ink-3)",strokeOpacity:.65,strokeDasharray:"4 4"}}
-                labelFormatter={(label)=>String(label).split(" · ")[0]}
+                labelFormatter={(label)=>dateFmt(String(label))}
                 formatter={(value:number,name:string)=>[activeCurrency+" "+fmt(value),name]}
                 contentStyle={{background:"var(--color-sheet)",border:"1px solid var(--hairline)",borderRadius:12,color:"var(--color-text)",padding:"10px 14px",boxShadow:"0 8px 28px rgba(0,0,0,.14)"}}
               />
@@ -178,7 +176,7 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
             </ComposedChart>
           </ResponsiveContainer>
         </div>
-        <div className="rounded-xl px-3 pb-2 pt-3" style={{background:"var(--color-login-bg)"}}>
+        <div className="rounded-xl border px-3 pb-2 pt-3" style={{background:"var(--color-sheet)",borderColor:"var(--hairline)"}}>
           <div className="mb-2 flex items-center justify-between gap-2">
             <p className="text-[11px] font-semibold" style={{color:"var(--color-text)"}}>Transaction cash flow</p>
             <p className="text-[10px]" style={{color:"var(--ink-3)"}}>Each bar is one posted entry</p>
@@ -202,7 +200,7 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
             </ResponsiveContainer>
           </div>
         </div>
-        <p className="text-[10px]" style={{color:"var(--ink-3)"}}>Crosshair tooltips show transaction dates; drag the lower range selector to zoom. Candlesticks are intentionally omitted because ledger entries do not contain genuine OHLC market bars.</p>
+        <p className="text-[10px] leading-4" style={{color:"var(--ink-3)"}}>Daily ledger granularity · zero-activity days are retained · crosshair tooltips show the selected date. The ledger has no intraday timestamps or OHLC bars, so candlesticks are not fabricated.</p>
       </> : <div className="flex h-[300px] items-center justify-center rounded-2xl border border-dashed px-6 text-center text-sm" style={{borderColor:"var(--hairline)",color:"var(--ink-3)"}}>No posted transactions in this currency and time range. Choose another currency or timeframe.</div>}
     </div>
     <div className="grid gap-4 lg:grid-cols-2">

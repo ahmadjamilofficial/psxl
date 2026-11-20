@@ -679,7 +679,9 @@ export const Route = createFileRoute("/api/chat")({
 
           // Hard cap specialist generations across this entire user turn,
           // including repeated calls to either delegation tool.
-          let specialistWorkersRemaining = 4;\n          let planTaskUsed = false;\n          let progressUpdatesUsed = 0;
+          let specialistWorkersRemaining = 4;
+          let planTaskUsed = false;
+          let progressUpdatesUsed = 0;
 
           const tools = {
             plan_task: tool({

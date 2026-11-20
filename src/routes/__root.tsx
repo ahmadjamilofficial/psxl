@@ -169,7 +169,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const canonicalPath = pathname === "/" ? "/" : pathname.replace(/\/+$/, "");
+  const canonicalPath = pathname === "/" ? "" : pathname.replace(/\/+$/, "");
   const jsonLd = JSON.stringify({
     "@context": "https://schema.org",
     "@graph": [

@@ -32,14 +32,18 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
   const currencies = useMemo(() => [...new Set(posted.map(t => t.currency ?? currencyForExchange(t.exchange)))].sort(), [posted, currency]);
   const activeCurrency = currencies.includes(selectedCurrency) ? selectedCurrency : currencies[0] ?? "";
   const tickers = useMemo(() => [...new Set(posted.map(t => ({ key: t.exchange + ":" + t.ticker, label: t.ticker + " · " + t.exchange })))].sort((a,b)=>a.label.localeCompare(b.label)), [posted]);
+  const scopedPosted = useMemo(
+    () => posted.filter(t => (activeCurrency !== "" && (t.currency ?? currencyForExchange(t.exchange)) === activeCurrency) && (ticker === "ALL" || t.exchange + ":" + t.ticker === ticker)),
+    [posted, ticker, activeCurrency],
+  );
   const periodStart = useMemo(() => {
-    if (period === "ALL" || posted.length === 0) return null;
+    if (period === "ALL" || scopedPosted.length === 0) return null;
     const days: Record<string, number> = { "1D": 0, "1W": 6, "1M": 29, "3M": 89, "6M": 179, "1Y": 364 };
-    const latest = new Date(`${posted[posted.length - 1]!.trade_date}T00:00:00.000Z`);
+    const latest = new Date(`${scopedPosted[scopedPosted.length - 1]!.trade_date}T00:00:00.000Z`);
     latest.setUTCDate(latest.getUTCDate() - (days[period] ?? 0));
     return latest.toISOString().slice(0, 10);
-  }, [period, posted]);
-  const filtered = useMemo(() => posted.filter(t => (activeCurrency !== "" && (t.currency ?? currencyForExchange(t.exchange)) === activeCurrency) && (ticker === "ALL" || t.exchange + ":" + t.ticker === ticker) && (!periodStart || t.trade_date >= periodStart)), [posted, ticker, periodStart, activeCurrency, currency]);
+  }, [period, scopedPosted]);
+  const filtered = useMemo(() => scopedPosted.filter(t => !periodStart || t.trade_date >= periodStart), [scopedPosted, periodStart]);
 
   const data = useMemo(() => {
     const byTicker = new Map<string, { ticker: string; exchange: string; buys: number; sells: number; shares: number; positionCost: number; dividends: number; sellValue: number; buyValue: number }>();

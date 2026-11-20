@@ -304,13 +304,13 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
       </div>
       <div className="rounded-2xl p-4" style={card}>
         <div className="mb-2"><h3 className="text-sm font-semibold">Ticker cash-flow ranking</h3><p className="text-[11px]" style={{color:"var(--ink-3)"}}>Sell proceeds + dividends − purchases</p></div>
-        <ResponsiveContainer width="100%" height={250}>
+        <ResponsiveContainer key={`ticker-ranking-${data.tickerRows.length}-${filtered.length}`} width="100%" height={250} debounce={80}>
           <BarChart data={data.tickerRows.slice(0,8)} layout="vertical" margin={{left:8,right:12}}><CartesianGrid horizontal={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis type="number" tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis type="category" dataKey="ticker" width={118} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><ReferenceLine x={0} stroke="var(--ink-3)" strokeOpacity={0.4}/><Tooltip formatter={(v:number)=>[(activeCurrency||"—")+" "+fmt(v)]} contentStyle={tooltipContentStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle}/><Bar dataKey="netCash" name="Net cash flow" radius={[0,4,4,0]} isAnimationActive animationDuration={850} animationEasing="ease-out">{data.tickerRows.slice(0,8).map((item,i)=><Cell key={item.ticker} fill={item.netCash>=0?"#059669":"#DC2626"}/>)}</Bar></BarChart>
         </ResponsiveContainer>
       </div>
       <div className="rounded-2xl p-4" style={card}>
         <div className="mb-2"><h3 className="text-sm font-semibold">Transaction mix</h3><p className="text-[11px]" style={{color:"var(--ink-3)"}}>Posted buy, sell and dividend records</p></div>
-        <ResponsiveContainer width="100%" height={250}>
+        <ResponsiveContainer key={`transaction-mix-${data.actionCounts.length}-${filtered.length}`} width="100%" height={250} debounce={80}>
           <PieChart><Pie data={data.actionCounts} dataKey="count" nameKey="action" innerRadius={54} outerRadius={86} paddingAngle={3}>{data.actionCounts.map((item,i)=><Cell key={item.action} fill={["#2563EB","#059669","#A78BFA"][i%3]}/>)}</Pie><Tooltip formatter={(v:number)=>[v,"Records"]} contentStyle={tooltipContentStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle}/><Legend wrapperStyle={{fontSize:10,color:"var(--ink-3)"}}/></PieChart>
         </ResponsiveContainer>
       </div>

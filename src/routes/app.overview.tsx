@@ -249,19 +249,21 @@ function MissionControl() {
 
   const totalPortfolioValue = summary?.totalValue ?? 0;
 
-  // Cumulative P&L chart
-  const pnlByMonth: Record<string, number> = {};
+  // Plot every realization date. Month-only aggregation collapsed all trades
+  // in a single month into one point, leaving the area chart visually blank.
+  const pnlByDate: Record<string, number> = {};
   for (const lot of tax.lots) {
-    const month = lot.sellDate?.slice(0, 7);
-    if (month) pnlByMonth[month] = (pnlByMonth[month] ?? 0) + lot.gain;
+    const date = lot.sellDate?.slice(0, 10);
+    if (date) pnlByDate[date] = (pnlByDate[date] ?? 0) + Number(lot.gain || 0);
   }
-  const pnlData = Object.entries(pnlByMonth)
+  const pnlData = Object.entries(pnlByDate)
     .sort(([a], [b]) => a.localeCompare(b))
-    .reduce<{ month: string; value: number }[]>((acc, [key, gain]) => {
+    .reduce<{ date: string; value: number }[]>((acc, [date, gain]) => {
       const prev = acc[acc.length - 1]?.value ?? 0;
-      acc.push({ month: key.slice(5), value: Math.round(prev + gain) });
+      acc.push({ date, value: Math.round(prev + gain) });
       return acc;
     }, []);
+  if (pnlData.length > 0) pnlData.unshift({ date: "Start", value: 0 });
 
   // Timeline entries — use DB events if available, else synthesize
   const timelineEntries =
@@ -495,7 +497,7 @@ function MissionControl() {
                 <div>
                   <p className="text-sm font-bold">Cumulative Realized P&L</p>
                   <p className="text-xs" style={{ color: "var(--ink-3)" }}>
-                    {currency} · YTD {currentYear} · FIFO lot matching
+                    {currency} · YTD {currentYear} · FIFO lot matching · by realization date
                   </p>
                 </div>
                 <TrendingUp size={16} style={{ color: "var(--color-accent)" }} />
@@ -509,7 +511,7 @@ function MissionControl() {
                     </linearGradient>
                   </defs>
                   <XAxis
-                    dataKey="month"
+                    dataKey="date"
                     tick={{ fontSize: 11, fill: "var(--ink-3)" }}
                     axisLine={false}
                     tickLine={false}
@@ -542,7 +544,12 @@ function MissionControl() {
                     stroke="var(--chart-1)"
                     strokeWidth={2}
                     fill="url(#pnlGrad)"
-                    dot={false}
+                    dot={{ r: 3, fill: "var(--chart-1)", strokeWidth: 0 }}
+                    activeDot={{ r: 6, stroke: "var(--color-sheet)", strokeWidth: 2 }}
+                    isAnimationActive
+                    animationBegin={80}
+                    animationDuration={1100}
+                    animationEasing="ease-out"
                   />
                 </AreaChart>
               </ResponsiveContainer>

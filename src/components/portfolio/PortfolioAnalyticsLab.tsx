@@ -254,7 +254,12 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
             <span className="shrink-0 text-[10px] font-medium" style={{color:"var(--ink-3)"}}>{mainData.length} points</span>
           </div>
           <div className="h-[260px] min-w-0 sm:h-[320px]">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer
+              key={`main-chart-${tab}-${mainData.length}-${filtered.length}`}
+              width="100%"
+              height="100%"
+              debounce={80}
+            >
               <ComposedChart data={mainData} margin={{top:12,right:14,left:4,bottom:tab === "ticker" ? 42 : 4}}>
                 <defs>
                   <linearGradient id="psxl-cashflow-fill" x1="0" y1="0" x2="0" y2="1">
@@ -288,7 +293,12 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       <div className="rounded-2xl p-4" style={card}>
         <div className="mb-2"><h3 className="text-sm font-semibold">Monthly cash-flow trend</h3><p className="text-[11px]" style={{color:"var(--ink-3)"}}>{monthlyChartDescription}</p></div>
-        <ResponsiveContainer width="100%" height={230}>
+        <ResponsiveContainer
+          key={`monthly-chart-${monthlyChartData.length}-${filtered.length}`}
+          width="100%"
+          height={230}
+          debounce={80}
+        >
           <ComposedChart data={monthlyChartData} margin={{top:8,right:8,left:2,bottom:4}}><CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis dataKey="month" tickFormatter={(value, index) => monthlyChartData.length > 1 && data.monthly.length <= 1 && index > 0 && monthlyChartData[index - 1]?.month === value ? "" : String(value).slice(0, 7) === String(value) && String(value).length === 7 ? String(value) : String(value).slice(5)} interval="preserveStartEnd" minTickGap={24} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis tickFormatter={fmt} width={64} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><Tooltip labelFormatter={value => String(value)} formatter={(v:number,name:string)=>[(activeCurrency||"—")+" "+fmt(v),name]} contentStyle={tooltipContentStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle}/><ReferenceLine y={0} stroke="var(--ink-3)" strokeOpacity={.45}/><Bar dataKey="netFlow" name={data.monthly.length > 1 ? "Monthly net flow" : "Transaction net flow"} fill="var(--color-accent)" radius={[4,4,0,0]} maxBarSize={34} isAnimationActive animationDuration={850} animationEasing="ease-out"/><Line dataKey="cumulative" name="Cumulative ledger flow" type="monotone" stroke="#2563EB" strokeWidth={2.6} dot={{r:3,fill:"#2563EB",strokeWidth:0}} activeDot={{r:6}} connectNulls isAnimationActive animationDuration={1000} animationEasing="ease-out"/></ComposedChart>
         </ResponsiveContainer>
       </div>

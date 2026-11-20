@@ -172,6 +172,35 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
       : tab === "drawdown"
         ? transactionPoints.map(point => ({ label: point.label, value: point.drawdown }))
         : transactionPoints.map(point => ({ label: point.label, value: point.cumulative }));
+  // If the ledger contains only one calendar month, monthly aggregation
+  // necessarily produces one point. Fall back to transaction-level observations
+  // so the trend remains visible without fabricating dates or values.
+  const monthlyChartData = data.monthly.length > 1
+    ? data.monthly.map(item => ({ ...item, month: item.month }))
+    : filtered.map((trade, index, rows) => {
+        const cumulative = rows.slice(0, index + 1).reduce((sum, item) => {
+          if (item.action === "BUY") return sum - (item.quantity * item.price + item.fees);
+          if (item.action === "SELL") return sum + (item.quantity * item.price - item.fees);
+          return sum + (item.quantity * item.price - item.wht);
+        }, 0);
+        const netFlow = trade.action === "BUY"
+          ? -(trade.quantity * trade.price + trade.fees)
+          : trade.action === "SELL"
+            ? trade.quantity * trade.price - trade.fees
+            : trade.quantity * trade.price - trade.wht;
+        return {
+          month: trade.trade_date,
+          netFlow,
+          cumulative,
+          buys: trade.action === "BUY" ? trade.quantity * trade.price : 0,
+          sells: trade.action === "SELL" ? trade.quantity * trade.price : 0,
+          dividends: trade.action === "DIV" ? trade.quantity * trade.price - trade.wht : 0,
+        };
+      });
+  const monthlyChartDescription = data.monthly.length > 1
+    ? "Cumulative net ledger flow by month"
+    : "Transaction-level cash flow · single-month ledger";
+
   const mainTitle = tab === "ticker" ? "Net cash flow by ticker"
     : tab === "activity" ? "Posted transaction activity"
       : tab === "drawdown" ? "Cash-flow drawdown"
@@ -259,9 +288,9 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
     </div>
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       <div className="rounded-2xl p-4" style={card}>
-        <div className="mb-2"><h3 className="text-sm font-semibold">Monthly cash-flow trend</h3><p className="text-[11px]" style={{color:"var(--ink-3)"}}>Cumulative net ledger flow by month</p></div>
+        <div className="mb-2"><h3 className="text-sm font-semibold">Monthly cash-flow trend</h3><p className="text-[11px]" style={{color:"var(--ink-3)"}}>{monthlyChartDescription}</p></div>
         <ResponsiveContainer width="100%" height={230}>
-          <ComposedChart data={data.monthly} margin={{top:8,right:8,left:2,bottom:4}}><CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis dataKey="month" tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis tickFormatter={fmt} width={64} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><Tooltip formatter={(v:number,name:string)=>[(activeCurrency||"—")+" "+fmt(v),name]} contentStyle={tooltipContentStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle}/><ReferenceLine y={0} stroke="var(--ink-3)" strokeOpacity={.45}/><Bar dataKey="netFlow" name="Monthly net flow" fill="var(--color-accent)" radius={[4,4,0,0]} maxBarSize={34} isAnimationActive animationDuration={850} animationEasing="ease-out"/><Line dataKey="cumulative" name="Cumulative ledger flow" type="monotone" stroke="#2563EB" strokeWidth={2.6} dot={{r:4,fill:"#2563EB",strokeWidth:0}} activeDot={{r:6}} connectNulls isAnimationActive animationDuration={1000} animationEasing="ease-out"/></ComposedChart>
+          <ComposedChart data={monthlyChartData} margin={{top:8,right:8,left:2,bottom:4}}><CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis dataKey="month" tickFormatter={(value, index) => monthlyChartData.length > 1 && data.monthly.length <= 1 && index > 0 && monthlyChartData[index - 1]?.month === value ? "" : String(value).slice(0, 7) === String(value) && String(value).length === 7 ? String(value) : String(value).slice(5)} interval="preserveStartEnd" minTickGap={24} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis tickFormatter={fmt} width={64} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><Tooltip labelFormatter={value => String(value)} formatter={(v:number,name:string)=>[(activeCurrency||"—")+" "+fmt(v),name]} contentStyle={tooltipContentStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle}/><ReferenceLine y={0} stroke="var(--ink-3)" strokeOpacity={.45}/><Bar dataKey="netFlow" name={data.monthly.length > 1 ? "Monthly net flow" : "Transaction net flow"} fill="var(--color-accent)" radius={[4,4,0,0]} maxBarSize={34} isAnimationActive animationDuration={850} animationEasing="ease-out"/><Line dataKey="cumulative" name="Cumulative ledger flow" type="monotone" stroke="#2563EB" strokeWidth={2.6} dot={{r:3,fill:"#2563EB",strokeWidth:0}} activeDot={{r:6}} connectNulls isAnimationActive animationDuration={1000} animationEasing="ease-out"/></ComposedChart>
         </ResponsiveContainer>
       </div>
       <div className="rounded-2xl p-4" style={card}>

@@ -43,11 +43,11 @@ export const Route = createFileRoute("/")({
         content:
           brandText("financial operations, trade reconciliation, broker slip parser, capital gains tax, FIFO tax engine, audit trail, {{brand}}"),
       },
-      { property: "og:title", content: brandText("{{brand}} — AI-Native Financial Operations & Audit Platform") },
+      { property: "og:title", content: brandText("{{brand}} — Broker Reconciliation & Trade Audit for PSX and NSE") },
       {
         property: "og:description",
         content:
-          brandText("Upload financial records, statements, CSVs, PDFs, or trade data. {{brand}} extracts the data, reconciles it against your records, detects discrepancies, and produces a traceable audit-ready ledger."),
+          brandText("{{brand}} reconciles broker records, audits trades, detects discrepancies, and calculates FIFO capital gains tax for PSX and NSE investors."),
       },
       { property: "og:url", content: "https://psxl.live/" },
     ],

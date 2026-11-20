@@ -84,13 +84,20 @@
     max-width: 100%;
   }
 
-  /* Chat transcript: 16px gutters and readable, non-overflowing response text. */
+  /* Keep the transcript's own scrollbar visible on touch devices too. */
   .chat-scroll {
-    scrollbar-width: none;
+    scrollbar-width: thin;
+    scrollbar-color: var(--chat-scrollbar-thumb) var(--chat-scrollbar-track);
   }
 
   .chat-scroll::-webkit-scrollbar {
-    display: none;
+    display: block;
+    width: 8px;
+  }
+
+  .chat-scroll::-webkit-scrollbar-thumb {
+    background-color: var(--chat-scrollbar-thumb);
+    border-radius: 99px;
   }
 
   .chat-scroll [class*="max-w-[48rem]"] {

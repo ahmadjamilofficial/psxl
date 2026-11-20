@@ -177,26 +177,25 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
   // so the trend remains visible without fabricating dates or values.
   const monthlyChartData = data.monthly.length > 1
     ? data.monthly.map(item => ({ ...item, month: item.month }))
-    : filtered.map((trade, index, rows) => {
-        const cumulative = rows.slice(0, index + 1).reduce((sum, item) => {
-          if (item.action === "BUY") return sum - (item.quantity * item.price + item.fees);
-          if (item.action === "SELL") return sum + (item.quantity * item.price - item.fees);
-          return sum + (item.quantity * item.price - item.wht);
-        }, 0);
-        const netFlow = trade.action === "BUY"
-          ? -(trade.quantity * trade.price + trade.fees)
-          : trade.action === "SELL"
-            ? trade.quantity * trade.price - trade.fees
-            : trade.quantity * trade.price - trade.wht;
-        return {
-          month: trade.trade_date,
-          netFlow,
-          cumulative,
-          buys: trade.action === "BUY" ? trade.quantity * trade.price : 0,
-          sells: trade.action === "SELL" ? trade.quantity * trade.price : 0,
-          dividends: trade.action === "DIV" ? trade.quantity * trade.price - trade.wht : 0,
-        };
-      });
+    : (() => {
+        let cumulativeFlow = 0;
+        return filtered.map(trade => {
+          const netFlow = trade.action === "BUY"
+            ? -(trade.quantity * trade.price + trade.fees)
+            : trade.action === "SELL"
+              ? trade.quantity * trade.price - trade.fees
+              : trade.quantity * trade.price - trade.wht;
+          cumulativeFlow += netFlow;
+          return {
+            month: trade.trade_date,
+            netFlow,
+            cumulative: cumulativeFlow,
+            buys: trade.action === "BUY" ? trade.quantity * trade.price : 0,
+            sells: trade.action === "SELL" ? trade.quantity * trade.price : 0,
+            dividends: trade.action === "DIV" ? trade.quantity * trade.price - trade.wht : 0,
+          };
+        });
+      })();
   const monthlyChartDescription = data.monthly.length > 1
     ? "Cumulative net ledger flow by month"
     : "Transaction-level cash flow · single-month ledger";

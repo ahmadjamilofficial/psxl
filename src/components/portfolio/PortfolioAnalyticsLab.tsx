@@ -26,12 +26,20 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
   const [stop, setStop] = useState("95");
   const [capital, setCapital] = useState("100000");
   const [period, setPeriod] = useState("ALL");
+  const [chartStyle, setChartStyle] = useState<"area" | "line" | "bars">("area");
 
   const posted = useMemo(() => transactions.filter(t => t.status === "posted").slice().sort((a,b) => a.trade_date.localeCompare(b.trade_date)), [transactions]);
   const currencies = useMemo(() => [...new Set(posted.map(t => t.currency ?? currencyForExchange(t.exchange)))].sort(), [posted, currency]);
-  const activeCurrency = currencies.includes(selectedCurrency) ? selectedCurrency : currencies.length === 1 ? currencies[0]! : "";
+  const activeCurrency = currencies.includes(selectedCurrency) ? selectedCurrency : currencies[0] ?? "";
   const tickers = useMemo(() => [...new Set(posted.map(t => ({ key: t.exchange + ":" + t.ticker, label: t.ticker + " · " + t.exchange })))].sort((a,b)=>a.label.localeCompare(b.label)), [posted]);
-  const filtered = useMemo(() => posted.filter(t => (activeCurrency !== "" && (t.currency ?? currencyForExchange(t.exchange)) === activeCurrency) && (ticker === "ALL" || t.exchange + ":" + t.ticker === ticker) && (period === "ALL" || t.trade_date >= period)), [posted, ticker, period, activeCurrency, currency]);
+  const periodStart = useMemo(() => {
+    if (period === "ALL" || posted.length === 0) return null;
+    const days: Record<string, number> = { "1D": 0, "1W": 6, "1M": 29, "3M": 89, "6M": 179, "1Y": 364 };
+    const latest = new Date(`${posted[posted.length - 1]!.trade_date}T00:00:00.000Z`);
+    latest.setUTCDate(latest.getUTCDate() - (days[period] ?? 0));
+    return latest.toISOString().slice(0, 10);
+  }, [period, posted]);
+  const filtered = useMemo(() => posted.filter(t => (activeCurrency !== "" && (t.currency ?? currencyForExchange(t.exchange)) === activeCurrency) && (ticker === "ALL" || t.exchange + ":" + t.ticker === ticker) && (!periodStart || t.trade_date >= periodStart)), [posted, ticker, periodStart, activeCurrency, currency]);
 
   const data = useMemo(() => {
     const byTicker = new Map<string, { ticker: string; exchange: string; buys: number; sells: number; shares: number; positionCost: number; dividends: number; sellValue: number; buyValue: number }>();
@@ -106,39 +114,114 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
 
   return <section className="space-y-4 rounded-[24px] p-4 sm:p-6" style={{...card, boxShadow:"0 8px 30px color-mix(in oklch,var(--color-text) 3%,transparent)"}}>
     <header className="flex flex-wrap items-start justify-between gap-4">
-      <div><p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[.16em]" style={{color:"var(--ink-3)"}}><CandlestickChart size={14}/> Analytics lab</p><h2 className="mt-2 text-xl font-semibold">Interactive portfolio intelligence</h2><p className="mt-1 text-xs" style={{color:"var(--ink-3)"}}>Six interactive chart views. Filter by symbol, date range and reporting currency; mixed-currency records are never added together.</p></div>
+      <div><p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[.16em]" style={{color:"var(--ink-3)"}}><CandlestickChart size={14}/> Analytics lab</p><h2 className="mt-2 text-xl font-semibold">Interactive portfolio intelligence</h2><p className="mt-1 text-xs" style={{color:"var(--ink-3)"}}>Ledger-first charts with transaction-level detail. Filter by symbol, timeframe and reporting currency; separate currencies are never combined.</p></div>
       <div className="flex flex-wrap gap-2">
         <select aria-label="Currency filter" value={activeCurrency} onChange={e=>setSelectedCurrency(e.target.value)} className="rounded-xl px-3 py-2 text-xs" style={card}><option value="">Choose currency</option>{currencies.map(code=><option key={code} value={code}>{code}</option>)}</select>
         <select aria-label="Ticker filter" value={ticker} onChange={e=>setTicker(e.target.value)} className="rounded-xl px-3 py-2 text-xs" style={card}><option value="ALL">All tickers</option>{tickers.map(t=><option key={t.key} value={t.key}>{t.label}</option>)}</select>
-        <select aria-label="History range" value={period} onChange={e=>setPeriod(e.target.value)} className="rounded-xl px-3 py-2 text-xs" style={card}><option value="ALL">All history</option><option value="2026-01-01">2026 YTD</option><option value="2025-07-01">Since Jul 2025</option><option value="2025-08-01">Since Aug 2025</option></select>
+        
       </div>
     </header>
     <div className="flex gap-1 overflow-x-auto rounded-xl p-1" style={{background:"var(--color-login-bg)"}}>{tabs.map(t=>{const Icon=t.icon;return <button key={t.id} onClick={()=>setTab(t.id)} className="flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition-all" style={{background:tab===t.id?"var(--color-sheet)":"transparent",color:tab===t.id?"var(--color-text)":"var(--ink-3)",boxShadow:tab===t.id?"0 1px 5px #00000012":"none"}}><Icon size={14}/>{t.label}</button>})}</div>
-    <div className="h-[300px] min-w-0 sm:h-[360px]">
-      <ResponsiveContainer width="100%" height="100%">
-      {tab==="equity" ? <AreaChart data={data.equity}><defs><linearGradient id="wab-lab-equity" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#34D399" stopOpacity={.28}/><stop offset="100%" stopColor="#34D399" stopOpacity={0}/></linearGradient></defs><CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis dataKey="point" tickFormatter={(value:string)=>String(value).split(" · ")[0]} interval="preserveStartEnd" minTickGap={28} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><Tooltip labelFormatter={(label)=>String(label).split(" · ")[0]} formatter={(v:number)=>[(activeCurrency || "—")+" "+fmt(v),"Cumulative cash flow"]} contentStyle={{background:"#111",border:"1px solid rgba(255,255,255,0.1)",borderRadius:12,color:"#fff",padding:"10px 14px"}}/><Area dataKey="cumulative" name="Cumulative cash flow" type="monotone" stroke="#34D399" strokeWidth={2.2} fill="url(#wab-lab-equity)" activeDot={{r:4}}/><Brush dataKey="point" height={18} stroke="#34D399" travellerWidth={7}/></AreaChart>
-      : tab==="ticker" ? <BarChart data={data.tickerRows}><CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis dataKey="ticker" tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><Tooltip formatter={(v:number)=>[(activeCurrency || "—")+" "+fmt(v)]} contentStyle={{background:"#111",border:"1px solid rgba(255,255,255,0.1)",borderRadius:12,color:"#fff",padding:"10px 14px"}}/><Bar dataKey="netCash" name="Net cash flow" radius={[4,4,0,0]}>{data.tickerRows.map((r,i)=><Cell key={r.ticker} fill={r.netCash>=0?"#34D399":"#FB7185"}/>)}</Bar></BarChart>
-      : tab==="activity" ? <BarChart data={data.activity}><CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis dataKey="date" tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><Tooltip formatter={(v:number)=>[(activeCurrency || "—")+" "+fmt(v)]} contentStyle={{background:"#111",border:"1px solid rgba(255,255,255,0.1)",borderRadius:12,color:"#fff",padding:"10px 14px"}}/><Bar dataKey="buys" name="Buy turnover" fill="#60A5FA" radius={[3,3,0,0]}/><Bar dataKey="sells" name="Sell turnover" fill="#34D399" radius={[3,3,0,0]}/></BarChart>
-      : <AreaChart data={data.equity}><CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis dataKey="point" tickFormatter={(value:string)=>String(value).split(" · ")[0]} interval="preserveStartEnd" minTickGap={28} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis tickFormatter={v=>v.toFixed(1)+"%"} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><Tooltip formatter={(v:number)=>[v.toFixed(2)+"%","Drawdown on cumulative net flow"]} contentStyle={{background:"#111",border:"1px solid rgba(255,255,255,0.1)",borderRadius:12,color:"#fff",padding:"10px 14px"}}/><Area dataKey="drawdown" type="monotone" stroke="#FB7185" strokeWidth={2} fill="#FB718522" activeDot={{r:4}}/><Brush dataKey="point" height={18} stroke="#FB7185" travellerWidth={7}/></AreaChart>}
-      </ResponsiveContainer>
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-1 rounded-xl p-1" style={{background:"var(--color-login-bg)"}}>
+          {["1D","1W","1M","3M","6M","1Y","ALL"].map(range => (
+            <button key={range} type="button" onClick={() => setPeriod(range)} className="rounded-lg px-2.5 py-1.5 text-[11px] font-semibold transition-colors" style={{background:period===range?"var(--color-sheet)":"transparent",color:period===range?"var(--color-text)":"var(--ink-3)",boxShadow:period===range?"0 1px 4px rgba(0,0,0,.12)":"none"}}>{range}</button>
+          ))}
+        </div>
+        <div className="flex items-center gap-1 rounded-xl p-1" style={{background:"var(--color-login-bg)"}}>
+          {(["area","line","bars"] as const).map(style => (
+            <button key={style} type="button" onClick={() => setChartStyle(style)} className="rounded-lg px-3 py-1.5 text-[11px] font-semibold capitalize" style={{background:chartStyle===style?"var(--color-sheet)":"transparent",color:chartStyle===style?"var(--color-text)":"var(--ink-3)"}}>{style}</button>
+          ))}
+        </div>
+      </div>
+      {data.equity.length > 0 ? <>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <div className="rounded-xl px-3 py-2" style={{background:"var(--color-login-bg)"}}>
+            <p className="text-[10px] font-medium uppercase tracking-wide" style={{color:"var(--ink-3)"}}>Net cash flow</p>
+            <p className="tnum mt-1 text-sm font-semibold" style={{color:(data.equity.at(-1)?.cumulative ?? 0)>=0?"var(--ok)":"var(--bad)"}}>{activeCurrency} {fmt(data.equity.at(-1)?.cumulative ?? 0)}</p>
+          </div>
+          <div className="rounded-xl px-3 py-2" style={{background:"var(--color-login-bg)"}}>
+            <p className="text-[10px] font-medium uppercase tracking-wide" style={{color:"var(--ink-3)"}}>Transactions plotted</p>
+            <p className="tnum mt-1 text-sm font-semibold">{filtered.length.toLocaleString()}</p>
+          </div>
+          <div className="col-span-2 rounded-xl px-3 py-2 sm:col-span-1" style={{background:"var(--color-login-bg)"}}>
+            <p className="text-[10px] font-medium uppercase tracking-wide" style={{color:"var(--ink-3)"}}>Chart data</p>
+            <p className="mt-1 text-[11px]" style={{color:"var(--ink-2)"}}>Posted ledger events · {activeCurrency}</p>
+          </div>
+        </div>
+        <div className="h-[260px] min-w-0 sm:h-[330px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart data={data.equity} syncId="psxl-cashflow-range" margin={{top:12,right:12,left:2,bottom:2}}>
+              <defs>
+                <linearGradient id="psxl-cashflow-fill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--color-accent)" stopOpacity={.28}/>
+                  <stop offset="100%" stopColor="var(--color-accent)" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 5"/>
+              <XAxis dataKey="point" tickFormatter={(value:string)=>String(value).split(" · ")[0]} interval="preserveStartEnd" minTickGap={32} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/>
+              <YAxis width={72} tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false} />
+              <ReferenceLine y={0} stroke="var(--ink-3)" strokeOpacity={.45} strokeDasharray="4 4"/>
+              <Tooltip
+                cursor={{stroke:"var(--ink-3)",strokeOpacity:.65,strokeDasharray:"4 4"}}
+                labelFormatter={(label)=>String(label).split(" · ")[0]}
+                formatter={(value:number,name:string)=>[activeCurrency+" "+fmt(value),name]}
+                contentStyle={{background:"var(--color-sheet)",border:"1px solid var(--hairline)",borderRadius:12,color:"var(--color-text)",padding:"10px 14px",boxShadow:"0 8px 28px rgba(0,0,0,.14)"}}
+              />
+              {chartStyle==="area"
+                ? <Area dataKey="cumulative" name="Cumulative cash flow" type="monotone" stroke="var(--color-accent)" strokeWidth={2.2} fill="url(#psxl-cashflow-fill)" dot={false} activeDot={{r:4,strokeWidth:0}} isAnimationActive={false}/>
+                : chartStyle==="line"
+                  ? <Line dataKey="cumulative" name="Cumulative cash flow" type="monotone" stroke="var(--color-accent)" strokeWidth={2.2} dot={false} activeDot={{r:4,strokeWidth:0}} isAnimationActive={false}/>
+                  : <Bar dataKey="cumulative" name="Cumulative cash flow" barSize={10} radius={[3,3,0,0]} isAnimationActive={false}>{data.equity.map(point=><Cell key={point.point} fill={point.cumulative>=0?"var(--ok)":"var(--bad)"}/>)}</Bar>
+              }
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="rounded-xl px-3 pb-2 pt-3" style={{background:"var(--color-login-bg)"}}>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-[11px] font-semibold" style={{color:"var(--color-text)"}}>Transaction cash flow</p>
+            <p className="text-[10px]" style={{color:"var(--ink-3)"}}>Each bar is one posted entry</p>
+          </div>
+          <div className="h-[104px] min-w-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={data.equity} syncId="psxl-cashflow-range" margin={{top:4,right:12,left:2,bottom:0}}>
+                <CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 5"/>
+                <XAxis dataKey="point" hide/>
+                <YAxis width={72} tickFormatter={fmt} tick={{fontSize:9,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/>
+                <Tooltip
+                  cursor={{fill:"var(--color-accent)",fillOpacity:.07}}
+                  labelFormatter={(label)=>String(label).split(" · ")[0]}
+                  formatter={(value:number)=>[activeCurrency+" "+fmt(value),"Transaction cash flow"]}
+                  contentStyle={{background:"var(--color-sheet)",border:"1px solid var(--hairline)",borderRadius:12,color:"var(--color-text)",padding:"8px 12px",boxShadow:"0 8px 28px rgba(0,0,0,.14)"}}
+                />
+                <ReferenceLine y={0} stroke="var(--ink-3)" strokeOpacity={.4}/>
+                <Bar dataKey="netFlow" name="Transaction cash flow" barSize={8} isAnimationActive={false}>{data.equity.map(point=><Cell key={point.point} fill={point.netFlow>=0?"var(--ok)":"var(--bad)"}/>)}</Bar>
+                <Brush dataKey="point" height={18} stroke="var(--color-accent)" travellerWidth={8} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+        <p className="text-[10px]" style={{color:"var(--ink-3)"}}>Crosshair tooltips show transaction dates; drag the lower range selector to zoom. Candlesticks are intentionally omitted because ledger entries do not contain genuine OHLC market bars.</p>
+      </> : <div className="flex h-[300px] items-center justify-center rounded-2xl border border-dashed px-6 text-center text-sm" style={{borderColor:"var(--hairline)",color:"var(--ink-3)"}}>No posted transactions in this currency and time range. Choose another currency or timeframe.</div>}
     </div>
     <div className="grid gap-4 lg:grid-cols-2">
       <div className="rounded-2xl p-4" style={card}>
         <div className="mb-2"><h3 className="text-sm font-semibold">Monthly cash-flow trend</h3><p className="text-[11px]" style={{color:"var(--ink-3)"}}>Cumulative net ledger flow by month</p></div>
         <ResponsiveContainer width="100%" height={230}>
-          <ComposedChart data={data.monthly}><CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis dataKey="month" tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><Tooltip formatter={(v:number)=>[(activeCurrency||"—")+" "+fmt(v)]} contentStyle={{background:"#111",border:"1px solid rgba(255,255,255,0.1)",borderRadius:12,color:"#fff",padding:"10px 14px"}}/><Area dataKey="cumulative" name="Cumulative cash flow" type="monotone" stroke="#2563EB" fill="#2563EB22" strokeWidth={2}/><Line dataKey="buys" name="Buy turnover" type="monotone" stroke="#F59E0B" dot={false}/></ComposedChart>
+          <ComposedChart data={data.monthly}><CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis dataKey="month" tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><Tooltip formatter={(v:number)=>[(activeCurrency||"—")+" "+fmt(v)]} contentStyle={{background:"var(--color-sheet)",border:"1px solid var(--hairline)",borderRadius:12,color:"var(--color-text)",padding:"10px 14px",boxShadow:"0 8px 28px rgba(0,0,0,.14)"}}/><Area dataKey="cumulative" name="Cumulative cash flow" type="monotone" stroke="#2563EB" fill="#2563EB22" strokeWidth={2}/><Line dataKey="buys" name="Buy turnover" type="monotone" stroke="#F59E0B" dot={false}/></ComposedChart>
         </ResponsiveContainer>
       </div>
       <div className="rounded-2xl p-4" style={card}>
         <div className="mb-2"><h3 className="text-sm font-semibold">Ticker cash-flow ranking</h3><p className="text-[11px]" style={{color:"var(--ink-3)"}}>Sell proceeds + dividends − purchases</p></div>
         <ResponsiveContainer width="100%" height={250}>
-          <BarChart data={data.tickerRows.slice(0,8)} layout="vertical" margin={{left:8,right:12}}><CartesianGrid horizontal={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis type="number" tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis type="category" dataKey="ticker" width={118} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><ReferenceLine x={0} stroke="var(--ink-3)" strokeOpacity={0.4}/><Tooltip formatter={(v:number)=>[(activeCurrency||"—")+" "+fmt(v)]} contentStyle={{background:"#111",border:"1px solid rgba(255,255,255,0.1)",borderRadius:12,color:"#fff",padding:"10px 14px"}}/><Bar dataKey="netCash" name="Net cash flow" radius={[0,4,4,0]}>{data.tickerRows.slice(0,8).map((item,i)=><Cell key={item.ticker} fill={item.netCash>=0?"#059669":"#DC2626"}/>)}</Bar></BarChart>
+          <BarChart data={data.tickerRows.slice(0,8)} layout="vertical" margin={{left:8,right:12}}><CartesianGrid horizontal={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis type="number" tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis type="category" dataKey="ticker" width={118} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><ReferenceLine x={0} stroke="var(--ink-3)" strokeOpacity={0.4}/><Tooltip formatter={(v:number)=>[(activeCurrency||"—")+" "+fmt(v)]} contentStyle={{background:"var(--color-sheet)",border:"1px solid var(--hairline)",borderRadius:12,color:"var(--color-text)",padding:"10px 14px",boxShadow:"0 8px 28px rgba(0,0,0,.14)"}}/><Bar dataKey="netCash" name="Net cash flow" radius={[0,4,4,0]}>{data.tickerRows.slice(0,8).map((item,i)=><Cell key={item.ticker} fill={item.netCash>=0?"#059669":"#DC2626"}/>)}</Bar></BarChart>
         </ResponsiveContainer>
       </div>
       <div className="rounded-2xl p-4" style={card}>
         <div className="mb-2"><h3 className="text-sm font-semibold">Transaction mix</h3><p className="text-[11px]" style={{color:"var(--ink-3)"}}>Posted buy, sell and dividend records</p></div>
         <ResponsiveContainer width="100%" height={250}>
-          <PieChart><Pie data={data.actionCounts} dataKey="count" nameKey="action" innerRadius={54} outerRadius={86} paddingAngle={3}>{data.actionCounts.map((item,i)=><Cell key={item.action} fill={["#2563EB","#059669","#A78BFA"][i%3]}/>)}</Pie><Tooltip formatter={(v:number)=>[v,"Records"]} contentStyle={{background:"#111",border:"1px solid rgba(255,255,255,0.1)",borderRadius:12,color:"#fff",padding:"10px 14px"}}/><Legend wrapperStyle={{fontSize:10,color:"var(--ink-3)"}}/></PieChart>
+          <PieChart><Pie data={data.actionCounts} dataKey="count" nameKey="action" innerRadius={54} outerRadius={86} paddingAngle={3}>{data.actionCounts.map((item,i)=><Cell key={item.action} fill={["#2563EB","#059669","#A78BFA"][i%3]}/>)}</Pie><Tooltip formatter={(v:number)=>[v,"Records"]} contentStyle={{background:"var(--color-sheet)",border:"1px solid var(--hairline)",borderRadius:12,color:"var(--color-text)",padding:"10px 14px",boxShadow:"0 8px 28px rgba(0,0,0,.14)"}}/><Legend wrapperStyle={{fontSize:10,color:"var(--ink-3)"}}/></PieChart>
         </ResponsiveContainer>
       </div>
     </div>

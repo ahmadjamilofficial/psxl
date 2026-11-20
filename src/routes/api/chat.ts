@@ -1937,9 +1937,9 @@ NEW TOOLS ADDED:
             // Surface a short, sanitized diagnostic instead of hiding every failure behind
             // the same generic message. Never echo authorization credentials.
             const safeMessage = rawMessage
-              .replace(/Bearer\\s+[A-Za-z0-9._-]+/gi, "Bearer [redacted]")
+              .replace(/Bearer\s+[A-Za-z0-9._-]+/gi, "Bearer [redacted]")
               .replace(/sk-or-v1-[A-Za-z0-9]+/gi, "[redacted key]")
-              .replace(/https?:\\/\\/\\S+/gi, "[provider URL]")
+              .replace(/https?:\/\/\S+/gi, "[provider URL]")
               .slice(0, 180);
             return brandText("{{brand}} AI could not finish this response: " + safeMessage);
           };

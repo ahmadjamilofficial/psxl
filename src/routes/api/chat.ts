@@ -960,7 +960,7 @@ export const Route = createFileRoute("/api/chat")({
                   )
                   .eq("org_id", thread.org_id)
                   .order("trade_date", { ascending: false })
-                  .limit(Math.min(Math.max(limit ?? 30, 1), 100));
+                  .limit(Math.min(Math.max(limit ?? 30, 1), 50));
                 if (ticker) query = query.eq("ticker", ticker.toUpperCase());
                 if (action)
                   query = query.eq("action", action.toUpperCase() as "BUY" | "SELL" | "DIV");
@@ -1007,7 +1007,8 @@ export const Route = createFileRoute("/api/chat")({
                     "id,flag_type,severity,ticker,ref_id,expected,actual,description,suggested_resolution,status",
                   )
                   .eq("org_id", thread.org_id)
-                  .eq("status", "open");
+                  .eq("status", "open")
+                  .limit(50);
                 if (error) throw new Error(error.message);
                 return data;
               },
@@ -1134,8 +1135,82 @@ export const Route = createFileRoute("/api/chat")({
                 return { id, deleted: true };
               },
             }),
+            flag_anomalies: tool({
+              description:
+                "Create multiple approved reconciliation flags in ONE database operation. Prefer this over repeated flag_anomaly calls when flagging several records. Use severity values low, medium, high, critical, ok, warn, or bad; they are normalized to the ledger's supported levels.",
+              inputSchema: z.object({
+                flags: z.array(z.object({
+                  flag_type: z.string().min(1),
+                  severity: z.string().nullable(),
+                  ticker: z.string().min(1),
+                  ref_id: z.string().nullable(),
+                  expected: z.number().nullable(),
+                  actual: z.number().nullable(),
+                  description: z.string().min(1),
+                  suggested_resolution: z.string().nullable(),
+                })).min(1).max(25),
+              }),
+              execute: async ({ flags }) => {
+                const normalizeSeverity = (value: string | null) => {
+                  const level = (value ?? "warn").toLowerCase();
+                  if (["critical", "high", "severe", "bad"].includes(level)) return "bad" as const;
+                  if (["low", "info", "informational", "ok"].includes(level)) return "ok" as const;
+                  return "warn" as const;
+                };
+                const tickers = [...new Set(flags.map((flag) => flag.ticker.toUpperCase()))];
+                const { data: existing, error: existingError } = await supabase
+                  .from("reconciliation_flags")
+                  .select("flag_type,ticker,ref_id")
+                  .eq("org_id", thread.org_id)
+                  .eq("status", "open")
+                  .in("ticker", tickers);
+                if (existingError) throw new Error(existingError.message);
+                const existingKeys = new Set((existing ?? []).map((flag) =>
+                  `${flag.flag_type.toLowerCase()}|${flag.ticker.toUpperCase()}|${flag.ref_id ?? ""}`,
+                ));
+                const seen = new Set<string>();
+                const rows = flags.filter((flag) => {
+                  const key = `${flag.flag_type.toLowerCase()}|${flag.ticker.toUpperCase()}|${flag.ref_id ?? ""}`;
+                  if (existingKeys.has(key) || seen.has(key)) return false;
+                  seen.add(key);
+                  return true;
+                }).map((flag) => ({
+                  org_id: thread.org_id,
+                  flag_type: flag.flag_type,
+                  severity: normalizeSeverity(flag.severity),
+                  ticker: flag.ticker.toUpperCase(),
+                  ref_id: flag.ref_id ?? "",
+                  expected: flag.expected ?? 0,
+                  actual: flag.actual ?? 0,
+                  description: flag.description,
+                  suggested_resolution: flag.suggested_resolution ?? "",
+                  status: "open",
+                }));
+                if (rows.length === 0) {
+                  return { created: 0, skipped_duplicates: flags.length, flags: [] };
+                }
+                const { data, error } = await supabase
+                  .from("reconciliation_flags")
+                  .insert(rows)
+                  .select("id,flag_type,severity,ticker,ref_id,description,status");
+                if (error) throw new Error(error.message);
+                await Promise.all((data ?? []).map((flag) =>
+                  audit("ai_flag_anomaly", flag.id, {
+                    flag_type: flag.flag_type,
+                    ticker: flag.ticker,
+                    ref_id: flag.ref_id,
+                    severity: flag.severity,
+                  }),
+                ));
+                return {
+                  created: data?.length ?? 0,
+                  skipped_duplicates: flags.length - rows.length,
+                  flags: data ?? [],
+                };
+              },
+            }),
             flag_anomaly: tool({
-              description: "Record a real reconciliation anomaly after the user approves it.",
+              description: "Create one approved reconciliation flag. Severity accepts low, medium, high, critical, ok, warn, or bad.",
               inputSchema: z.object({
                 flag_type: z.string(),
                 severity: z.string().nullable(),
@@ -1147,12 +1222,18 @@ export const Route = createFileRoute("/api/chat")({
                 suggested_resolution: z.string().nullable(),
               }),
               execute: async (input) => {
+                const level = (input.severity ?? "warn").toLowerCase();
+                const severity = ["critical", "high", "severe", "bad"].includes(level)
+                  ? "bad"
+                  : ["low", "info", "informational", "ok"].includes(level)
+                    ? "ok"
+                    : "warn";
                 const { data, error } = await supabase
                   .from("reconciliation_flags")
                   .insert({
                     org_id: thread.org_id,
                     flag_type: input.flag_type,
-                    severity: (input.severity ?? "warn") as "ok" | "warn" | "bad",
+                    severity,
                     ticker: input.ticker.toUpperCase(),
                     ref_id: input.ref_id ?? "",
                     expected: input.expected ?? 0,
@@ -1164,6 +1245,7 @@ export const Route = createFileRoute("/api/chat")({
                   .select()
                   .single();
                 if (error) throw new Error(error.message);
+                await audit("ai_flag_anomaly", data.id, input);
                 return data;
               },
             }),
@@ -1726,6 +1808,7 @@ export const Route = createFileRoute("/api/chat")({
             "insert_transaction",
             "update_transaction",
             "flag_anomaly",
+            "flag_anomalies",
             "resolve_flag",
             "get_unfinished_records",
             "get_tax_computation",
@@ -1754,7 +1837,11 @@ export const Route = createFileRoute("/api/chat")({
             .join(" ");
           const title = text(latestText).slice(0, 64) || "Document audit";
           // Spreadsheets/text files can't go to the model as files — turn them into text tables.
-          const modelMessages = await convertToModelMessages(uiMessages);
+          // Keep the prompt context bounded. The complete thread remains persisted
+          // in Supabase and visible in the UI; only the latest 10 messages are sent
+          // to the model so old tool payloads cannot grow the context indefinitely.
+          const modelContextMessages = uiMessages.slice(-10);
+          const modelMessages = await convertToModelMessages(modelContextMessages);
 
           // Groq's OpenAI-compatible chat endpoint rejects reasoning_content.
           // The AI SDK may restore this from assistant provider metadata even if
@@ -1814,7 +1901,7 @@ You are a fast, precise financial audit agent for PSX and NSE traders. You are c
 
 ━━ SPEED AND EFFICIENCY (most important) ━━
 - Answer greetings, definitions and general questions directly with NO tools.
-- Use the fewest tools possible. Call independent read tools together in one step. Never call the same tool twice with the same input. For simple questions, do not plan, report progress, or delegate. For multi-step work, publish at most one plan and at most three meaningful progress updates total; never repeat a stage or narrate each individual tool call. As soon as the required evidence is available, stop calling tools and write the final answer.
+- Use the fewest tools possible. Call independent read tools together in one step. Never call the same tool twice with the same input. For multiple ledger flags, use flag_anomalies once with all records rather than repeated flag_anomaly calls. Do not retry a failed write blindly; inspect the returned error and correct the input first. For simple questions, do not plan, report progress, or delegate. For multi-step work, publish at most one plan and at most three meaningful progress updates total; never repeat a stage or narrate each individual tool call. As soon as the required evidence is available, stop calling tools and write the final answer.
 - Answer simple questions with no plan, no delegation, and the minimum necessary tools. For non-trivial work, plan first and report meaningful stage changes.
 - For complex audits only, use delegate_agents to send 2–4 distinct, independent read-only subtasks in parallel. Publish the "Delegating specialist agents" progress stage before dispatch, wait for the results, then publish "Synthesizing findings" and verify important claims against ledger/tool data. Provide a precise scope and relevant evidence to each worker. Do not delegate the same question twice, do not fan out dependent steps, and continue safely if one specialist is unavailable; disclose incomplete review instead of implying every agent succeeded. Keep deterministic calculations and every ledger write in the lead agent's typed tools.
 - Keep answers concise, polished, and easy to scan—ChatGPT-style conversational formatting. Use Markdown with clean paragraph spacing, meaningful headings only when useful, bold key figures/labels, and compact tables for financial metrics/comparisons. Prefer clear human-readable labels over raw JSON keys or tool output. Avoid wall-of-text responses, excessive headings, repetitive summaries, and unrequested technical dumps. For a single metric lookup, lead with the answer and provide a small organized metric table plus source/caveat. Use the structured report sections only for real audits/analysis; otherwise answer in a few short paragraphs or a table.
@@ -1871,9 +1958,9 @@ NEW TOOLS ADDED:
             // short retry-after window. Allow the SDK's exponential backoff to
             // retry before we declare this provider unavailable and fail over.
             maxRetries: 1,
-            // Last step is text-only so the model must narrate tool results.
-            prepareStep: ({ stepNumber }: { stepNumber: number }) =>
-              stepNumber >= Math.max(0, maxSteps - 1) ? { toolChoice: "none" as const } : {},
+            // Keep a hard tool-step ceiling without forcing toolChoice:none.
+            // Some compatible providers still emit tool calls when forced to none,
+            // which causes "Tool choice is none, but model called a tool".
             providerOptions: resolved.providerOptions as never,
           };
 

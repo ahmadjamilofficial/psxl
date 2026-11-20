@@ -1913,17 +1913,35 @@ NEW TOOLS ADDED:
               `[${BRAND_NAME} Chat] ${where} error:`,
               e instanceof Error ? (e.stack ?? e.message) : e,
             );
-            const st = (e as { statusCode?: number })?.statusCode;
+            const errorRecord = (e ?? {}) as { statusCode?: number; status?: number; message?: string; name?: string };
+            const st = errorRecord.statusCode ?? errorRecord.status;
+            const rawMessage = String(errorRecord.message ?? e ?? "Unknown provider error");
+            const lowerMessage = rawMessage.toLowerCase();
+            if (errorRecord.name === "AbortError" || lowerMessage.includes("aborted"))
+              return "Response stopped.";
             if (st === 402)
               return "AI credits are used up. Add credits in your workspace settings to continue.";
             if (st === 401)
-              return "AI authentication failed. Please check your API key configuration.";
+              return "AI authentication failed. Please check the provider API key configuration.";
             if (st === 403)
-              return "AI access is blocked for this workspace. Please check your settings.";
-            if (isCapacityError(e) || st === 429) {
-              return brandText("{{brand}} AI has temporarily hit a provider rate limit. It will retry briefly; if the limit persists, please try again in a few seconds. Your data was not changed.");
+              return "AI access is blocked for this workspace. Please check the provider settings.";
+            if (isCapacityError(e) || st === 429 || lowerMessage.includes("rate limit")) {
+              return brandText("{{brand}} AI has temporarily hit a provider rate limit. Your data was not changed — please retry shortly.");
             }
-            return brandText("{{brand}} AI hit an error. Your data was not changed — please try again.");
+            if (st === 404 || lowerMessage.includes("model not found"))
+              return "The configured AI model is unavailable from its provider. Please try again shortly.";
+            if (st === 408 || st === 504 || lowerMessage.includes("timeout") || lowerMessage.includes("timed out"))
+              return "The AI provider timed out before completing the response. Your data was not changed — please retry.";
+            if (st === 400 && (lowerMessage.includes("context") || lowerMessage.includes("token")))
+              return "This request is too large for the selected AI model. Try a shorter prompt or fewer attached documents.";
+            // Surface a short, sanitized diagnostic instead of hiding every failure behind
+            // the same generic message. Never echo authorization credentials.
+            const safeMessage = rawMessage
+              .replace(/Bearer\\s+[A-Za-z0-9._-]+/gi, "Bearer [redacted]")
+              .replace(/sk-or-v1-[A-Za-z0-9]+/gi, "[redacted key]")
+              .replace(/https?:\\/\\/\\S+/gi, "[provider URL]")
+              .slice(0, 180);
+            return brandText("{{brand}} AI could not finish this response: " + safeMessage);
           };
 
           const stream = createUIMessageStream({

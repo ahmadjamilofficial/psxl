@@ -522,11 +522,19 @@ function MissionControl() {
                   />
                   <Tooltip
                     formatter={(v: number) => [`${currency} ${fmt(v)}`, "Realized P&L"]}
+                    cursor={{ stroke: "var(--ink-3)", strokeOpacity: 0.55, strokeDasharray: "4 4" }}
                     contentStyle={{
+                      backgroundColor: "var(--color-sheet)",
+                      color: "var(--color-text)",
                       fontSize: 12,
-                      borderRadius: 10,
+                      borderRadius: 12,
                       border: "1px solid var(--hairline)",
+                      padding: "10px 14px",
+                      boxShadow: "0 8px 28px rgba(0,0,0,.2)",
+                      opacity: 1,
                     }}
+                    labelStyle={{ color: "var(--color-text)", fontWeight: 700, marginBottom: 6 }}
+                    itemStyle={{ color: "var(--ink-2)", fontWeight: 500 }}
                   />
                   <Area
                     type="monotone"

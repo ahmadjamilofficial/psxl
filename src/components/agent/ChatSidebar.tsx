@@ -145,7 +145,7 @@ export function ChatSidebar({ activeId }: { activeId: string }) {
             </label>
           </div>
           <div
-            className="max-h-72 overflow-y-auto px-2 pb-2"
+            className="chat-history-scroll max-h-72 overflow-y-auto overscroll-contain px-2 pb-2"
             role="listbox"
             aria-label="Conversations"
           >

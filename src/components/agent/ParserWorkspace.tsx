@@ -470,50 +470,7 @@ function ToolCard({
     );
   }
 
-  if (rawName === "report_progress") {
-    const input = (part.input ?? {}) as Record<string, unknown>;
-    const output = (part.output ?? {}) as Record<string, unknown>;
-    const stage = String(input["stage"] ?? output["stage"] ?? "Working on your request");
-    const detailValue = input["detail"] ?? output["detail"];
-    const detail = typeof detailValue === "string" ? detailValue : "";
-    const progressRunning =
-      running || part.state === "input-streaming" || part.state === "input-available";
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 4 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="my-1.5 flex items-start gap-2.5 rounded-xl px-3.5 py-2.5"
-        style={{ border: "1px solid var(--hairline)", background: "var(--accent-3)" }}
-        role="status"
-        aria-live="polite"
-      >
-        {progressRunning ? (
-          <Loader2
-            size={14}
-            className="mt-0.5 shrink-0 animate-spin"
-            style={{ color: "var(--color-accent)" }}
-          />
-        ) : isError ? (
-          <X size={14} className="mt-0.5 shrink-0" style={{ color: "var(--bad)" }} />
-        ) : (
-          <Check size={14} className="mt-0.5 shrink-0" style={{ color: "var(--ok)" }} />
-        )}
-        <div className="min-w-0 flex-1">
-          <p className="text-xs font-medium">{stage}</p>
-          {detail && (
-            <p className="mt-0.5 text-xs leading-relaxed" style={{ color: "var(--ink-3)" }}>
-              {detail}
-            </p>
-          )}
-        </div>
-        <span className="shrink-0 text-[10px]" style={{ color: "var(--ink-3)" }}>
-          {progressRunning ? "In progress" : isError ? "Failed" : "Done"}
-        </span>
-      </motion.div>
-    );
-  }
-
-  if (rawName === "prepare_spreadsheet" && isDone && part.output) {
+  if (rawName === "report_progress") return null;\n\n  if (rawName === "prepare_spreadsheet" && isDone && part.output) {
     const out = part.output as Record<string, unknown>;
     return (
       <motion.div
@@ -865,6 +822,7 @@ function Chat({
   const deleteChatMutation = useDeleteChatThread();
   const queryClient = useQueryClient();
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [activityOpen, setActivityOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Messages that existed when the thread opened never animate in; only new
@@ -944,6 +902,33 @@ function Chat({
 
   // Classify the error so we can render the right message
   const errorMessage = error?.message ?? "";
+  const latestAssistant = [...messages].reverse().find((message) => message.role === "assistant");
+  const activityItems = (latestAssistant?.parts ?? [])
+    .filter((part) => part.type.startsWith("tool-") || part.type === "dynamic-tool")
+    .map((part) => part as unknown as ToolPart)
+    .filter((part) => (part.toolName ?? part.type.replace(/^tool-/, "")) !== "report_progress")
+    .slice(-7);
+  const progressItems = (latestAssistant?.parts ?? [])
+    .filter((part) => part.type.startsWith("tool-") || part.type === "dynamic-tool")
+    .map((part) => part as unknown as ToolPart)
+    .filter((part) => (part.toolName ?? part.type.replace(/^tool-/, "")) === "report_progress");
+  const latestProgress = progressItems.at(-1);
+  const progressInput = (latestProgress?.input ?? latestProgress?.output ?? {}) as Record<string, unknown>;
+  const activeActivity = [...activityItems].reverse().find((part) =>
+    part.state === "input-streaming" || part.state === "input-available",
+  );
+  const activeToolName = activeActivity
+    ? (activeActivity.toolName ?? activeActivity.type.replace(/^tool-/, "")).replace(/_/g, " ")
+    : "";
+  const activitySummary = isStreaming
+    ? (typeof progressInput.stage === "string"
+        ? progressInput.stage
+        : activeToolName
+          ? `Using ${activeToolName}`
+          : "Thinking through your request")
+    : error
+      ? "Response interrupted"
+      : "Completed";
 
   return (
     <div className="psxl-chat flex h-full min-h-0 flex-col overflow-hidden">
@@ -952,9 +937,60 @@ function Chat({
         style={{ background: "var(--color-login-bg)" }}
       >
         <ChatSidebar activeId={threadId} />
-        {isStreaming && (
-          <div className="hidden text-[11px] sm:block" style={{ color: "var(--ink-3)" }}>
-            PSXL is working
+        {(isStreaming || activityItems.length > 0) && (
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setActivityOpen((open) => !open)}
+              aria-expanded={activityOpen}
+              aria-label="Show AI activity"
+              className="flex max-w-[min(58vw,360px)] items-center gap-2 rounded-full border px-3 py-2 text-[11px] font-medium transition-colors"
+              style={{ borderColor: "var(--hairline)", background: "var(--color-sheet)", color: "var(--color-text)" }}
+            >
+              {isStreaming ? (
+                <Loader2 size={13} className="shrink-0 animate-spin" style={{ color: "var(--color-accent)" }} />
+              ) : error ? (
+                <AlertTriangle size={13} className="shrink-0" style={{ color: "var(--bad)" }} />
+              ) : (
+                <Check size={13} className="shrink-0" style={{ color: "var(--ok)" }} />
+              )}
+              <span className="truncate">{activitySummary}</span>
+              <ChevronDown size={13} className="shrink-0 transition-transform" style={{ color: "var(--ink-3)", transform: activityOpen ? "rotate(180deg)" : "none" }} />
+            </button>
+            {activityOpen && (
+              <div
+                className="absolute right-0 top-full z-50 mt-2 w-[min(88vw,360px)] overflow-hidden rounded-2xl border p-3 shadow-xl"
+                style={{ borderColor: "var(--hairline)", background: "var(--color-sheet)", color: "var(--color-text)" }}
+              >
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="text-xs font-semibold">What PSXL is doing</p>
+                  <span className="text-[10px]" style={{ color: "var(--ink-3)" }}>
+                    {isStreaming ? "Live" : error ? "Interrupted" : "Finished"}
+                  </span>
+                </div>
+                <p className="mb-3 text-xs" style={{ color: "var(--ink-2)" }}>{activitySummary}</p>
+                {activityItems.length > 0 ? (
+                  <div className="max-h-56 space-y-2 overflow-y-auto">
+                    {activityItems.map((part, index) => {
+                      const name = (part.toolName ?? part.type.replace(/^tool-/, "")).replace(/_/g, " ");
+                      const running = part.state === "input-streaming" || part.state === "input-available";
+                      const failed = part.state === "output-error" || !!part.errorText;
+                      const callId = (part as unknown as Record<string, unknown>).toolCallId;
+                      return (
+                        <div key={typeof callId === "string" ? callId : `${name}-${index}`} className="flex items-start gap-2 text-xs">
+                          {running ? <Loader2 size={12} className="mt-0.5 shrink-0 animate-spin" style={{ color: "var(--color-accent)" }} /> : failed ? <AlertTriangle size={12} className="mt-0.5 shrink-0" style={{ color: "var(--bad)" }} /> : <Check size={12} className="mt-0.5 shrink-0" style={{ color: "var(--ok)" }} />}
+                          <span className="min-w-0 flex-1 capitalize" style={{ color: "var(--ink-2)" }}>{name}</span>
+                          <span className="shrink-0 text-[10px]" style={{ color: "var(--ink-3)" }}>{running ? "Running" : failed ? "Failed" : part.state === "output-available" ? "Done" : "Queued"}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-xs" style={{ color: "var(--ink-3)" }}>No tools needed yet. PSXL is preparing its response.</p>
+                )}
+                {error && <p className="mt-3 rounded-lg p-2 text-xs" style={{ background: "color-mix(in srgb, var(--bad) 8%, transparent)", color: "var(--bad)" }}>{errorMessage || "The response was interrupted."}</p>}
+              </div>
+            )}
           </div>
         )}
       </header>

@@ -249,21 +249,28 @@ function MissionControl() {
 
   const totalPortfolioValue = summary?.totalValue ?? 0;
 
-  // Plot every realization date. Month-only aggregation collapsed all trades
-  // in a single month into one point, leaving the area chart visually blank.
-  const pnlByDate: Record<string, number> = {};
-  for (const lot of tax.lots) {
-    const date = lot.sellDate?.slice(0, 10);
-    if (date) pnlByDate[date] = (pnlByDate[date] ?? 0) + Number(lot.gain || 0);
-  }
-  const pnlData = Object.entries(pnlByDate)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .reduce<{ date: string; value: number }[]>((acc, [date, gain]) => {
-      const prev = acc[acc.length - 1]?.value ?? 0;
-      acc.push({ date, value: Math.round(prev + gain) });
+  // Preserve every FIFO match as its own observation. Grouping by sale date
+  // hides multiple matched lots from the same disposal and can collapse a
+  // portfolio with a small number of sales into a single plotted point.
+  const pnlData = tax.lots
+    .filter((lot) => lot.sellDate && Number.isFinite(Number(lot.gain)))
+    .slice()
+    .sort((a, b) =>
+      a.sellDate.localeCompare(b.sellDate) ||
+      a.ticker.localeCompare(b.ticker) ||
+      a.buyDate.localeCompare(b.buyDate),
+    )
+    .reduce<{ date: string; value: number; ticker: string; quantity: number }[]>((acc, lot) => {
+      const previous = acc[acc.length - 1]?.value ?? 0;
+      acc.push({
+        date: lot.sellDate.slice(0, 10),
+        value: Math.round(previous + Number(lot.gain)),
+        ticker: lot.ticker,
+        quantity: lot.quantity,
+      });
       return acc;
     }, []);
-  if (pnlData.length > 0) pnlData.unshift({ date: "Start", value: 0 });
+  if (pnlData.length > 0) pnlData.unshift({ date: "Start", value: 0, ticker: "Opening balance", quantity: 0 });
 
   // Timeline entries — use DB events if available, else synthesize
   const timelineEntries =
@@ -512,6 +519,9 @@ function MissionControl() {
                   </defs>
                   <XAxis
                     dataKey="date"
+                    tickFormatter={(value, index) => value === "Start" ? "Start" : index > 0 && pnlData[index - 1]?.date === value ? "" : String(value).slice(5)}
+                    interval="preserveStartEnd"
+                    minTickGap={28}
                     tick={{ fontSize: 11, fill: "var(--ink-3)" }}
                     axisLine={false}
                     tickLine={false}

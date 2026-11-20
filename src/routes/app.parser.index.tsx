@@ -22,9 +22,30 @@ function ParserIndex() {
     setFailure(null);
     void (async () => {
       try {
-        // Deliberately do not reuse sessionStorage or the last thread here.
-        // Entering Ask PSXL is a clean working session; explicit thread URLs
-        // remain the way to reopen a saved conversation.
+        // Resume the most recently used conversation. Opening or reloading
+        // Ask PSXL must never create another empty thread.
+        const { data: latestThread, error: latestThreadError } = await withTimeout(
+          supabase
+            .from("chat_threads")
+            .select("id")
+            .eq("user_id", user.id)
+            .order("updated_at", { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+          15000,
+          "Recent conversation lookup",
+        );
+        if (latestThreadError) throw new Error(latestThreadError.message);
+        if (latestThread?.id) {
+          navigate({
+            to: "/app/parser/$threadId",
+            params: { threadId: latestThread.id },
+            replace: true,
+          });
+          return;
+        }
+
+        // Only create the first thread when this account has no conversations.
         let { data: profile, error: profileError } = await withTimeout(
           supabase.from("profiles").select("org_id").eq("user_id", user.id).maybeSingle(),
           15000,
@@ -60,7 +81,7 @@ function ParserIndex() {
           throw new Error(error?.message ?? "Could not open a new AI workspace.");
         navigate({ to: "/app/parser/$threadId", params: { threadId: created.id }, replace: true });
       } catch (cause) {
-        console.error(brandText("[{{brand}}][ParserIndex] failed to create fresh chat"), cause);
+        console.error(brandText("[{{brand}}][ParserIndex] failed to open chat"), cause);
         setFailure(cause instanceof Error ? cause.message : "Could not open the AI workspace.");
         started.current = false;
       }
@@ -86,7 +107,7 @@ function ParserIndex() {
   }
   return (
     <div className="flex h-[70vh] items-center justify-center">
-      <Shimmer>{brandText("Starting a fresh Ask {{brand}} conversation…")}</Shimmer>
+      <Shimmer>{brandText("Opening your Ask {{brand}} workspace…")}</Shimmer>
     </div>
   );
 }

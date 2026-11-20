@@ -593,7 +593,7 @@ export const Route = createFileRoute("/api/chat")({
           }
 
           // Higher plans get larger tool budgets and better models.
-          const maxSteps = limits.maxAgentSteps;
+          // A compact ceiling prevents agent loops from spending the whole turn on repeated tool cycles.\n          const maxSteps = Math.min(limits.maxAgentSteps, 6);
           const monthlyTxLimit = limits.transactionsPerMonth; // null = unlimited
           const canDelegate = limits.features.specialistAgents;
 
@@ -679,12 +679,12 @@ export const Route = createFileRoute("/api/chat")({
 
           // Hard cap specialist generations across this entire user turn,
           // including repeated calls to either delegation tool.
-          let specialistWorkersRemaining = 4;
+          let specialistWorkersRemaining = 4;\n          let planTaskUsed = false;\n          let progressUpdatesUsed = 0;
 
           const tools = {
             plan_task: tool({
               description:
-                "For genuinely complex, multi-stage audits only: publish a concise work plan and current public progress stage. Do not call for simple lookups, scans, summaries, or one-step tasks.",
+                "For genuinely complex, multi-stage audits only: publish one concise work plan. Call at most once per user turn. Do not call for simple lookups, scans, summaries, or one-step tasks. After publishing the plan, execute the required tools; do not repeat the plan.",
               inputSchema: z.object({
                 objective: z.string(),
                 steps: z.array(z.string()),
@@ -702,7 +702,7 @@ export const Route = createFileRoute("/api/chat")({
                   ])
                   .nullable(),
               }),
-              execute: async (input) => ({ ...input, accepted: true }),
+              execute: async (input) => {\n                if (planTaskUsed) return { ...input, accepted: false, note: "A work plan has already been published. Continue with execution and provide the answer." };\n                planTaskUsed = true;\n                return { ...input, accepted: true };\n              },
             }),
             delegate_agent: tool({
               description:
@@ -1175,7 +1175,7 @@ export const Route = createFileRoute("/api/chat")({
             }),
             report_progress: tool({
               description:
-                "Publish a short public progress update for the user. Call this as work moves between stages. Never include hidden reasoning.",
+                "Publish concise user-visible progress. Use only for genuinely multi-stage work, at meaningful stage changes, and never more than 3 times per turn. Do not repeat a stage, narrate every tool call, or use this for simple questions. Never include hidden reasoning.",
               inputSchema: z.object({
                 stage: z.enum([
                   "Understanding your task",
@@ -1189,7 +1189,7 @@ export const Route = createFileRoute("/api/chat")({
                 ]),
                 detail: z.string().nullable(),
               }),
-              execute: async (input) => input,
+              execute: async (input) => {\n                if (progressUpdatesUsed >= 3) return { ...input, suppressed: true };\n                progressUpdatesUsed += 1;\n                return input;\n              },
             }),
             get_unfinished_records: tool({
               description:
@@ -1803,7 +1803,7 @@ You are a fast, precise financial audit agent for PSX and NSE traders. You are c
 
 ━━ SPEED AND EFFICIENCY (most important) ━━
 - Answer greetings, definitions and general questions directly with NO tools.
-- Use the fewest tools possible. Call independent read tools together in one step. Never call the same tool twice with the same input.
+- Use the fewest tools possible. Call independent read tools together in one step. Never call the same tool twice with the same input. For simple questions, do not plan, report progress, or delegate. For multi-step work, publish at most one plan and at most three meaningful progress updates total; never repeat a stage or narrate each individual tool call. As soon as the required evidence is available, stop calling tools and write the final answer.
 - Answer simple questions with no plan, no delegation, and the minimum necessary tools. For non-trivial work, plan first and report meaningful stage changes.
 - For complex audits only, use delegate_agents to send 2–4 distinct, independent read-only subtasks in parallel. Publish the "Delegating specialist agents" progress stage before dispatch, wait for the results, then publish "Synthesizing findings" and verify important claims against ledger/tool data. Provide a precise scope and relevant evidence to each worker. Do not delegate the same question twice, do not fan out dependent steps, and continue safely if one specialist is unavailable; disclose incomplete review instead of implying every agent succeeded. Keep deterministic calculations and every ledger write in the lead agent's typed tools.
 - Keep answers concise, polished, and easy to scan—ChatGPT-style conversational formatting. Use Markdown with clean paragraph spacing, meaningful headings only when useful, bold key figures/labels, and compact tables for financial metrics/comparisons. Prefer clear human-readable labels over raw JSON keys or tool output. Avoid wall-of-text responses, excessive headings, repetitive summaries, and unrequested technical dumps. For a single metric lookup, lead with the answer and provide a small organized metric table plus source/caveat. Use the structured report sections only for real audits/analysis; otherwise answer in a few short paragraphs or a table.

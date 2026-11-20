@@ -32,11 +32,11 @@ import {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: brandText("{{brand}} — AI-Native Financial Operations & Audit Platform") },
+      { title: brandText("{{brand}} — Broker Reconciliation & Trade Audit for PSX and NSE") },
       {
         name: "description",
         content:
-          brandText("Upload financial records, statements, CSVs, PDFs, or trade data. {{brand}} extracts the data, reconciles it against your records, detects discrepancies, and produces a traceable audit-ready ledger."),
+          brandText("Upload financial records, statements, CSVs, PDFs, or trade data. {{brand}} reconciles broker records, audits trades, detects discrepancies, and calculates FIFO capital gains tax for PSX and NSE investors."),
       },
       {
         name: "keywords",

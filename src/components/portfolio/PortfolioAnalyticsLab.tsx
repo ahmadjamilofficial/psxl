@@ -28,7 +28,13 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
   const [period, setPeriod] = useState("ALL");
   const [chartStyle, setChartStyle] = useState<"area" | "line" | "bars">("area");
 
-  const posted = useMemo(() => transactions.filter(t => t.status === "posted").slice().sort((a,b) => a.trade_date.localeCompare(b.trade_date)), [transactions]);
+  const posted = useMemo(
+    () => transactions
+      .filter(t => t.status === "posted" && Number.isFinite(t.quantity) && Number.isFinite(t.price))
+      .slice()
+      .sort((a, b) => a.trade_date.localeCompare(b.trade_date) || String(a.id).localeCompare(String(b.id))),
+    [transactions],
+  );
   const currencies = useMemo(() => [...new Set(posted.map(t => t.currency ?? currencyForExchange(t.exchange)))].sort(), [posted, currency]);
   const activeCurrency = currencies.includes(selectedCurrency) ? selectedCurrency : currencies[0] ?? "";
   const tickers = useMemo(() => [...new Set(posted.map(t => ({ key: t.exchange + ":" + t.ticker, label: t.ticker + " · " + t.exchange })))].sort((a,b)=>a.label.localeCompare(b.label)), [posted]);
@@ -113,7 +119,11 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
   const tooltipLabelStyle = { color: "var(--color-text)", fontWeight: 700, marginBottom: 6 };
   const tooltipItemStyle = { color: "var(--ink-2)", fontWeight: 500 };
   const fmt = (v:number) => v.toLocaleString("en-PK",{maximumFractionDigits:2});
-  const dateFmt = (value: string) => new Date(`${value}T00:00:00.000Z`).toLocaleDateString("en-GB",{day:"2-digit",month:"short",timeZone:"UTC"});
+  const dateFmt = (value: string) => {
+    const dateOnly = String(value).slice(0, 10);
+    const date = new Date(`${dateOnly}T00:00:00.000Z`);
+    return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "2-digit", timeZone: "UTC" });
+  };
   const entryNum = Number(entry), stopNum = Number(stop), capitalNum = Number(capital), riskNum = Number(riskPct);
   const riskAmount = capitalNum * riskNum/100;
   const perShareRisk = Math.abs(entryNum-stopNum);
@@ -191,7 +201,7 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
           ))}
         </div>
       </div>
-      {data.equity.length > 0 ? <>
+      {mainData.length > 0 ? <>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           <div className="rounded-xl px-3 py-2" style={{background:"var(--color-login-bg)"}}>
             <p className="text-[10px] font-medium uppercase tracking-wide" style={{color:"var(--ink-3)"}}>Net cash flow</p>
@@ -225,7 +235,7 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
                   </linearGradient>
                 </defs>
                 <CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 5"/>
-                <XAxis dataKey="label" tickFormatter={value => tab === "ticker" ? String(value).split(" · ")[0] : dateFmt(String(value))} interval="preserveStartEnd" minTickGap={32} angle={tab === "ticker" ? -28 : 0} textAnchor={tab === "ticker" ? "end" : "middle"} height={tab === "ticker" ? 58 : 28} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/>
+                <XAxis dataKey="label" tickFormatter={value => tab === "ticker" ? String(value).split(" · ")[0] : dateFmt(String(value).slice(0, 10))} interval="preserveStartEnd" minTickGap={32} angle={tab === "ticker" ? -28 : 0} textAnchor={tab === "ticker" ? "end" : "middle"} height={tab === "ticker" ? 58 : 28} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/>
                 <YAxis allowDecimals={tab === "activity"} width={76} tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/>
                 <ReferenceLine y={0} stroke="var(--ink-3)" strokeOpacity={.45} strokeDasharray="4 4"/>
                 <Tooltip
@@ -235,10 +245,10 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
                   contentStyle={tooltipContentStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle}
                 />
                 {chartStyle === "area"
-                  ? <Area key={tab + "-area"} dataKey="value" name={mainTitle} type="monotone" stroke="var(--color-accent)" strokeWidth={2.4} fill="url(#psxl-cashflow-fill)" dot={mainData.length <= 12 ? {r:3,fill:"var(--color-accent)",strokeWidth:0} : false} activeDot={{r:5,strokeWidth:0}} isAnimationActive={false}/>
+                  ? <Area key={tab + "-area"} dataKey="value" name={mainTitle} type="monotone" stroke="var(--color-accent)" strokeWidth={2.6} strokeLinecap="round" fill="url(#psxl-cashflow-fill)" dot={mainData.length <= 12 ? {r:3,fill:"var(--color-accent)",strokeWidth:0} : false} activeDot={{r:6,stroke:"var(--color-sheet)",strokeWidth:2}} connectNulls isAnimationActive animationBegin={80} animationDuration={1100} animationEasing="ease-out"/>
                   : chartStyle === "line"
-                    ? <Line key={tab + "-line"} dataKey="value" name={mainTitle} type="monotone" stroke="var(--color-accent)" strokeWidth={2.4} dot={mainData.length <= 12 ? {r:3,fill:"var(--color-accent)",strokeWidth:0} : false} activeDot={{r:5,strokeWidth:0}} isAnimationActive={false}/>
-                    : <Bar key={tab + "-bars"} dataKey="value" name={mainTitle} barSize={tab === "ticker" ? 34 : 12} radius={[4,4,0,0]} isAnimationActive={false}>{mainData.map((point,index)=><Cell key={point.label + index} fill={point.value >= 0 ? "var(--ok)" : "var(--bad)"}/>)}</Bar>
+                    ? <Line key={tab + "-line"} dataKey="value" name={mainTitle} type="monotone" stroke="var(--color-accent)" strokeWidth={2.6} strokeLinecap="round" dot={mainData.length <= 12 ? {r:3,fill:"var(--color-accent)",strokeWidth:0} : false} activeDot={{r:6,stroke:"var(--color-sheet)",strokeWidth:2}} connectNulls isAnimationActive animationBegin={80} animationDuration={1100} animationEasing="ease-out"/>
+                    : <Bar key={tab + "-bars"} dataKey="value" name={mainTitle} barSize={tab === "ticker" ? 34 : 12} radius={[4,4,0,0]} isAnimationActive animationBegin={80} animationDuration={850} animationEasing="ease-out">{mainData.map((point,index)=><Cell key={point.label + index} fill={point.value >= 0 ? "var(--ok)" : "var(--bad)"}/>)}</Bar>
                 }
               </ComposedChart>
             </ResponsiveContainer>
@@ -251,13 +261,13 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
       <div className="rounded-2xl p-4" style={card}>
         <div className="mb-2"><h3 className="text-sm font-semibold">Monthly cash-flow trend</h3><p className="text-[11px]" style={{color:"var(--ink-3)"}}>Cumulative net ledger flow by month</p></div>
         <ResponsiveContainer width="100%" height={230}>
-          <ComposedChart data={data.monthly}><CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis dataKey="month" tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><Tooltip formatter={(v:number)=>[(activeCurrency||"—")+" "+fmt(v)]} contentStyle={tooltipContentStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle}/><Area dataKey="cumulative" name="Cumulative cash flow" type="monotone" stroke="#2563EB" fill="#2563EB22" strokeWidth={2}/><Line dataKey="buys" name="Buy turnover" type="monotone" stroke="#F59E0B" dot={false}/></ComposedChart>
+          <ComposedChart data={data.monthly}><CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis dataKey="month" tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><Tooltip formatter={(v:number)=>[(activeCurrency||"—")+" "+fmt(v)]} contentStyle={tooltipContentStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle}/><Area dataKey="cumulative" name="Cumulative cash flow" type="monotone" stroke="#2563EB" fill="#2563EB22" strokeWidth={2.2} dot={false} isAnimationActive animationDuration={900} animationEasing="ease-out"/><Line dataKey="buys" name="Buy turnover" type="monotone" stroke="#F59E0B" strokeWidth={2} dot={false} isAnimationActive animationDuration={900} animationEasing="ease-out"/></ComposedChart>
         </ResponsiveContainer>
       </div>
       <div className="rounded-2xl p-4" style={card}>
         <div className="mb-2"><h3 className="text-sm font-semibold">Ticker cash-flow ranking</h3><p className="text-[11px]" style={{color:"var(--ink-3)"}}>Sell proceeds + dividends − purchases</p></div>
         <ResponsiveContainer width="100%" height={250}>
-          <BarChart data={data.tickerRows.slice(0,8)} layout="vertical" margin={{left:8,right:12}}><CartesianGrid horizontal={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis type="number" tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis type="category" dataKey="ticker" width={118} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><ReferenceLine x={0} stroke="var(--ink-3)" strokeOpacity={0.4}/><Tooltip formatter={(v:number)=>[(activeCurrency||"—")+" "+fmt(v)]} contentStyle={tooltipContentStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle}/><Bar dataKey="netCash" name="Net cash flow" radius={[0,4,4,0]}>{data.tickerRows.slice(0,8).map((item,i)=><Cell key={item.ticker} fill={item.netCash>=0?"#059669":"#DC2626"}/>)}</Bar></BarChart>
+          <BarChart data={data.tickerRows.slice(0,8)} layout="vertical" margin={{left:8,right:12}}><CartesianGrid horizontal={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis type="number" tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis type="category" dataKey="ticker" width={118} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><ReferenceLine x={0} stroke="var(--ink-3)" strokeOpacity={0.4}/><Tooltip formatter={(v:number)=>[(activeCurrency||"—")+" "+fmt(v)]} contentStyle={tooltipContentStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle}/><Bar dataKey="netCash" name="Net cash flow" radius={[0,4,4,0]} isAnimationActive animationDuration={850} animationEasing="ease-out">{data.tickerRows.slice(0,8).map((item,i)=><Cell key={item.ticker} fill={item.netCash>=0?"#059669":"#DC2626"}/>)}</Bar></BarChart>
         </ResponsiveContainer>
       </div>
       <div className="rounded-2xl p-4" style={card}>

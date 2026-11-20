@@ -15,7 +15,7 @@ export type ConversationProps = ComponentProps<typeof StickToBottom>;
 // so growth glides instead of snapping or bouncing.
 export const Conversation = ({ className, ...props }: ConversationProps) => (
   <StickToBottom
-    className={cn("relative flex-1 overflow-y-hidden", className)}
+    className={cn("relative flex min-h-0 min-w-0 flex-1 overflow-hidden", className)}
     damping={0.8}
     initial="instant"
     mass={1}
@@ -59,7 +59,7 @@ export type ConversationContentProps = ComponentProps<typeof StickToBottom.Conte
 export const ConversationContent = ({ className, scrollClassName, ...props }: ConversationContentProps) => (
   <StickToBottom.Content
     className={cn("flex flex-col gap-6 p-4", className)}
-    scrollClassName={cn("chat-scroll", scrollClassName)}
+    scrollClassName={cn("chat-scroll min-h-0 min-w-0", scrollClassName)}
     {...props}
   />
 );

@@ -933,12 +933,13 @@ function Chat({
       : "Completed";
 
   return (
-    <div className="psxl-chat flex h-full min-h-0 flex-col overflow-hidden">
+    <div className="psxl-chat flex h-full min-h-0 flex-row overflow-hidden">
+      <ChatSidebar activeId={threadId} />
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
       <header
         className="flex shrink-0 items-center justify-between gap-3 px-4 py-2.5 sm:px-6"
         style={{ background: "var(--color-login-bg)" }}
       >
-        <ChatSidebar activeId={threadId} />
         {(isStreaming || activityItems.length > 0) && (
           <div className="relative">
             <button
@@ -1191,6 +1192,8 @@ function Chat({
             PSXL acts on your data autonomously. Every change is traceable and reversible.
           </p>
         </div>
+      </div>
+
       </div>
 
       {/* Delete confirm modal */}

@@ -119,6 +119,35 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
   const perShareRisk = Math.abs(entryNum-stopNum);
   const size = perShareRisk > 0 ? Math.floor(riskAmount/perShareRisk) : 0;
 
+  // Keep unposted records visible in the audit count, but never mix them into
+  // financial totals or plotted cash flow until they are approved and posted.
+  const filteredAll = useMemo(
+    () => transactions.filter(t =>
+      (activeCurrency !== "" && (t.currency ?? currencyForExchange(t.exchange)) === activeCurrency) &&
+      (ticker === "ALL" || t.exchange + ":" + t.ticker === ticker) &&
+      (!periodStart || t.trade_date >= periodStart)
+    ),
+    [transactions, activeCurrency, ticker, periodStart],
+  );
+  const reviewCount = filteredAll.filter(t => t.status !== "posted").length;
+  const activityRows = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const trade of filtered) counts.set(trade.trade_date, (counts.get(trade.trade_date) ?? 0) + 1);
+    return [...counts.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([date, value]) => ({ label: date, value }));
+  }, [filtered]);
+  const mainData = tab === "ticker"
+    ? data.tickerRows.map(item => ({ label: item.ticker, value: item.netCash }))
+    : tab === "activity"
+      ? activityRows
+      : tab === "drawdown"
+        ? data.equity.map(point => ({ label: point.date, value: point.cumulative - Math.max(0, ...data.equity.filter(p => p.date <= point.date).map(p => p.cumulative)) }))
+        : data.equity.map(point => ({ label: point.date, value: point.cumulative }));
+  const mainTitle = tab === "ticker" ? "Net cash flow by ticker"
+    : tab === "activity" ? "Posted transaction activity"
+      : tab === "drawdown" ? "Cash-flow drawdown"
+        : "Cumulative net cash flow";
+  const mainUnit = tab === "activity" ? "transactions" : activeCurrency;
+
   return <section className="space-y-6 rounded-[28px] p-4 sm:p-7" style={{...card, boxShadow:"0 18px 55px rgba(15,23,42,.055)"}}>
     <header className="flex flex-wrap items-start justify-between gap-4">
       <div><p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.2em]" style={{color:"var(--color-accent)"}}><CandlestickChart size={14}/> PSXL MARKETS · ANALYTICS</p><h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-[28px]">Portfolio performance</h2><p className="mt-1 max-w-2xl text-xs leading-5" style={{color:"var(--ink-3)"}}>A precise view of your ledger activity, cash movements and symbol-level exposure.</p></div>
@@ -150,69 +179,49 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
           </div>
           <div className="rounded-xl px-3 py-2" style={{background:"var(--color-login-bg)"}}>
             <p className="text-[10px] font-medium uppercase tracking-wide" style={{color:"var(--ink-3)"}}>Transactions plotted</p>
-            <p className="tnum mt-1 text-sm font-semibold">{filtered.length.toLocaleString()}</p>
+            <p className="tnum mt-1 text-sm font-semibold">{filtered.length.toLocaleString()} posted</p>
+            {reviewCount > 0 && <p className="mt-0.5 text-[10px]" style={{color:"var(--warn)"}}>{reviewCount} awaiting review · excluded</p>}
           </div>
           <div className="col-span-2 rounded-xl px-3 py-2 sm:col-span-1" style={{background:"var(--color-login-bg)"}}>
             <p className="text-[10px] font-medium uppercase tracking-wide" style={{color:"var(--ink-3)"}}>Chart data</p>
             <p className="mt-1 text-[11px]" style={{color:"var(--ink-2)"}}>Posted ledger events · {activeCurrency}</p>
           </div>
         </div>
-        <div className="h-[280px] min-w-0 sm:h-[360px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={data.equity} syncId="psxl-cashflow-range" margin={{top:12,right:12,left:2,bottom:2}}>
-              <defs>
-                <linearGradient id="psxl-cashflow-fill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--color-accent)" stopOpacity={.28}/>
-                  <stop offset="100%" stopColor="var(--color-accent)" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 5"/>
-              <XAxis dataKey="date" tickFormatter={dateFmt} interval="preserveStartEnd" minTickGap={36} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/>
-              <YAxis width={72} tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false} />
-              <ReferenceLine y={0} stroke="var(--ink-3)" strokeOpacity={.45} strokeDasharray="4 4"/>
-              <Tooltip
-                cursor={{stroke:"var(--ink-3)",strokeOpacity:.65,strokeDasharray:"4 4"}}
-                labelFormatter={(label)=>dateFmt(String(label))}
-                formatter={(value:number,name:string)=>[activeCurrency+" "+fmt(value),name]}
-                contentStyle={tooltipContentStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle}
-              />
-              {chartStyle==="area"
-                ? <Area dataKey="cumulative" name="Cumulative cash flow" type="monotone" stroke="var(--color-accent)" strokeWidth={2.2} fill="url(#psxl-cashflow-fill)" dot={false} activeDot={{r:4,strokeWidth:0}} isAnimationActive={false}/>
-                : chartStyle==="line"
-                  ? <Line dataKey="cumulative" name="Cumulative cash flow" type="monotone" stroke="var(--color-accent)" strokeWidth={2.2} dot={false} activeDot={{r:4,strokeWidth:0}} isAnimationActive={false}/>
-                  : <Bar dataKey="cumulative" name="Cumulative cash flow" barSize={10} radius={[3,3,0,0]} isAnimationActive={false}>{data.equity.map(point=><Cell key={point.point} fill={point.cumulative>=0?"var(--ok)":"var(--bad)"}/>)}</Bar>
-              }
-            </ComposedChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="rounded-xl border px-3 pb-2 pt-3" style={{background:"var(--color-sheet)",borderColor:"var(--hairline)"}}>
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <p className="text-[11px] font-semibold" style={{color:"var(--color-text)"}}>Transaction cash flow</p>
-            <p className="text-[10px]" style={{color:"var(--ink-3)"}}>Each bar is one posted entry</p>
+        <div className="rounded-2xl border p-3 sm:p-4" style={{background:"var(--color-sheet)",borderColor:"var(--hairline)"}}>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold">{mainTitle}</p>
+              <p className="text-[10px]" style={{color:"var(--ink-3)"}}>{tab === "ticker" ? "Per-symbol net cash movement" : tab === "activity" ? "Number of posted records per trade date" : tab === "drawdown" ? "Distance below the running cash-flow peak" : "Running total of posted ledger cash movements"} · {mainUnit}</p>
+            </div>
+            <span className="shrink-0 text-[10px] font-medium" style={{color:"var(--ink-3)"}}>{mainData.length} points</span>
           </div>
-          <div className="h-[104px] min-w-0">
+          <div className="h-[260px] min-w-0 sm:h-[320px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data.equity} syncId="psxl-cashflow-range" margin={{top:4,right:12,left:2,bottom:0}}>
+              <ComposedChart data={mainData} margin={{top:12,right:14,left:4,bottom:tab === "ticker" ? 42 : 4}}>
                 <CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 5"/>
-                <XAxis dataKey="point" hide/>
-                <YAxis width={72} tickFormatter={fmt} tick={{fontSize:9,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/>
+                <XAxis dataKey="label" tickFormatter={value => tab === "ticker" ? String(value).split(" · ")[0] : dateFmt(String(value))} interval="preserveStartEnd" minTickGap={32} angle={tab === "ticker" ? -28 : 0} textAnchor={tab === "ticker" ? "end" : "middle"} height={tab === "ticker" ? 58 : 28} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/>
+                <YAxis allowDecimals={tab === "activity"} width={76} tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/>
+                <ReferenceLine y={0} stroke="var(--ink-3)" strokeOpacity={.45} strokeDasharray="4 4"/>
                 <Tooltip
-                  cursor={{fill:"var(--ink-3)",fillOpacity:.08}}
-                  labelFormatter={(label)=>String(label).split(" · ")[0]}
-                  formatter={(value:number)=>[activeCurrency+" "+fmt(value),"Transaction cash flow"]}
+                  cursor={{stroke:"var(--ink-3)",strokeOpacity:.65,strokeDasharray:"4 4"}}
+                  labelFormatter={label => tab === "ticker" ? String(label) : dateFmt(String(label))}
+                  formatter={(value:number) => [tab === "activity" ? value.toLocaleString() : (mainUnit || "—") + " " + fmt(value), mainTitle]}
                   contentStyle={tooltipContentStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle}
                 />
-                <ReferenceLine y={0} stroke="var(--ink-3)" strokeOpacity={.4}/>
-                <Bar dataKey="netFlow" name="Transaction cash flow" barSize={8} isAnimationActive={false}>{data.equity.map(point=><Cell key={point.point} fill={point.netFlow>=0?"var(--ok)":"var(--bad)"}/>)}</Bar>
-                <Brush dataKey="point" height={18} stroke="var(--color-accent)" travellerWidth={8} />
-              </BarChart>
+                {chartStyle === "area"
+                  ? <Area key={tab + "-area"} dataKey="value" name={mainTitle} type="monotone" stroke="var(--color-accent)" strokeWidth={2.4} fill="url(#psxl-cashflow-fill)" dot={mainData.length <= 12 ? {r:3,fill:"var(--color-accent)",strokeWidth:0} : false} activeDot={{r:5,strokeWidth:0}} isAnimationActive={false}/>
+                  : chartStyle === "line"
+                    ? <Line key={tab + "-line"} dataKey="value" name={mainTitle} type="monotone" stroke="var(--color-accent)" strokeWidth={2.4} dot={mainData.length <= 12 ? {r:3,fill:"var(--color-accent)",strokeWidth:0} : false} activeDot={{r:5,strokeWidth:0}} isAnimationActive={false}/>
+                    : <Bar key={tab + "-bars"} dataKey="value" name={mainTitle} barSize={tab === "ticker" ? 34 : 12} radius={[4,4,0,0]} isAnimationActive={false}>{mainData.map((point,index)=><Cell key={point.label + index} fill={point.value >= 0 ? "var(--ok)" : "var(--bad)"}/>)}</Bar>
+                }
+              </ComposedChart>
             </ResponsiveContainer>
           </div>
         </div>
-        <p className="text-[10px] leading-4" style={{color:"var(--ink-3)"}}>Daily ledger granularity · zero-activity days are retained · crosshair tooltips show the selected date. The ledger has no intraday timestamps or OHLC bars, so candlesticks are not fabricated.</p>
+        <p className="text-[10px] leading-4" style={{color:"var(--ink-3)"}}>Only posted ledger records affect financial totals. Records awaiting review are counted separately and excluded until approved. Cash flow is not the same as realized FIFO profit or market-valued equity.</p>
       </> : <div className="flex h-[300px] items-center justify-center rounded-2xl border border-dashed px-6 text-center text-sm" style={{borderColor:"var(--hairline)",color:"var(--ink-3)"}}>No posted transactions in this currency and time range. Choose another currency or timeframe.</div>}
     </div>
-    <div className="grid gap-4 lg:grid-cols-2">
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       <div className="rounded-2xl p-4" style={card}>
         <div className="mb-2"><h3 className="text-sm font-semibold">Monthly cash-flow trend</h3><p className="text-[11px]" style={{color:"var(--ink-3)"}}>Cumulative net ledger flow by month</p></div>
         <ResponsiveContainer width="100%" height={230}>

@@ -135,13 +135,33 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
     for (const trade of filtered) counts.set(trade.trade_date, (counts.get(trade.trade_date) ?? 0) + 1);
     return [...counts.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([date, value]) => ({ label: date, value }));
   }, [filtered]);
+  // Keep one point per transaction (not one per calendar day), so four trades
+  // on the same date remain four visible observations in the primary chart.
+  const transactionPoints = useMemo(() => {
+    let cumulative = 0;
+    let peak = 0;
+    return filtered.map((trade, index) => {
+      const net = trade.action === "BUY"
+        ? -(trade.quantity * trade.price + trade.fees)
+        : trade.action === "SELL"
+          ? trade.quantity * trade.price - trade.fees
+          : trade.quantity * trade.price - trade.wht;
+      cumulative += net;
+      peak = Math.max(peak, cumulative);
+      return {
+        label: `${trade.trade_date} · ${trade.ticker} ${trade.action} #${index + 1}`,
+        cumulative,
+        drawdown: cumulative - peak,
+      };
+    });
+  }, [filtered]);
   const mainData = tab === "ticker"
     ? data.tickerRows.map(item => ({ label: item.ticker, value: item.netCash }))
     : tab === "activity"
       ? activityRows
       : tab === "drawdown"
-        ? data.equity.map(point => ({ label: point.date, value: point.cumulative - Math.max(0, ...data.equity.filter(p => p.date <= point.date).map(p => p.cumulative)) }))
-        : data.equity.map(point => ({ label: point.date, value: point.cumulative }));
+        ? transactionPoints.map(point => ({ label: point.label, value: point.drawdown }))
+        : transactionPoints.map(point => ({ label: point.label, value: point.cumulative }));
   const mainTitle = tab === "ticker" ? "Net cash flow by ticker"
     : tab === "activity" ? "Posted transaction activity"
       : tab === "drawdown" ? "Cash-flow drawdown"
@@ -191,13 +211,19 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
           <div className="mb-3 flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-sm font-semibold">{mainTitle}</p>
-              <p className="text-[10px]" style={{color:"var(--ink-3)"}}>{tab === "ticker" ? "Per-symbol net cash movement" : tab === "activity" ? "Number of posted records per trade date" : tab === "drawdown" ? "Distance below the running cash-flow peak" : "Running total of posted ledger cash movements"} · {mainUnit}</p>
+              <p className="text-[10px]" style={{color:"var(--ink-3)"}}>{tab === "ticker" ? "Per-symbol net cash movement" : tab === "activity" ? "Number of posted records per trade date" : tab === "drawdown" ? "Distance below the running cash-flow peak" : "Running total after each individual trade"} · {mainUnit}</p>
             </div>
             <span className="shrink-0 text-[10px] font-medium" style={{color:"var(--ink-3)"}}>{mainData.length} points</span>
           </div>
           <div className="h-[260px] min-w-0 sm:h-[320px]">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={mainData} margin={{top:12,right:14,left:4,bottom:tab === "ticker" ? 42 : 4}}>
+                <defs>
+                  <linearGradient id="psxl-cashflow-fill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--color-accent)" stopOpacity={0.28}/>
+                    <stop offset="100%" stopColor="var(--color-accent)" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
                 <CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 5"/>
                 <XAxis dataKey="label" tickFormatter={value => tab === "ticker" ? String(value).split(" · ")[0] : dateFmt(String(value))} interval="preserveStartEnd" minTickGap={32} angle={tab === "ticker" ? -28 : 0} textAnchor={tab === "ticker" ? "end" : "middle"} height={tab === "ticker" ? 58 : 28} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/>
                 <YAxis allowDecimals={tab === "activity"} width={76} tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/>

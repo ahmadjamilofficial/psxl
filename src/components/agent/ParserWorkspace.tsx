@@ -470,7 +470,9 @@ function ToolCard({
     );
   }
 
-  if (rawName === "report_progress") return null;\n\n  if (rawName === "prepare_spreadsheet" && isDone && part.output) {
+  if (rawName === "report_progress") return null;
+
+  if (rawName === "prepare_spreadsheet" && isDone && part.output) {
     const out = part.output as Record<string, unknown>;
     return (
       <motion.div

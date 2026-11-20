@@ -402,15 +402,14 @@
  * shifts, and scroll chaining is contained so the page behind never moves.
  */
 .chat-scroll {
+  min-height: 0;
+  min-width: 0;
+  height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
   scrollbar-width: thin;
-  scrollbar-color: transparent var(--chat-scrollbar-track);
-}
-
-.chat-scroll:hover {
   scrollbar-color: var(--chat-scrollbar-thumb) var(--chat-scrollbar-track);
 }
 
@@ -424,15 +423,11 @@
 }
 
 .chat-scroll::-webkit-scrollbar-thumb {
-  background-color: transparent;
+  background-color: var(--chat-scrollbar-thumb);
   border-radius: 99px;
   border: 3px solid transparent;
   background-clip: padding-box;
   transition: background-color 0.25s ease;
-}
-
-.chat-scroll:hover::-webkit-scrollbar-thumb {
-  background-color: var(--chat-scrollbar-thumb);
 }
 
 .chat-scroll::-webkit-scrollbar-thumb:hover {

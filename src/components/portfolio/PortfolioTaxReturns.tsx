@@ -1,4 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "@tanstack/react-router";
+import { useAuth } from "@/lib/auth-context";
+import { supabase } from "@/lib/supabase";
 import { Calculator, Download, FileSpreadsheet, ShieldCheck } from "lucide-react";
 import { computeTax, type Jurisdiction } from "@/lib/tax";
 import { currencyForExchange } from "@/lib/market-currency";
@@ -18,6 +21,25 @@ function downloadTaxReturn(filename: string, rows: unknown[][]) {
 }
 
 export function PortfolioTaxReturns({ transactions, isLoading = false }: Props) {
+  const { profile } = useAuth();
+  const [customRules, setCustomRules] = useState<{ short: number; long: number; days: number } | null>(null);
+  const [customRulesLoading, setCustomRulesLoading] = useState(false);
+  useEffect(() => {
+    if (!profile?.org_id) return;
+    let cancelled = false;
+    setCustomRulesLoading(true);
+    void supabase.from("tax_profiles").select("cgt_rules").eq("org_id", profile.org_id).eq("jurisdiction", "CUSTOM").order("created_at", { ascending: false }).limit(1).maybeSingle().then(({ data }) => {
+      if (cancelled) return;
+      const rules = (data?.cgt_rules ?? {}) as Record<string, unknown>;
+      const short = Number(rules.short_term_rate_percent);
+      const long = Number(rules.long_term_rate_percent);
+      const days = Number(rules.long_term_days);
+      setCustomRules(Number.isFinite(short) && Number.isFinite(long) && Number.isInteger(days) && short >= 0 && short <= 100 && long >= 0 && long <= 100 && days >= 1 ? { short, long, days } : null);
+      setCustomRulesLoading(false);
+    }).catch(() => { if (!cancelled) { setCustomRules(null); setCustomRulesLoading(false); } });
+    return () => { cancelled = true; };
+  }, [profile?.org_id]);
+
   const currencies = useMemo(() => [...new Set(transactions.map(t => t.currency ?? currencyForExchange(t.exchange)).filter(c => c && c !== "MIXED"))].sort(), [transactions]);
   const years = useMemo(() => [...new Set(transactions.map(t => t.trade_date.slice(0, 4)).filter(y => /^\\d{4}$/.test(y)))].sort((a, b) => b.localeCompare(a)), [transactions]);
   const [year, setYear] = useState("");
@@ -28,7 +50,12 @@ export function PortfolioTaxReturns({ transactions, isLoading = false }: Props) 
   const activeCurrency = currencies.includes(currency) ? currency : currencies[0] ?? "PKR";
   const yearRecords = useMemo(() => transactions.filter(t => t.trade_date.startsWith(activeYear) && (t.currency ?? currencyForExchange(t.exchange)) === activeCurrency), [transactions, activeYear, activeCurrency]);
   const posted = useMemo(() => transactions.filter(t => t.status === "posted" && (t.currency ?? currencyForExchange(t.exchange)) === activeCurrency), [transactions, activeCurrency]);
-  const tax = useMemo(() => computeTax(posted, { jurisdiction, filerStatus, taxYear: activeYear }), [posted, jurisdiction, filerStatus, activeYear]);
+  const tax = useMemo(() => computeTax(posted, {
+    jurisdiction, filerStatus, taxYear: activeYear,
+    customShortTermRate: (customRules?.short ?? 0) / 100,
+    customLongTermRate: (customRules?.long ?? 0) / 100,
+    customLongTermDays: customRules?.days ?? 365,
+  }), [posted, jurisdiction, filerStatus, activeYear, customRules]);
   const postedYear = yearRecords.filter(t => t.status === "posted");
   const awaitingReview = yearRecords.length - postedYear.length;
   const buys = postedYear.filter(t => t.action === "BUY").length;
@@ -58,13 +85,16 @@ export function PortfolioTaxReturns({ transactions, isLoading = false }: Props) 
   return <section className="space-y-5 rounded-2xl border p-4 sm:p-6" style={cardStyle}>
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div className="flex items-start gap-3"><div className="flex size-10 shrink-0 items-center justify-center rounded-xl" style={{ background: "var(--accent-10)" }}><Calculator size={19} style={{ color: "var(--color-accent)" }} /></div><div><h2 className="text-lg font-semibold tracking-tight">Tax calculations & returns</h2><p className="mt-1 text-xs" style={subtle}>Automatically calculated from your posted ledger transactions.</p></div></div>
-      <button type="button" onClick={exportReturn} disabled={isLoading || postedYear.length === 0} className="inline-flex items-center gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40" style={{ background: "var(--color-accent)" }}><Download size={14} /> Export tax workpaper</button>
+      <button type="button" onClick={exportReturn} disabled={isLoading || postedYear.length === 0 || (jurisdiction === "CUSTOM" && !customRules)} className="inline-flex items-center gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40" style={{ background: "var(--color-accent)" }}><Download size={14} /> Export tax workpaper</button>
     </div>
     <div className="grid gap-3 sm:grid-cols-3">
       <label className="text-xs font-medium" style={muted}>Tax year<select value={activeYear} onChange={e => setYear(e.target.value)} className="mt-1.5 w-full rounded-xl border bg-transparent px-3 py-2.5 text-sm" style={{ borderColor: "var(--hairline)", color: "var(--color-text)" }}>{(years.length ? years : [activeYear]).map(y => <option key={y} value={y}>{y}</option>)}</select></label>
       <label className="text-xs font-medium" style={muted}>Market / tax rules<select value={jurisdiction} onChange={e => setJurisdiction(e.target.value as Jurisdiction)} className="mt-1.5 w-full rounded-xl border bg-transparent px-3 py-2.5 text-sm" style={{ borderColor: "var(--hairline)", color: "var(--color-text)" }}><option value="PSX">Pakistan · PSX</option><option value="NSE">India · NSE</option><option value="CUSTOM">Custom rules</option></select></label>
       <label className="text-xs font-medium" style={muted}>Currency<select value={activeCurrency} onChange={e => setCurrency(e.target.value)} className="mt-1.5 w-full rounded-xl border bg-transparent px-3 py-2.5 text-sm" style={{ borderColor: "var(--hairline)", color: "var(--color-text)" }}>{(currencies.length ? currencies : [activeCurrency]).map(c => <option key={c} value={c}>{c}</option>)}</select></label>
     </div>
+    {jurisdiction === "CUSTOM" && <div className="rounded-xl border p-3 text-xs" style={{ borderColor: "var(--hairline)", ...muted }}>
+      {customRulesLoading ? "Loading saved custom tax rules…" : customRules ? `Using saved custom rates: short-term ${customRules.short}%, long-term ${customRules.long}%, threshold ${customRules.days} days.` : <>No custom rates are saved yet. <Link to="/app/tax" className="font-semibold underline" style={{ color: "var(--color-accent)" }}>Configure tax rules</Link> before using this estimate.</>}
+    </div>}
     {jurisdiction === "PSX" && <div className="flex flex-wrap items-center gap-3 text-xs" style={muted}><span>Filer status</span><div className="flex rounded-lg border p-0.5" style={{ borderColor: "var(--hairline)" }}>{(["Filer", "Non-Filer"] as const).map(status => <button key={status} type="button" onClick={() => setFilerStatus(status)} className="rounded-md px-3 py-1.5 font-semibold" style={{ background: filerStatus === status ? "var(--sidebar-accent)" : "transparent", color: filerStatus === status ? "var(--color-text)" : "var(--ink-3)" }}>{status}</button>)}</div></div>}
     <div className="rounded-xl border p-3" style={{ borderColor: "var(--hairline)", background: "var(--color-login-bg)" }}>
       <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-sm font-semibold">Ledger status</p><span className="text-xs" style={subtle}>{isLoading ? "Syncing…" : `${yearRecords.length} records · ${activeYear} · ${activeCurrency}`}</span></div>
@@ -78,7 +108,7 @@ export function PortfolioTaxReturns({ transactions, isLoading = false }: Props) 
         { label: "Realized gains", value: formatMoney(tax.totalGain, activeCurrency), note: "FIFO-matched disposals" },
         { label: "Short-term gains", value: formatMoney(tax.shortTermGain, activeCurrency), note: "Below holding threshold" },
         { label: "Long-term gains", value: formatMoney(tax.longTermGain, activeCurrency), note: "At / above holding threshold" },
-        { label: "Estimated CGT", value: jurisdiction === "CUSTOM" ? "Set custom rules" : formatMoney(tax.estimatedTaxDue, activeCurrency), note: "Indicative calculation" },
+        { label: "Estimated CGT", value: jurisdiction === "CUSTOM" && !customRules ? "Configure rules" : formatMoney(tax.estimatedTaxDue, activeCurrency), note: "Indicative calculation" },
       ].map(item => <div key={item.label} className="rounded-xl border p-4" style={cardStyle}><p className="text-xs" style={subtle}>{item.label}</p><p className="tnum mt-2 text-xl font-semibold">{item.value}</p><p className="mt-1 text-[11px]" style={subtle}>{item.note}</p></div>)}
     </div>
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

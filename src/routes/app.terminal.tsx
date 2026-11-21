@@ -106,6 +106,7 @@ function InvestmentTerminal() {
   const [backtestLoading, setBacktestLoading] = useState(false);
   const [backtestError, setBacktestError] = useState("");
   const [taxYear, setTaxYear] = useState("");
+  const [taxYearManuallySelected, setTaxYearManuallySelected] = useState(false);
   const [taxCurrency, setTaxCurrency] = useState("PKR");
   const [portfolioCurrency, setPortfolioCurrency] = useState("PKR");
   const [customTaxRules, setCustomTaxRules] = useState<{ short: number; long: number; days: number } | null>(null);
@@ -134,8 +135,8 @@ function InvestmentTerminal() {
   const activeTaxCurrency = taxCurrencyOptions.includes(taxCurrency) ? taxCurrency : taxJurisdiction === "NSE" && taxCurrencyOptions.includes("INR") ? "INR" : taxCurrencyOptions.includes("PKR") ? "PKR" : taxCurrencyOptions[0] ?? taxCurrency;
   const taxYearOptions = [...new Set(transactions.map(t => t.trade_date.slice(0, 4)).filter(y => /^\d{4}$/.test(y)))].sort((a,b) => b.localeCompare(a));
   useEffect(() => {
-    if (!taxYear && !isLoading) setTaxYear(taxYearOptions[0] ?? String(new Date().getFullYear()));
-  }, [taxYear, taxYearOptions, isLoading]);
+    if (!taxYearManuallySelected && !isLoading) setTaxYear(taxYearOptions[0] ?? String(new Date().getFullYear()));
+  }, [taxYearManuallySelected, taxYearOptions, isLoading]);
   const taxYearRecords = transactions.filter(t => t.trade_date.startsWith(taxYear) && (t.currency ?? (t.exchange === "PSX" ? "PKR" : t.exchange === "NSE" ? "INR" : "USD")) === activeTaxCurrency);
   const taxPostedRecords = taxYearRecords.filter(t => t.status === "posted");
   const taxReviewRecords = taxYearRecords.filter(t => t.status !== "posted");
@@ -345,8 +346,8 @@ function InvestmentTerminal() {
         <div className="mb-4 flex items-center gap-2"><Calculator size={18} style={{color:"var(--color-accent)"}}/><div><h2 className="font-semibold">Tax return preparation pack</h2><p className="text-xs" style={subtle}>Reproducible realized-gain workpapers from posted broker transactions.</p></div></div>
         {taxJurisdiction === "CUSTOM" && <div className="mb-4 rounded-xl border p-3 text-sm" style={{borderColor:"var(--hairline)",...muted}}>{customTaxLoading ? "Loading saved custom tax rules…" : customTaxRules ? `Using saved custom rates: short-term ${customTaxRules.short}%, long-term ${customTaxRules.long}%, long-term threshold ${customTaxRules.days} days.` : <>No saved custom rates found. <Link to="/app/tax" className="font-semibold underline" style={{color:"var(--color-accent)"}}>Configure tax rules in Tax Center</Link> before relying on this estimate.</>}</div>}
         <div className="grid gap-3 sm:grid-cols-3">
-          <label className="text-xs" style={muted}>Tax year<select value={taxYear} onChange={e=>setTaxYear(e.target.value)} className="mt-1.5 w-full rounded-xl border bg-transparent px-3 py-2.5 text-sm" style={{borderColor:"var(--hairline)",color:"var(--color-text)"}}>{(taxYearOptions.length ? taxYearOptions : [String(new Date().getFullYear())]).map(y=><option key={y} value={y}>{y}</option>)}</select></label>
-          <label className="text-xs" style={muted}>Jurisdiction<select value={taxJurisdiction} onChange={e=>setTaxJurisdiction(e.target.value as typeof taxJurisdiction)} className="mt-1.5 w-full rounded-xl border bg-transparent px-3 py-2.5 text-sm" style={{borderColor:"var(--hairline)",color:"var(--color-text)"}}><option value="PSX">Pakistan · PSX</option><option value="NSE">India · NSE</option><option value="CUSTOM">Custom rules</option></select></label>
+          <label className="text-xs" style={muted}>Tax year<select value={taxYear} onChange={e=>{setTaxYearManuallySelected(true);setTaxYear(e.target.value);}} className="mt-1.5 w-full rounded-xl border bg-transparent px-3 py-2.5 text-sm" style={{borderColor:"var(--hairline)",color:"var(--color-text)"}}>{(taxYearOptions.length ? taxYearOptions : [String(new Date().getFullYear())]).map(y=><option key={y} value={y}>{y}</option>)}</select></label>
+          <label className="text-xs" style={muted}>Jurisdiction<select value={taxJurisdiction} onChange={e=>{const next=e.target.value as typeof taxJurisdiction;setTaxJurisdiction(next);if(next==="PSX"&&taxCurrencyOptions.includes("PKR"))setTaxCurrency("PKR");if(next==="NSE"&&taxCurrencyOptions.includes("INR"))setTaxCurrency("INR");}} className="mt-1.5 w-full rounded-xl border bg-transparent px-3 py-2.5 text-sm" style={{borderColor:"var(--hairline)",color:"var(--color-text)"}}><option value="PSX">Pakistan · PSX</option><option value="NSE">India · NSE</option><option value="CUSTOM">Custom rules</option></select></label>
           <label className="text-xs" style={muted}>Transaction currency<select value={activeTaxCurrency} onChange={e=>setTaxCurrency(e.target.value)} className="mt-1.5 w-full rounded-xl border bg-transparent px-3 py-2.5 text-sm" style={{borderColor:"var(--hairline)",color:"var(--color-text)"}}>{[...new Set(posted.map(t=>t.currency ?? (t.exchange==="PSX"?"PKR":t.exchange==="NSE"?"INR":"USD")))].map(c=><option key={c}>{c}</option>)}</select></label>
         </div>
         {taxJurisdiction !== "CUSTOM" && <p className="mt-3 text-xs" style={subtle}>The built-in PSX/NSE schedules are reference calculations, not a guarantee of the law applicable to every tax year. Verify the selected year’s rules before filing.</p>}

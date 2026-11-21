@@ -42,6 +42,7 @@ import {
 } from "@/lib/financial-intelligence-hooks";
 import { PortfolioRiskSnapshot } from "@/components/portfolio/PortfolioRiskSnapshot";
 import { PortfolioAnalyticsLab } from "@/components/portfolio/PortfolioAnalyticsLab";
+import { PortfolioTaxReturns } from "@/components/portfolio/PortfolioTaxReturns";
 import { useLedgerContext } from "@/lib/use-ledger-context";
 import { currencyForExchange } from "@/lib/market-currency";
 import { FinancialHealthScore } from "@/components/intelligence/FinancialHealthScore";
@@ -434,6 +435,8 @@ function MissionControl() {
 
       {/* AVMIRS-inspired, ledger-derived analytics suite */}
       <PortfolioAnalyticsLab transactions={transactions} currency={currency} />
+
+      <PortfolioTaxReturns transactions={transactions} isLoading={txLoading} />
 
       <section className="grid gap-4 lg:grid-cols-2" aria-label="Ledger analytics">
         <div className="rounded-2xl p-5" style={{ background: "var(--surface)", border: "1px solid var(--hairline)" }}>

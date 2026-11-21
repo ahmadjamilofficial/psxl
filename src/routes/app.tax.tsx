@@ -10,7 +10,7 @@ import {
   Sparkles,
   TrendingDown,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Btn, Panel, reveal, StatusPill } from "@/components/kit";
@@ -19,6 +19,7 @@ import { useTransactions } from "@/lib/data-hooks";
 import { computeTax, suggestHarvesting, type Jurisdiction } from "@/lib/tax";
 import { useLedgerContext } from "@/lib/use-ledger-context";
 import { currencyForExchange } from "@/lib/market-currency";
+import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/app/tax")({
   component: TaxCenter,
@@ -35,10 +36,96 @@ function TaxCenter() {
   const [customShortTermRate, setCustomShortTermRate] = useState("");
   const [customLongTermRate, setCustomLongTermRate] = useState("");
   const [customLongTermDays, setCustomLongTermDays] = useState("365");
+  const [customTaxProfileId, setCustomTaxProfileId] = useState<string | null>(null);
+  const [customRatesLoading, setCustomRatesLoading] = useState(false);
+  const [savingCustomRates, setSavingCustomRates] = useState(false);
+  const [customRatesMessage, setCustomRatesMessage] = useState<string | null>(null);
   const [aiExplanation, setAiExplanation] = useState<string | null>(null);
   const [loadingAI, setLoadingAI] = useState(false);
 
   const { data: transactions = [] } = useTransactions(profile?.org_id);
+
+  useEffect(() => {
+    if (!profile?.org_id) return;
+    let cancelled = false;
+    setCustomRatesLoading(true);
+    void (async () => {
+      const { data, error } = await supabase
+        .from("tax_profiles")
+        .select("id, cgt_rules")
+        .eq("org_id", profile.org_id)
+        .eq("jurisdiction", "CUSTOM")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (cancelled) return;
+      if (error) {
+        setCustomRatesMessage("Could not load saved custom tax rules.");
+      } else if (data) {
+        const rules = (data.cgt_rules ?? {}) as Record<string, unknown>;
+        setCustomTaxProfileId(data.id);
+        if (rules.short_term_rate_percent != null) setCustomShortTermRate(String(rules.short_term_rate_percent));
+        if (rules.long_term_rate_percent != null) setCustomLongTermRate(String(rules.long_term_rate_percent));
+        if (rules.long_term_days != null) setCustomLongTermDays(String(rules.long_term_days));
+        setCustomRatesMessage("Saved custom tax rules loaded.");
+      }
+      setCustomRatesLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [profile?.org_id]);
+
+  async function saveCustomTaxRules() {
+    if (!profile?.org_id) return;
+    const shortRate = Number(customShortTermRate);
+    const longRate = Number(customLongTermRate);
+    const longDays = Number(customLongTermDays);
+    if (
+      customShortTermRate.trim() === "" ||
+      customLongTermRate.trim() === "" ||
+      !Number.isFinite(shortRate) || shortRate < 0 || shortRate > 100 ||
+      !Number.isFinite(longRate) || longRate < 0 || longRate > 100 ||
+      !Number.isInteger(longDays) || longDays < 1 || longDays > 3650
+    ) {
+      setCustomRatesMessage("Enter valid CGT rates from 0–100% and a holding period from 1–3650 days.");
+      return;
+    }
+
+    setSavingCustomRates(true);
+    setCustomRatesMessage(null);
+    const cgtRules = {
+      short_term_rate_percent: shortRate,
+      long_term_rate_percent: longRate,
+      long_term_days: longDays,
+    };
+    try {
+      if (customTaxProfileId) {
+        const { error } = await supabase
+          .from("tax_profiles")
+          .update({ cgt_rules: cgtRules })
+          .eq("id", customTaxProfileId)
+          .eq("org_id", profile.org_id);
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabase
+          .from("tax_profiles")
+          .insert({
+            org_id: profile.org_id,
+            jurisdiction: "CUSTOM",
+            filer_status: filerStatus,
+            cgt_rules: cgtRules,
+          })
+          .select("id")
+          .single();
+        if (error) throw error;
+        setCustomTaxProfileId(data.id);
+      }
+      setCustomRatesMessage("Custom tax rules saved to your organisation.");
+    } catch (error) {
+      setCustomRatesMessage(error instanceof Error ? error.message : "Could not save custom tax rules.");
+    } finally {
+      setSavingCustomRates(false);
+    }
+  }
 
   // Tax computations must never add gains from different currencies together.
   const activeJurisdiction = jurisdiction ?? detectedJ;
@@ -180,6 +267,16 @@ function TaxCenter() {
                 Long-term after (days)
                 <input type="number" min="1" max="3650" step="1" value={customLongTermDays} onChange={(e) => setCustomLongTermDays(e.target.value)} className="mt-1 w-full rounded-[10px] border bg-surface px-3 py-2.5 text-sm" style={{ borderColor: "var(--hairline)" }} />
               </label>
+              <div className="flex flex-wrap items-center gap-3 sm:col-span-3">
+                <Btn onClick={saveCustomTaxRules} disabled={savingCustomRates || customRatesLoading}>
+                  {savingCustomRates ? "Saving rules…" : customRatesLoading ? "Loading saved rules…" : "Save custom tax rules"}
+                </Btn>
+                {customRatesMessage && (
+                  <p className="text-xs" role="status" style={{ color: customRatesMessage.includes("Could not") || customRatesMessage.includes("Enter valid") ? "var(--bad)" : "var(--ink-2)" }}>
+                    {customRatesMessage}
+                  </p>
+                )}
+              </div>
             </div>
           )}
           <div className="flex items-end ml-auto">

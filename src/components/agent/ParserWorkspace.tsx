@@ -875,10 +875,6 @@ function Chat({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    if (status === "ready") textareaRef.current?.focus();
-  }, [status]);
-
   // Restore the unsent draft after reload so typed text survives navigation.
   useEffect(() => {
     const ta = textareaRef.current;
@@ -1168,7 +1164,6 @@ function Chat({
             <AttachedFileStrip />
             <PromptInputTextarea
               ref={textareaRef}
-              autoFocus
               placeholder="Ask PSXL a question about your data…"
               className="max-h-[200px] min-h-[56px] px-5 pt-4 text-base leading-6 placeholder:text-[color:var(--ink-3)]"
               onChange={(e) => {

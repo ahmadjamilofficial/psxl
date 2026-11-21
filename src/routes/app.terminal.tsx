@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   Activity, ArrowDownRight, ArrowUpRight, BarChart3, BrainCircuit, BriefcaseBusiness,
@@ -12,6 +12,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useTransactions } from "@/lib/data-hooks";
 import { fetchMarketPrices, type MarketPrice } from "@/lib/market-data";
 import { computeTax } from "@/lib/tax";
+import { supabase } from "@/lib/supabase";
 import type { Transaction } from "@/lib/demo-data";
 
 export const Route = createFileRoute("/app/terminal")({ component: InvestmentTerminal });
@@ -105,10 +106,15 @@ function InvestmentTerminal() {
   const [backtestError, setBacktestError] = useState("");
   const [taxYear, setTaxYear] = useState(String(new Date().getFullYear()));
   const [taxCurrency, setTaxCurrency] = useState("PKR");
+  const [portfolioCurrency, setPortfolioCurrency] = useState("PKR");
+  const [customTaxRules, setCustomTaxRules] = useState<{ short: number; long: number; days: number } | null>(null);
+  const [customTaxLoading, setCustomTaxLoading] = useState(false);
   const [taxJurisdiction, setTaxJurisdiction] = useState<"PSX" | "NSE" | "CUSTOM">("PSX");
 
   const posted = useMemo(() => transactions.filter(t => t.status === "posted"), [transactions]);
   const positions = useMemo(() => buildPositions(posted), [posted]);
+  const activePortfolioCurrency = positions.some(p => p.currency === portfolioCurrency) ? portfolioCurrency : positions[0]?.currency ?? "PKR";
+  const portfolioPositions = positions.filter(p => p.currency === activePortfolioCurrency);
   const quoteTargets = useMemo(() => [
     ...positions.map(p => ({ ticker: p.ticker, exchange: p.exchange })),
     ...INDEXES.map(({ ticker, exchange }) => ({ ticker, exchange })),
@@ -117,15 +123,30 @@ function InvestmentTerminal() {
     const q = quotes[p.key];
     return q ? { ...p, marketPrice: q.price, marketValue: q.price * p.quantity, unrealized: (q.price - p.averageCost) * p.quantity, changePercent: q.changePercent } : p;
   }), [positions, quotes]);
-  const priced = enrichedPositions.filter(p => p.marketValue != null);
+  const priced = enrichedPositions.filter(p => p.currency === activePortfolioCurrency && p.marketValue != null);
   const totalMarketValue = priced.reduce((s,p) => s + (p.marketValue ?? 0), 0);
   const totalCost = priced.reduce((s,p) => s + p.costBasis, 0);
   const unrealized = priced.reduce((s,p) => s + (p.unrealized ?? 0), 0);
-  const pricedCoverage = positions.length ? priced.length / positions.length : 0;
+  const pricedCoverage = portfolioPositions.length ? priced.length / portfolioPositions.length : 0;
   const concentration = totalMarketValue > 0 ? Math.max(...priced.map(p => (p.marketValue ?? 0) / totalMarketValue * 100)) : null;
   const hhi = totalMarketValue > 0 ? priced.reduce((s,p) => s + Math.pow((p.marketValue ?? 0) / totalMarketValue, 2), 0) : null;
   const taxTransactions = posted.filter(t => (t.currency ?? (t.exchange === "PSX" ? "PKR" : t.exchange === "NSE" ? "INR" : "USD")) === taxCurrency);
-  const tax = useMemo(() => computeTax(taxTransactions, { jurisdiction: taxJurisdiction, filerStatus: "Filer", taxYear }), [taxTransactions, taxJurisdiction, taxYear]);
+  useEffect(() => {
+    if (!profile?.org_id) return;
+    let cancelled = false;
+    setCustomTaxLoading(true);
+    void supabase.from("tax_profiles").select("cgt_rules").eq("org_id", profile.org_id).eq("jurisdiction", "CUSTOM").order("created_at", { ascending: false }).limit(1).maybeSingle().then(({ data }) => {
+      if (cancelled) return;
+      const rules = (data?.cgt_rules ?? {}) as Record<string, unknown>;
+      const short = Number(rules.short_term_rate_percent);
+      const long = Number(rules.long_term_rate_percent);
+      const days = Number(rules.long_term_days);
+      setCustomTaxRules(Number.isFinite(short) && Number.isFinite(long) && Number.isInteger(days) && short >= 0 && short <= 100 && long >= 0 && long <= 100 && days >= 1 ? { short, long, days } : null);
+      setCustomTaxLoading(false);
+    }).catch(() => { if (!cancelled) { setCustomTaxRules(null); setCustomTaxLoading(false); } });
+    return () => { cancelled = true; };
+  }, [profile?.org_id]);
+  const tax = useMemo(() => computeTax(taxTransactions, { jurisdiction: taxJurisdiction, filerStatus: "Filer", taxYear, customShortTermRate: (customTaxRules?.short ?? 0) / 100, customLongTermRate: (customTaxRules?.long ?? 0) / 100, customLongTermDays: customTaxRules?.days ?? 365 }), [taxTransactions, taxJurisdiction, taxYear, customTaxRules]);
 
   async function refreshQuotes() {
     if (!quoteTargets.length) return;
@@ -244,18 +265,19 @@ function InvestmentTerminal() {
     {quoteError && <div className="rounded-xl border px-4 py-3 text-sm" style={{ borderColor: "var(--warn)", color: "var(--color-text)", background: "var(--color-sheet)" }}>{quoteError}</div>}
 
     {tab === "portfolio" && <>
+      <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-xs" style={muted}>Portfolio metrics are calculated within one currency; no unsupported FX conversion is applied.</p><label className="text-xs" style={muted}>Reporting currency <select value={activePortfolioCurrency} onChange={e=>setPortfolioCurrency(e.target.value)} className="ml-2 rounded-lg border bg-transparent px-2 py-1.5 text-xs" style={{borderColor:"var(--hairline)",color:"var(--color-text)"}}>{[...new Set(positions.map(p=>p.currency))].map(v=><option key={v}>{v}</option>)}</select></label></div>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Metric label="Market value" value={priced.length ? money(totalMarketValue, priced[0]!.currency) : "Unavailable"} detail={priced.length ? `${priced.length} of ${positions.length} positions priced` : "Waiting for verified market quotes"} icon={Wallet}/>
-        <Metric label="Unrealized P&L" value={priced.length ? money(unrealized, priced[0]!.currency) : "—"} detail="Market price less weighted-average cost basis" icon={unrealized >= 0 ? ArrowUpRight : ArrowDownRight} tone={unrealized >= 0 ? "good" : "bad"}/>
-        <Metric label="Invested cost" value={positions.length ? money(positions.reduce((s,p)=>s+p.costBasis,0), positions[0]!.currency) : "—"} detail="Open positions, posted transactions only" icon={BriefcaseBusiness}/>
-        <Metric label="Largest position" value={concentration == null ? "—" : `${concentration.toFixed(1)}%`} detail={hhi == null ? "Requires priced positions" : `Concentration index ${(hhi*10000).toFixed(0)} / 10,000`} icon={Target} tone={concentration != null && concentration > 35 ? "bad" : "normal"}/>
+        <Metric label="Market value" value={priced.length ? money(totalMarketValue, activePortfolioCurrency) : "Unavailable"} detail={priced.length ? `${priced.length} of ${portfolioPositions.length} positions priced · ${activePortfolioCurrency}` : "Waiting for verified market quotes"} icon={Wallet}/>
+        <Metric label="Unrealized P&L" value={priced.length ? money(unrealized, activePortfolioCurrency) : "—"} detail="Market price less weighted-average cost basis" icon={unrealized >= 0 ? ArrowUpRight : ArrowDownRight} tone={unrealized >= 0 ? "good" : "bad"}/>
+        <Metric label="Invested cost" value={portfolioPositions.length ? money(portfolioPositions.reduce((s,p)=>s+p.costBasis,0), activePortfolioCurrency) : "—"} detail="Open positions, posted transactions only" icon={BriefcaseBusiness}/>
+        <Metric label="Largest position" value={concentration == null ? "—" : `${concentration.toFixed(1)}%`} detail={hhi == null ? "Requires priced positions" : `Concentration index ${(hhi*10000).toFixed(0)} / 10,000 · ${activePortfolioCurrency}`} icon={Target} tone={concentration != null && concentration > 35 ? "bad" : "normal"}/>
       </div>
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(280px,0.8fr)]">
         <section className={card} style={cardStyle}>
-          <div className="mb-4 flex items-center justify-between gap-3"><div><h2 className="font-semibold">Holdings & exposure</h2><p className="mt-1 text-xs" style={subtle}>Live valuation where a quote is available; otherwise no price is assumed.</p></div><span className="text-xs" style={muted}>{positions.length} positions</span></div>
-          {isLoading ? <p className="py-10 text-center text-sm" style={muted}>Loading your ledger…</p> : positions.length === 0 ? <div className="py-12 text-center"><BriefcaseBusiness className="mx-auto mb-3" style={subtle}/><p className="font-medium">Your portfolio starts with your ledger</p><p className="mt-1 text-sm" style={muted}>Import or add posted trades to unlock holdings, risk and quant research.</p></div> :
+          <div className="mb-4 flex items-center justify-between gap-3"><div><h2 className="font-semibold">Holdings & exposure</h2><p className="mt-1 text-xs" style={subtle}>Live valuation where a quote is available; otherwise no price is assumed.</p></div><span className="text-xs" style={muted}>{portfolioPositions.length} positions · {activePortfolioCurrency}</span></div>
+          {isLoading ? <p className="py-10 text-center text-sm" style={muted}>Loading your ledger…</p> : portfolioPositions.length === 0 ? <div className="py-12 text-center"><BriefcaseBusiness className="mx-auto mb-3" style={subtle}/><p className="font-medium">Your portfolio starts with your ledger</p><p className="mt-1 text-sm" style={muted}>Import or add posted trades to unlock holdings, risk and quant research.</p></div> :
             <div className="overflow-x-auto"><table className="w-full min-w-[650px] text-sm"><thead><tr className="text-left text-xs" style={subtle}><th className="pb-3 font-medium">Instrument</th><th className="pb-3 text-right font-medium">Quantity</th><th className="pb-3 text-right font-medium">Avg. cost</th><th className="pb-3 text-right font-medium">Last price</th><th className="pb-3 text-right font-medium">Market value</th><th className="pb-3 text-right font-medium">Unrealized</th></tr></thead><tbody>{enrichedPositions.map(p=><tr key={p.key} className="border-t" style={{ borderColor: "var(--hairline)" }}><td className="py-3"><div className="font-semibold">{p.ticker}</div><div className="text-xs" style={subtle}>{p.exchange}</div></td><td className="py-3 text-right tnum">{p.quantity.toLocaleString()}</td><td className="py-3 text-right tnum">{money(p.averageCost,p.currency)}</td><td className="py-3 text-right tnum">{p.marketPrice == null ? "—" : money(p.marketPrice,p.currency)}</td><td className="py-3 text-right tnum">{p.marketValue == null ? "—" : money(p.marketValue,p.currency)}</td><td className="py-3 text-right tnum" style={{ color: p.unrealized == null ? "var(--ink-3)" : p.unrealized >= 0 ? "var(--ok)" : "var(--bad)" }}>{p.unrealized == null ? "—" : money(p.unrealized,p.currency)}</td></tr>)}</tbody></table></div>}
-          {positions.length > 0 && pricedCoverage < 1 && <p className="mt-3 text-xs" style={subtle}>Quote coverage: `${Math.round(pricedCoverage*100)}%`. Unpriced positions are excluded from market value and concentration calculations.</p>}
+          {positions.length > 0 && pricedCoverage < 1 && <p className="mt-3 text-xs" style={subtle}>Quote coverage: `${Math.round((portfolioPositions.length ? priced.length / portfolioPositions.length : 0)*100)}%`. Unpriced positions are excluded from market value and concentration calculations.</p>}
         </section>
         <section className={card} style={cardStyle}>
           <div className="mb-4 flex items-center gap-2"><ShieldAlert size={17} style={{ color: "var(--color-accent)" }}/><h2 className="font-semibold">Portfolio risk snapshot</h2></div>

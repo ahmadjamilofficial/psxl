@@ -468,7 +468,13 @@ function Settings() {
           {tab === "tax-profiles" && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <Panel>
-                <p className="mb-4 text-sm font-semibold">Tax Profiles</p>
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold">Tax Profiles</p>
+                    <p className="mt-1 text-xs" style={{ color: "var(--ink-3)" }}>Set and save custom capital-gains rules for markets without a built-in tax profile.</p>
+                  </div>
+                  <Btn variant="secondary" onClick={() => navigate({ to: "/app/tax" })}>Configure tax rules</Btn>
+                </div>
                 <div className="space-y-3">
                   {[
                     {

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Activity, ArrowDownRight, ArrowUpRight, BarChart3, BrainCircuit, BriefcaseBusiness,
   Calculator, CandlestickChart, Download, FlaskConical, RefreshCw, ShieldAlert,
-  Sparkles, Target, TrendingUp, Wallet,
+  Target, TrendingUp, Wallet,
 } from "lucide-react";
 import {
   CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
@@ -125,7 +125,6 @@ function InvestmentTerminal() {
   }), [positions, quotes]);
   const priced = enrichedPositions.filter(p => p.currency === activePortfolioCurrency && p.marketValue != null);
   const totalMarketValue = priced.reduce((s,p) => s + (p.marketValue ?? 0), 0);
-  const totalCost = priced.reduce((s,p) => s + p.costBasis, 0);
   const unrealized = priced.reduce((s,p) => s + (p.unrealized ?? 0), 0);
   const pricedCoverage = portfolioPositions.length ? priced.length / portfolioPositions.length : 0;
   const concentration = totalMarketValue > 0 ? Math.max(...priced.map(p => (p.marketValue ?? 0) / totalMarketValue * 100)) : null;
@@ -277,7 +276,7 @@ function InvestmentTerminal() {
           <div className="mb-4 flex items-center justify-between gap-3"><div><h2 className="font-semibold">Holdings & exposure</h2><p className="mt-1 text-xs" style={subtle}>Live valuation where a quote is available; otherwise no price is assumed.</p></div><span className="text-xs" style={muted}>{portfolioPositions.length} positions · {activePortfolioCurrency}</span></div>
           {isLoading ? <p className="py-10 text-center text-sm" style={muted}>Loading your ledger…</p> : portfolioPositions.length === 0 ? <div className="py-12 text-center"><BriefcaseBusiness className="mx-auto mb-3" style={subtle}/><p className="font-medium">Your portfolio starts with your ledger</p><p className="mt-1 text-sm" style={muted}>Import or add posted trades to unlock holdings, risk and quant research.</p></div> :
             <div className="overflow-x-auto"><table className="w-full min-w-[650px] text-sm"><thead><tr className="text-left text-xs" style={subtle}><th className="pb-3 font-medium">Instrument</th><th className="pb-3 text-right font-medium">Quantity</th><th className="pb-3 text-right font-medium">Avg. cost</th><th className="pb-3 text-right font-medium">Last price</th><th className="pb-3 text-right font-medium">Market value</th><th className="pb-3 text-right font-medium">Unrealized</th></tr></thead><tbody>{enrichedPositions.map(p=><tr key={p.key} className="border-t" style={{ borderColor: "var(--hairline)" }}><td className="py-3"><div className="font-semibold">{p.ticker}</div><div className="text-xs" style={subtle}>{p.exchange}</div></td><td className="py-3 text-right tnum">{p.quantity.toLocaleString()}</td><td className="py-3 text-right tnum">{money(p.averageCost,p.currency)}</td><td className="py-3 text-right tnum">{p.marketPrice == null ? "—" : money(p.marketPrice,p.currency)}</td><td className="py-3 text-right tnum">{p.marketValue == null ? "—" : money(p.marketValue,p.currency)}</td><td className="py-3 text-right tnum" style={{ color: p.unrealized == null ? "var(--ink-3)" : p.unrealized >= 0 ? "var(--ok)" : "var(--bad)" }}>{p.unrealized == null ? "—" : money(p.unrealized,p.currency)}</td></tr>)}</tbody></table></div>}
-          {positions.length > 0 && pricedCoverage < 1 && <p className="mt-3 text-xs" style={subtle}>Quote coverage: `${Math.round((portfolioPositions.length ? priced.length / portfolioPositions.length : 0)*100)}%`. Unpriced positions are excluded from market value and concentration calculations.</p>}
+          {positions.length > 0 && pricedCoverage < 1 && <p className="mt-3 text-xs" style={subtle}>Quote coverage: {Math.round((portfolioPositions.length ? priced.length / portfolioPositions.length : 0)*100)}%. Unpriced positions are excluded from market value and concentration calculations.</p>}
         </section>
         <section className={card} style={cardStyle}>
           <div className="mb-4 flex items-center gap-2"><ShieldAlert size={17} style={{ color: "var(--color-accent)" }}/><h2 className="font-semibold">Portfolio risk snapshot</h2></div>
@@ -326,10 +325,11 @@ function InvestmentTerminal() {
     {tab === "tax" && <>
       <section className={card} style={cardStyle}>
         <div className="mb-4 flex items-center gap-2"><Calculator size={18} style={{color:"var(--color-accent)"}}/><div><h2 className="font-semibold">Tax return preparation pack</h2><p className="text-xs" style={subtle}>Reproducible realized-gain workpapers from posted broker transactions.</p></div></div>
+        {taxJurisdiction === "CUSTOM" && <div className="mb-4 rounded-xl border p-3 text-sm" style={{borderColor:"var(--hairline)",...muted}}>{customTaxLoading ? "Loading saved custom tax rules…" : customTaxRules ? `Using saved custom rates: short-term ${customTaxRules.short}%, long-term ${customTaxRules.long}%, long-term threshold ${customTaxRules.days} days.` : <>No saved custom rates found. <Link to="/app/tax" className="font-semibold underline" style={{color:"var(--color-accent)"}}>Configure tax rules in Tax Center</Link> before relying on this estimate.</>}</div>}
         <div className="grid gap-3 sm:grid-cols-3">
           <label className="text-xs" style={muted}>Tax year<input value={taxYear} onChange={e=>setTaxYear(e.target.value)} inputMode="numeric" maxLength={4} className="mt-1.5 w-full rounded-xl border bg-transparent px-3 py-2.5 text-sm" style={{borderColor:"var(--hairline)",color:"var(--color-text)"}}/></label>
           <label className="text-xs" style={muted}>Jurisdiction<select value={taxJurisdiction} onChange={e=>setTaxJurisdiction(e.target.value as typeof taxJurisdiction)} className="mt-1.5 w-full rounded-xl border bg-transparent px-3 py-2.5 text-sm" style={{borderColor:"var(--hairline)",color:"var(--color-text)"}}><option value="PSX">Pakistan · PSX</option><option value="NSE">India · NSE</option><option value="CUSTOM">Custom rules</option></select></label>
-          <label className="text-xs" style={muted}>Transaction currency<select value={taxCurrency} onChange={e=>setTaxCurrency(e.target.value)} className="mt-1.5 w-full rounded-xl border bg-transparent px-3 py-2.5 text-sm" style={{borderColor:"var(--hairline)",color:"var(--color-text)"}>{[...new Set(posted.map(t=>t.currency ?? (t.exchange==="PSX"?"PKR":t.exchange==="NSE"?"INR":"USD")))].map(c=><option key={c}>{c}</option>)}</select></label>
+          <label className="text-xs" style={muted}>Transaction currency<select value={taxCurrency} onChange={e=>setTaxCurrency(e.target.value)} className="mt-1.5 w-full rounded-xl border bg-transparent px-3 py-2.5 text-sm" style={{borderColor:"var(--hairline)",color:"var(--color-text)"}}>{[...new Set(posted.map(t=>t.currency ?? (t.exchange==="PSX"?"PKR":t.exchange==="NSE"?"INR":"USD")))].map(c=><option key={c}>{c}</option>)}</select></label>
         </div>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <Metric label="Realized gains" value={money(tax.totalGain,taxCurrency)} detail="FIFO matched disposals" icon={TrendingUp}/>

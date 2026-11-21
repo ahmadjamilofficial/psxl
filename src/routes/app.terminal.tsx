@@ -131,9 +131,9 @@ function InvestmentTerminal() {
   const pricedCoverage = portfolioPositions.length ? priced.length / portfolioPositions.length : 0;
   const concentration = totalMarketValue > 0 ? Math.max(...priced.map(p => (p.marketValue ?? 0) / totalMarketValue * 100)) : null;
   const hhi = totalMarketValue > 0 ? priced.reduce((s,p) => s + Math.pow((p.marketValue ?? 0) / totalMarketValue, 2), 0) : null;
-  const taxCurrencyOptions = [...new Set(transactions.map(t => t.currency ?? (t.exchange === "PSX" ? "PKR" : t.exchange === "NSE" ? "INR" : "USD")))].sort();
+  const taxCurrencyOptions = useMemo(() => [...new Set(transactions.map(t => t.currency ?? (t.exchange === "PSX" ? "PKR" : t.exchange === "NSE" ? "INR" : "USD")))].sort(), [transactions]);
   const activeTaxCurrency = taxCurrencyOptions.includes(taxCurrency) ? taxCurrency : taxJurisdiction === "NSE" && taxCurrencyOptions.includes("INR") ? "INR" : taxCurrencyOptions.includes("PKR") ? "PKR" : taxCurrencyOptions[0] ?? taxCurrency;
-  const taxYearOptions = [...new Set(transactions.map(t => t.trade_date.slice(0, 4)).filter(y => /^\d{4}$/.test(y)))].sort((a,b) => b.localeCompare(a));
+  const taxYearOptions = useMemo(() => [...new Set(transactions.map(t => t.trade_date.slice(0, 4)).filter(y => /^\d{4}$/.test(y)))].sort((a,b) => b.localeCompare(a)), [transactions]);
   useEffect(() => {
     if (!taxYearManuallySelected && !isLoading) setTaxYear(taxYearOptions[0] ?? String(new Date().getFullYear()));
   }, [taxYearManuallySelected, taxYearOptions, isLoading]);

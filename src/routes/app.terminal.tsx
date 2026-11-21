@@ -96,6 +96,7 @@ function InvestmentTerminal() {
   const [marketHistory, setMarketHistory] = useState<Array<{ date: string; close: number }>>([]);
   const [historyLabel, setHistoryLabel] = useState("KSE-100");
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [psxIndexSelected, setPsxIndexSelected] = useState(false);
   const [ticker, setTicker] = useState("OGDC");
   const [exchange, setExchange] = useState("PSX");
   const [fastWindow, setFastWindow] = useState(20);
@@ -104,7 +105,7 @@ function InvestmentTerminal() {
   const [backtest, setBacktest] = useState<{ rows: Array<{ date: string; strategy: number; benchmark: number }>; stats: { strategyReturn: number; benchmarkReturn: number; sharpe: number | null; maxDrawdown: number; trades: number; observations: number } } | null>(null);
   const [backtestLoading, setBacktestLoading] = useState(false);
   const [backtestError, setBacktestError] = useState("");
-  const [taxYear, setTaxYear] = useState(String(new Date().getFullYear()));
+  const [taxYear, setTaxYear] = useState("");
   const [taxCurrency, setTaxCurrency] = useState("PKR");
   const [portfolioCurrency, setPortfolioCurrency] = useState("PKR");
   const [customTaxRules, setCustomTaxRules] = useState<{ short: number; long: number; days: number } | null>(null);
@@ -117,7 +118,7 @@ function InvestmentTerminal() {
   const portfolioPositions = positions.filter(p => p.currency === activePortfolioCurrency);
   const quoteTargets = useMemo(() => [
     ...positions.map(p => ({ ticker: p.ticker, exchange: p.exchange })),
-    ...INDEXES.map(({ ticker, exchange }) => ({ ticker, exchange })),
+    ...INDEXES.filter(index => index.exchange !== "PSX").map(({ ticker, exchange }) => ({ ticker, exchange })),
   ], [positions]);
   const enrichedPositions = useMemo(() => positions.map(p => {
     const q = quotes[p.key];
@@ -129,7 +130,19 @@ function InvestmentTerminal() {
   const pricedCoverage = portfolioPositions.length ? priced.length / portfolioPositions.length : 0;
   const concentration = totalMarketValue > 0 ? Math.max(...priced.map(p => (p.marketValue ?? 0) / totalMarketValue * 100)) : null;
   const hhi = totalMarketValue > 0 ? priced.reduce((s,p) => s + Math.pow((p.marketValue ?? 0) / totalMarketValue, 2), 0) : null;
-  const taxTransactions = posted.filter(t => (t.currency ?? (t.exchange === "PSX" ? "PKR" : t.exchange === "NSE" ? "INR" : "USD")) === taxCurrency);
+  const taxCurrencyOptions = [...new Set(posted.map(t => t.currency ?? (t.exchange === "PSX" ? "PKR" : t.exchange === "NSE" ? "INR" : "USD")))].sort();
+  const activeTaxCurrency = taxCurrencyOptions.includes(taxCurrency) ? taxCurrency : taxJurisdiction === "NSE" && taxCurrencyOptions.includes("INR") ? "INR" : taxCurrencyOptions.includes("PKR") ? "PKR" : taxCurrencyOptions[0] ?? taxCurrency;
+  const taxYearOptions = [...new Set(posted.map(t => t.trade_date.slice(0, 4)).filter(y => /^\\d{4}$/.test(y)))].sort((a,b) => b.localeCompare(a));
+  useEffect(() => {
+    if (!taxYear && !isLoading) setTaxYear(taxYearOptions[0] ?? String(new Date().getFullYear()));
+  }, [taxYear, taxYearOptions, isLoading]);
+  const taxYearRecords = transactions.filter(t => t.trade_date.startsWith(taxYear) && (t.currency ?? (t.exchange === "PSX" ? "PKR" : t.exchange === "NSE" ? "INR" : "USD")) === activeTaxCurrency);
+  const taxPostedRecords = taxYearRecords.filter(t => t.status === "posted");
+  const taxReviewRecords = taxYearRecords.filter(t => t.status !== "posted");
+  const taxBuys = taxPostedRecords.filter(t => t.action === "BUY").length;
+  const taxSales = taxPostedRecords.filter(t => t.action === "SELL").length;
+  const taxDividends = taxPostedRecords.filter(t => t.action === "DIV").length;
+  const taxTransactions = posted.filter(t => (t.currency ?? (t.exchange === "PSX" ? "PKR" : t.exchange === "NSE" ? "INR" : "USD")) === activeTaxCurrency);
   useEffect(() => {
     if (!profile?.org_id) return;
     let cancelled = false;
@@ -161,11 +174,16 @@ function InvestmentTerminal() {
     } finally { setQuotesLoading(false); }
   }
 
-  useEffect(() => { if (!isLoading) void refreshQuotes(); }, [isLoading, quoteTargets.length]);
+  useEffect(() => { if (!isLoading) void refreshQuotes(); }, [isLoading, quoteTargets]);
 
   async function loadIndexHistory(index: typeof INDEXES[number]) {
     setHistoryLoading(true); setHistoryLabel(index.label); setMarketHistory([]);
     try {
+      setPsxIndexSelected(index.exchange === "PSX");
+      if (index.exchange === "PSX") {
+        setQuoteError("");
+        return;
+      }
       const params = new URLSearchParams({ symbol: index.ticker, exchange: index.exchange, range: "1y", interval: "1d" });
       const response = await fetch(`/api/market-data?${params.toString()}`);
       const payload = await response.json();
@@ -224,7 +242,7 @@ function InvestmentTerminal() {
   function exportTaxPack() {
     const rows: unknown[][] = [
       ["PSXL TAX WORKPAPER — NOT AN OFFICIAL TAX RETURN"],
-      ["Tax year", taxYear], ["Jurisdiction", taxJurisdiction], ["Currency", taxCurrency],
+      ["Tax year", taxYear], ["Jurisdiction", taxJurisdiction], ["Currency", activeTaxCurrency],
       ["Realized gain", tax.totalGain], ["Short-term gain", tax.shortTermGain], ["Custom rates configured", taxJurisdiction !== "CUSTOM" || !!customTaxRules],
       ["Long-term gain", tax.longTermGain], ["Estimated CGT", tax.estimatedTaxDue],
       ["Dividend withholding tax recorded", tax.dividendWHT], [],
@@ -292,7 +310,7 @@ function InvestmentTerminal() {
 
     {tab === "markets" && <>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{INDEXES.map(index=>{const q=quotes[`${index.exchange}:${index.ticker}`]; return <button key={index.ticker} onClick={()=>void loadIndexHistory(index)} className="rounded-2xl border p-4 text-left transition-colors hover:bg-surface-hover" style={cardStyle}><div className="text-xs font-medium" style={muted}>{index.label}</div><div className="mt-2 text-xl font-semibold tnum">{q ? q.price.toLocaleString(undefined,{maximumFractionDigits:2}) : "—"}</div><div className="mt-1 text-xs" style={{color:q ? q.changePercent>=0?"var(--ok)":"var(--bad)":"var(--ink-3)"}}>{q ? `${q.change>=0?"+":""}${q.change.toFixed(2)} · ${pct(q.changePercent)}` : "Quote unavailable"}</div><div className="mt-3 text-[10px]" style={subtle}>Click to inspect 1-year history</div></button>})}</div>
-      <section className={card} style={cardStyle}><div className="mb-4 flex flex-wrap items-center justify-between gap-2"><div><h2 className="font-semibold">{historyLabel} · 1 year</h2><p className="text-xs" style={subtle}>Daily closing observations · Yahoo Finance feed</p></div><span className="text-xs" style={muted}>{historyLoading ? "Loading…" : `${marketHistory.length} observations`}</span></div><div className="h-[300px] w-full">{marketHistory.length ? <ResponsiveContainer width="100%" height="100%"><LineChart data={marketHistory}><CartesianGrid stroke="var(--hairline)" strokeDasharray="3 3"/><XAxis dataKey="date" tick={{fontSize:11,fill:"var(--ink-3)"}} minTickGap={35}/><YAxis domain={["auto","auto"]} tick={{fontSize:11,fill:"var(--ink-3)"}} width={65}/><Tooltip contentStyle={{background:"var(--color-sheet)",border:"1px solid var(--hairline)",borderRadius:12,color:"var(--color-text)"}}/><Line dataKey="close" name="Close" type="monotone" dot={false} stroke="var(--chart-1)" strokeWidth={2}/></LineChart></ResponsiveContainer> : <div className="flex h-full items-center justify-center text-sm" style={subtle}>{historyLoading ? "Fetching index history…" : "Select an index above to load its historical series."}</div>}</div></section>
+      <section className={card} style={cardStyle}><div className="mb-4 flex flex-wrap items-center justify-between gap-2"><div><h2 className="font-semibold">{historyLabel} · 1 year</h2><p className="text-xs" style={subtle}>Daily closing observations · Yahoo Finance feed</p></div><span className="text-xs" style={muted}>{historyLoading ? "Loading…" : `${marketHistory.length} observations`}</span></div><div className="h-[300px] w-full">{marketHistory.length ? <ResponsiveContainer width="100%" height="100%"><LineChart data={marketHistory}><CartesianGrid stroke="var(--hairline)" strokeDasharray="3 3"/><XAxis dataKey="date" tick={{fontSize:11,fill:"var(--ink-3)"}} minTickGap={35}/><YAxis domain={["auto","auto"]} tick={{fontSize:11,fill:"var(--ink-3)"}} width={65}/><Tooltip contentStyle={{background:"var(--color-sheet)",border:"1px solid var(--hairline)",borderRadius:12,color:"var(--color-text)"}}/><Line dataKey="close" name="Close" type="monotone" dot={false} stroke="var(--chart-1)" strokeWidth={2}/></LineChart></ResponsiveContainer>  : <div className="flex h-full flex-col items-center justify-center gap-2 text-sm" style={subtle}>{historyLoading ? "Fetching index history…" : psxIndexSelected ? <>The PSX index feed is not available through the configured historical-data provider. <a className="font-semibold underline" style={{color:"var(--color-accent)"}} href="https://dps.psx.com.pk/indices" target="_blank" rel="noreferrer">Open official PSX index data ↗</a></> : "Select an index above to load its historical series."}</div>}</div></section>
       <p className="text-xs" style={subtle}>Index availability and delay depend on the upstream market-data provider and symbol mapping. Market breadth, constituents and sector heatmaps are not shown until a verified exchange-wide feed is connected.</p>
     </>}
 
@@ -327,19 +345,20 @@ function InvestmentTerminal() {
         <div className="mb-4 flex items-center gap-2"><Calculator size={18} style={{color:"var(--color-accent)"}}/><div><h2 className="font-semibold">Tax return preparation pack</h2><p className="text-xs" style={subtle}>Reproducible realized-gain workpapers from posted broker transactions.</p></div></div>
         {taxJurisdiction === "CUSTOM" && <div className="mb-4 rounded-xl border p-3 text-sm" style={{borderColor:"var(--hairline)",...muted}}>{customTaxLoading ? "Loading saved custom tax rules…" : customTaxRules ? `Using saved custom rates: short-term ${customTaxRules.short}%, long-term ${customTaxRules.long}%, long-term threshold ${customTaxRules.days} days.` : <>No saved custom rates found. <Link to="/app/tax" className="font-semibold underline" style={{color:"var(--color-accent)"}}>Configure tax rules in Tax Center</Link> before relying on this estimate.</>}</div>}
         <div className="grid gap-3 sm:grid-cols-3">
-          <label className="text-xs" style={muted}>Tax year<input value={taxYear} onChange={e=>setTaxYear(e.target.value)} inputMode="numeric" maxLength={4} className="mt-1.5 w-full rounded-xl border bg-transparent px-3 py-2.5 text-sm" style={{borderColor:"var(--hairline)",color:"var(--color-text)"}}/></label>
+          <label className="text-xs" style={muted}>Tax year<select value={taxYear} onChange={e=>setTaxYear(e.target.value)} className="mt-1.5 w-full rounded-xl border bg-transparent px-3 py-2.5 text-sm" style={{borderColor:"var(--hairline)",color:"var(--color-text)"}}>{(taxYearOptions.length ? taxYearOptions : [String(new Date().getFullYear())]).map(y=><option key={y} value={y}>{y}</option>)}</select></label>
           <label className="text-xs" style={muted}>Jurisdiction<select value={taxJurisdiction} onChange={e=>setTaxJurisdiction(e.target.value as typeof taxJurisdiction)} className="mt-1.5 w-full rounded-xl border bg-transparent px-3 py-2.5 text-sm" style={{borderColor:"var(--hairline)",color:"var(--color-text)"}}><option value="PSX">Pakistan · PSX</option><option value="NSE">India · NSE</option><option value="CUSTOM">Custom rules</option></select></label>
-          <label className="text-xs" style={muted}>Transaction currency<select value={taxCurrency} onChange={e=>setTaxCurrency(e.target.value)} className="mt-1.5 w-full rounded-xl border bg-transparent px-3 py-2.5 text-sm" style={{borderColor:"var(--hairline)",color:"var(--color-text)"}}>{[...new Set(posted.map(t=>t.currency ?? (t.exchange==="PSX"?"PKR":t.exchange==="NSE"?"INR":"USD")))].map(c=><option key={c}>{c}</option>)}</select></label>
+          <label className="text-xs" style={muted}>Transaction currency<select value={activeTaxCurrency} onChange={e=>setTaxCurrency(e.target.value)} className="mt-1.5 w-full rounded-xl border bg-transparent px-3 py-2.5 text-sm" style={{borderColor:"var(--hairline)",color:"var(--color-text)"}}>{[...new Set(posted.map(t=>t.currency ?? (t.exchange==="PSX"?"PKR":t.exchange==="NSE"?"INR":"USD")))].map(c=><option key={c}>{c}</option>)}</select></label>
         </div>
         {taxJurisdiction !== "CUSTOM" && <p className="mt-3 text-xs" style={subtle}>The built-in PSX/NSE schedules are reference calculations, not a guarantee of the law applicable to every tax year. Verify the selected year’s rules before filing.</p>}
+        <div className="mt-4 rounded-xl border p-3" style={{borderColor:"var(--hairline)",background:"var(--color-sheet)"}}><div className="flex flex-wrap items-center justify-between gap-2"><p className="text-sm font-semibold">Automatic ledger calculation</p><span className="text-xs" style={subtle}>{isLoading ? "Syncing ledger…" : `${taxYearRecords.length} records in ${taxYear || "selected year"}`}</span></div><div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs" style={muted}><span>{taxPostedRecords.length} posted</span><span>{taxReviewRecords.length} awaiting review</span><span>{taxBuys} buys</span><span>{taxSales} sells</span><span>{taxDividends} dividends</span><span>{tax.lots.length} FIFO-matched lots</span></div>{taxReviewRecords.length > 0 && <p className="mt-2 text-xs" style={{color:"var(--warn)"}}>{taxReviewRecords.length} record(s) are excluded until approved in the Review Inbox. This prevents unverified trades from entering your tax workpaper.</p>}{taxPostedRecords.length > 0 && taxSales === 0 && <p className="mt-2 text-xs" style={subtle}>Your posted records are included automatically. There are no SELL transactions in this year and currency, so realized capital gains are correctly zero; open BUY positions are unrealized, not realized gains.</p>}{taxSales > 0 && tax.lots.length === 0 && <p className="mt-2 text-xs" style={{color:"var(--warn)"}}>Sales exist but no FIFO lots could be matched. Check that earlier BUY records are posted, use the same ticker and exchange, and use the same currency.</p>}</div>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <Metric label="Realized gains" value={money(tax.totalGain,taxCurrency)} detail="FIFO matched disposals" icon={TrendingUp}/>
-          <Metric label="Short-term gains" value={money(tax.shortTermGain,taxCurrency)} detail="Under configured holding threshold" icon={Activity}/>
-          <Metric label="Long-term gains" value={money(tax.longTermGain,taxCurrency)} detail="At or above configured threshold" icon={Wallet}/>
-          <Metric label="Estimated CGT" value={taxJurisdiction === "CUSTOM" && !customTaxRules ? "Not configured" : money(tax.estimatedTaxDue,taxCurrency)} detail="Rule-based estimate, not assessed liability" icon={Calculator}/>
+          <Metric label="Realized gains" value={money(tax.totalGain,activeTaxCurrency)} detail="FIFO matched disposals" icon={TrendingUp}/>
+          <Metric label="Short-term gains" value={money(tax.shortTermGain,activeTaxCurrency)} detail="Under configured holding threshold" icon={Activity}/>
+          <Metric label="Long-term gains" value={money(tax.longTermGain,activeTaxCurrency)} detail="At or above configured threshold" icon={Wallet}/>
+          <Metric label="Estimated CGT" value={taxJurisdiction === "CUSTOM" && !customTaxRules ? "Not configured" : money(tax.estimatedTaxDue,activeTaxCurrency)} detail="Rule-based estimate, not assessed liability" icon={Calculator}/>
         </div>
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl p-3" style={{background:"var(--sidebar-accent)"}}><div><p className="text-sm font-semibold">Export tax workpaper</p><p className="text-xs" style={muted}>Summary, tax assumptions and FIFO lot-level schedule in CSV.</p></div><button onClick={exportTaxPack} disabled={taxJurisdiction === "CUSTOM" && !customTaxRules} className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-white disabled:opacity-40" style={{background:"var(--color-accent)"}}><Download size={15}/> Download CSV</button></div>
-        <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[700px] text-sm"><thead><tr className="text-left text-xs" style={subtle}>{["Ticker","Buy date","Sell date","Qty","Holding days","Gain","Tax"].map(x=><th key={x} className="pb-2 font-medium">{x}</th>)}</tr></thead><tbody>{tax.lots.slice(0,100).map((lot,i)=><tr key={`${lot.ticker}-${lot.sellDate}-${i}`} className="border-t" style={{borderColor:"var(--hairline)"}}><td className="py-2.5 font-medium">{lot.ticker}</td><td>{lot.buyDate}</td><td>{lot.sellDate}</td><td className="text-right">{lot.quantity}</td><td className="text-right">{lot.holdingDays}</td><td className="text-right tnum">{money(lot.gain,taxCurrency)}</td><td className="text-right tnum">{money(lot.taxDue,taxCurrency)}</td></tr>)}</tbody></table>{tax.lots.length===0 && <p className="py-8 text-center text-sm" style={subtle}>No FIFO-matched sales were found for this tax year and currency.</p>}</div>
+        <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[700px] text-sm"><thead><tr className="text-left text-xs" style={subtle}>{["Ticker","Buy date","Sell date","Qty","Holding days","Gain","Tax"].map(x=><th key={x} className="pb-2 font-medium">{x}</th>)}</tr></thead><tbody>{tax.lots.slice(0,100).map((lot,i)=><tr key={`${lot.ticker}-${lot.sellDate}-${i}`} className="border-t" style={{borderColor:"var(--hairline)"}}><td className="py-2.5 font-medium">{lot.ticker}</td><td>{lot.buyDate}</td><td>{lot.sellDate}</td><td className="text-right">{lot.quantity}</td><td className="text-right">{lot.holdingDays}</td><td className="text-right tnum">{money(lot.gain,activeTaxCurrency)}</td><td className="text-right tnum">{money(lot.taxDue,activeTaxCurrency)}</td></tr>)}</tbody></table>{tax.lots.length===0 && <p className="py-8 text-center text-sm" style={subtle}>No FIFO-matched sales were found for this tax year and currency.</p>}</div>
       </section>
       <div className="rounded-xl border p-4 text-xs leading-5" style={{borderColor:"var(--hairline)",...muted}}><strong>Important:</strong> This is a tax-preparation workpaper, not an official tax return or filing confirmation. Confirm the applicable tax-year rules, filer status, allowable expenses, exemptions, dividends and withholding with a qualified tax professional before filing. PSXL does not submit anything to FBR or another tax authority.</div>
     </>}

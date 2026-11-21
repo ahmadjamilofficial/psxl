@@ -74,7 +74,7 @@ export function computeTax(txs: Transaction[], profile: TaxProfile): TaxComputat
     .filter((t) => t.status === "posted" && (t.action === "BUY" || t.action === "SELL"))
     .sort((a, b) =>
       a.trade_date.localeCompare(b.trade_date) ||
-      (a.action === "BUY" ? -1 : 1) ||
+      (a.action === b.action ? 0 : a.action === "BUY" ? -1 : 1) ||
       a.id.localeCompare(b.id),
     );
 

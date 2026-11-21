@@ -69,79 +69,78 @@ function nseCgtRate(holdingDays: number): number {
 // ── Core FIFO engine ──────────────────────────────────────────────────────────
 
 export function computeTax(txs: Transaction[], profile: TaxProfile): TaxComputation {
-  // Filter to the relevant tax year (calendar year for simplicity)
   const yearTxs = txs.filter((t) => t.status === "posted" && t.trade_date.startsWith(profile.taxYear));
+  const events = [...txs]
+    .filter((t) => t.status === "posted" && (t.action === "BUY" || t.action === "SELL"))
+    .sort((a, b) =>
+      a.trade_date.localeCompare(b.trade_date) ||
+      (a.action === "BUY" ? -1 : 1) ||
+      a.id.localeCompare(b.id),
+    );
 
-  // Build FIFO buy queues per ticker
+  // Replay the complete transaction history so earlier disposals consume their
+  // lots before a later tax-year sale is matched. A current-year-only replay
+  // overstates the remaining cost basis whenever the account sold previously.
   const buyQueues: Record<string, Array<{ date: string; qty: number; price: number }>> = {};
-
-  // Process ALL buy transactions in chronological order
-  const allBuys = [...txs]
-    .filter((t) => t.status === "posted" && t.action === "BUY")
-    .sort((a, b) => a.trade_date.localeCompare(b.trade_date));
-
-  for (const tx of allBuys) {
-    const marketKey = tx.exchange + ":" + tx.ticker;
-    if (!buyQueues[marketKey]) buyQueues[marketKey] = [];
-    buyQueues[marketKey]!.push({ date: tx.trade_date, qty: tx.quantity, price: tx.price });
-  }
-
-  // Match sells against buy lots using FIFO
   const lots: FifoLot[] = [];
-  const sellTxs = yearTxs
-    .filter((t) => t.status === "posted" && t.action === "SELL")
-    .sort((a, b) => a.trade_date.localeCompare(b.trade_date));
 
-  for (const sell of sellTxs) {
-    let remaining = sell.quantity;
-    const queue = buyQueues[sell.exchange + ":" + sell.ticker] ?? [];
+  for (const event of events) {
+    const marketKey = event.exchange + ":" + event.ticker;
+    if (event.action === "BUY") {
+      if (!buyQueues[marketKey]) buyQueues[marketKey] = [];
+      const unitCost = event.price + (event.quantity > 0 ? event.fees / event.quantity : 0);
+      buyQueues[marketKey]!.push({ date: event.trade_date, qty: event.quantity, price: unitCost });
+      continue;
+    }
+
+    let remaining = event.quantity;
+    const queue = buyQueues[marketKey] ?? [];
+    const isTaxYearDisposal = event.trade_date.startsWith(profile.taxYear);
+    const netSalePrice = event.price - (event.quantity > 0 ? event.fees / event.quantity : 0);
 
     while (remaining > 0 && queue.length > 0) {
       const lot = queue[0]!;
-      // A future purchase cannot fund an earlier disposal.
-      if (lot.date > sell.trade_date) break;
+      // Same-day purchases are processed before same-day disposals. Earlier
+      // sales cannot be funded by purchases dated in the future.
+      if (lot.date > event.trade_date) break;
       const matched = Math.min(remaining, lot.qty);
+      const holdingDays = Math.max(0, Math.floor(
+        (new Date(event.trade_date).getTime() - new Date(lot.date).getTime()) / (1000 * 60 * 60 * 24),
+      ));
 
-      const sellDate = new Date(sell.trade_date);
-      const buyDate = new Date(lot.date);
-      const holdingDays = Math.floor(
-        (sellDate.getTime() - buyDate.getTime()) / (1000 * 60 * 60 * 24),
-      );
+      if (isTaxYearDisposal) {
+        const gain = (netSalePrice - lot.price) * matched;
+        const longTermDays = profile.customLongTermDays ?? 365;
+        const isShortTerm = holdingDays < (profile.jurisdiction === "CUSTOM" ? longTermDays : 365);
+        const taxRate = profile.jurisdiction === "PSX"
+          ? psxCgtRate(holdingDays)
+          : profile.jurisdiction === "NSE"
+            ? nseCgtRate(holdingDays)
+            : Math.max(0, Math.min(1, (isShortTerm ? profile.customShortTermRate : profile.customLongTermRate) ?? 0));
 
-      const gain = (sell.price - lot.price) * matched;
-      const longTermDays = profile.customLongTermDays ?? 365;
-      const isShortTerm = holdingDays < (profile.jurisdiction === "CUSTOM" ? longTermDays : 365);
-      const taxRate = profile.jurisdiction === "PSX"
-        ? psxCgtRate(holdingDays)
-        : profile.jurisdiction === "NSE"
-          ? nseCgtRate(holdingDays)
-          : Math.max(0, Math.min(1, (isShortTerm ? profile.customShortTermRate : profile.customLongTermRate) ?? 0));
-
-      lots.push({
-        buyDate: lot.date,
-        sellDate: sell.trade_date,
-        ticker: sell.ticker,
-        exchange: sell.exchange,
-        quantity: matched,
-        costBasis: lot.price,
-        salePrice: sell.price,
-        holdingDays,
-        gain,
-        isShortTerm,
-        taxRate,
-        taxDue: Math.max(0, gain * taxRate),
-      });
+        lots.push({
+          buyDate: lot.date,
+          sellDate: event.trade_date,
+          ticker: event.ticker,
+          exchange: event.exchange,
+          quantity: matched,
+          costBasis: lot.price,
+          salePrice: netSalePrice,
+          holdingDays,
+          gain,
+          isShortTerm,
+          taxRate,
+          taxDue: Math.max(0, gain * taxRate),
+        });
+      }
 
       remaining -= matched;
       lot.qty -= matched;
-      if (lot.qty === 0) queue.shift();
+      if (lot.qty <= 1e-10) queue.shift();
     }
   }
 
-  // Aggregate dividend WHT
   const dividendWHT = yearTxs.filter((t) => t.action === "DIV").reduce((sum, t) => sum + t.wht, 0);
-
-  // Aggregate gains
   const shortTermGain = lots.filter((l) => l.isShortTerm).reduce((s, l) => s + l.gain, 0);
   const longTermGain = lots.filter((l) => !l.isShortTerm).reduce((s, l) => s + l.gain, 0);
   const shortTermTax = lots.filter((l) => l.isShortTerm).reduce((s, l) => s + l.taxDue, 0);
@@ -174,63 +173,50 @@ export interface HarvestSuggestion {
   rationale: string;
 }
 
-// Open positions with current prices (demo — in production these come from a market feed)
-const CURRENT_PRICES: Record<string, number> = {
-  OGDC: 108.0,
-  HBL: 148.5,
-  TCS: 3990.0,
-  INFY: 1480.0,
-  PPL: 74.0,
-  UBL: 182.0,
-  LUCK: 415.0,
-  ENGRO: 258.0,
-};
+// Current prices must be supplied by a verified market-data source. The tax
+// engine deliberately does not ship hard-coded or illustrative quotes.
+export function suggestHarvesting(
+  txs: Transaction[],
+  realizedGain: number,
+  currentPrices: Record<string, number> = {},
+): HarvestSuggestion[] {
+  const positions: Record<string, {
+    ticker: string; qty: number; avgCost: number; exchange: string; firstBuy: string;
+  }> = {};
 
-export function suggestHarvesting(txs: Transaction[], realizedGain: number): HarvestSuggestion[] {
-  // Build open positions (net buy qty)
-  const positions: Record<
-    string,
-    { qty: number; avgCost: number; exchange: string; firstBuy: string }
-  > = {};
-
-  for (const tx of txs.sort((a, b) => a.trade_date.localeCompare(b.trade_date))) {
-    if (!positions[tx.ticker]) {
-      positions[tx.ticker] = { qty: 0, avgCost: 0, exchange: tx.exchange, firstBuy: tx.trade_date };
-    }
-    const p = positions[tx.ticker]!;
+  for (const tx of [...txs].filter(t => t.status === "posted").sort((a, b) => a.trade_date.localeCompare(b.trade_date))) {
+    const key = tx.exchange + ":" + tx.ticker;
+    if (!positions[key]) positions[key] = { ticker: tx.ticker, qty: 0, avgCost: 0, exchange: tx.exchange, firstBuy: tx.trade_date };
+    const position = positions[key]!;
     if (tx.action === "BUY") {
-      const totalCost = p.avgCost * p.qty + tx.price * tx.quantity;
-      p.qty += tx.quantity;
-      p.avgCost = totalCost / p.qty;
-    } else if (tx.action === "SELL") {
-      p.qty -= tx.quantity;
+      const nextQty = position.qty + tx.quantity;
+      position.avgCost = nextQty > 0
+        ? (position.avgCost * position.qty + tx.price * tx.quantity + tx.fees) / nextQty
+        : 0;
+      position.qty = nextQty;
+    } else if (tx.action === "SELL" && position.qty > 0) {
+      const sold = Math.min(position.qty, tx.quantity);
+      position.qty -= sold;
     }
   }
 
   const suggestions: HarvestSuggestion[] = [];
-
-  for (const [ticker, pos] of Object.entries(positions)) {
-    if (pos.qty <= 0) continue;
-    const currentPrice = CURRENT_PRICES[ticker];
-    if (!currentPrice) continue;
-
-    const unrealizedLoss = (currentPrice - pos.avgCost) * pos.qty;
-    if (unrealizedLoss >= 0) continue; // only suggest losers
-
-    const potentialOffset = Math.min(Math.abs(unrealizedLoss), realizedGain);
-    const holdingDays = Math.floor(
-      (Date.now() - new Date(pos.firstBuy).getTime()) / (1000 * 60 * 60 * 24),
-    );
-
+  for (const position of Object.values(positions)) {
+    if (position.qty <= 0) continue;
+    const currentPrice = currentPrices[`${position.exchange}:${position.ticker}`] ?? currentPrices[position.ticker];
+    if (!Number.isFinite(currentPrice) || currentPrice == null || currentPrice <= 0) continue;
+    const unrealizedLoss = (currentPrice - position.avgCost) * position.qty;
+    if (unrealizedLoss >= 0) continue;
+    const potentialOffset = Math.min(Math.abs(unrealizedLoss), Math.max(0, realizedGain));
+    const holdingDays = Math.max(0, Math.floor((Date.now() - new Date(position.firstBuy).getTime()) / (1000 * 60 * 60 * 24)));
     suggestions.push({
-      ticker,
-      exchange: pos.exchange,
+      ticker: position.ticker,
+      exchange: position.exchange,
       unrealizedLoss,
       potentialOffset,
       holdingDays,
-      rationale: `Selling ${pos.qty} ${ticker} @ ${currentPrice} locks in a loss of ${Math.abs(unrealizedLoss).toLocaleString("en-PK", { maximumFractionDigits: 0 })} which could offset an equivalent portion of your ${realizedGain > 0 ? "realized gain" : "future gains"}.`,
+      rationale: `Selling ${position.qty} ${position.ticker} at the supplied verified price would realize an estimated loss of ${Math.abs(unrealizedLoss).toLocaleString("en-PK", { maximumFractionDigits: 0 })}. Confirm jurisdiction-specific loss-offset rules before acting.`,
     });
   }
-
   return suggestions.sort((a, b) => a.unrealizedLoss - b.unrealizedLoss);
 }

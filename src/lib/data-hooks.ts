@@ -9,7 +9,7 @@ import { currencyForExchange } from "./market-currency";
 // ── Transactions ──────────────────────────────────────────────────────────────
 
 export function useTransactions(orgId: string | undefined) {
-  return useQuery({
+  const query = useQuery({
     queryKey: ["transactions", orgId],
     enabled: !!orgId,
     queryFn: async () => {
@@ -41,6 +41,10 @@ export function useTransactions(orgId: string | undefined) {
     },
     staleTime: 0,
   });
+
+  // A disabled query (while auth/profile is still resolving) is not an empty
+  // ledger. Keep every consumer in its loading state until an org is known.
+  return { ...query, isLoading: !orgId || query.isLoading };
 }
 
 export interface TransactionInput {

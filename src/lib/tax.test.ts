@@ -364,3 +364,29 @@ describe("computeTax — global markets and custom tax profiles", () => {
     expect(result.estimatedTaxDue).toBeCloseTo(125);
   });
 });
+
+describe("computeTax — full-history FIFO and fee basis", () => {
+  it("consumes lots sold in earlier tax years before matching current-year disposals", () => {
+    const txs: Transaction[] = [
+      tx({ id: "buy-old", ticker: "ABC", action: "BUY", quantity: 10, price: 100, trade_date: "2024-01-01" }),
+      tx({ id: "sell-old", ticker: "ABC", action: "SELL", quantity: 10, price: 110, trade_date: "2024-06-01" }),
+      tx({ id: "buy-new", ticker: "ABC", action: "BUY", quantity: 10, price: 150, trade_date: "2024-07-01" }),
+      tx({ id: "sell-current", ticker: "ABC", action: "SELL", quantity: 10, price: 180, trade_date: "2025-01-01" }),
+    ];
+    const result = computeTax(txs, { ...BASE_PROFILE, jurisdiction: "CUSTOM", customShortTermRate: 0, customLongTermRate: 0 });
+    expect(result.lots).toHaveLength(1);
+    expect(result.lots[0]?.costBasis).toBe(150);
+    expect(result.lots[0]?.gain).toBe(300);
+  });
+
+  it("includes buy fees in unit cost and sale fees in net proceeds", () => {
+    const txs: Transaction[] = [
+      tx({ id: "buy-fee", ticker: "FEE", action: "BUY", quantity: 10, price: 100, fees: 10, trade_date: "2025-01-01" }),
+      tx({ id: "sell-fee", ticker: "FEE", action: "SELL", quantity: 10, price: 120, fees: 20, trade_date: "2025-06-01" }),
+    ];
+    const result = computeTax(txs, { ...BASE_PROFILE, jurisdiction: "CUSTOM", customShortTermRate: 0, customLongTermRate: 0 });
+    expect(result.lots[0]?.costBasis).toBe(101);
+    expect(result.lots[0]?.salePrice).toBe(118);
+    expect(result.lots[0]?.gain).toBe(170);
+  });
+});

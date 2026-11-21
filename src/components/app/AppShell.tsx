@@ -3,7 +3,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   BarChart3,
   BookOpen,
-  CandlestickChart,
   ChevronDown,
   CreditCard,
   GitFork,
@@ -62,7 +61,6 @@ const navGroups = [
     title: "Workspace",
     items: [
       { label: "Portfolio", icon: LayoutDashboard, to: "/app/overview" },
-      { label: "Investment Terminal", icon: CandlestickChart, to: "/app/terminal" },
       { label: "Ledger", icon: BookOpen, to: "/app/ledger" },
       { label: "Exceptions", icon: GitFork, to: "/app/reconciliation" },
       { label: "Data Sources", icon: Plug, to: "/app/sources" },

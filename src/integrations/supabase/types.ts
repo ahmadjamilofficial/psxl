@@ -2715,6 +2715,7 @@ export type Database = {
           created_at: string
           document_id: string | null
           exchange: string
+          currency: string
           fees: number
           id: string
           notes: string | null
@@ -2736,6 +2737,7 @@ export type Database = {
           created_at?: string
           document_id?: string | null
           exchange?: string
+          currency?: string
           fees?: number
           id?: string
           notes?: string | null
@@ -2807,11 +2809,7 @@ export type Database = {
             referencedColumns: ["org_id"]
           },
         ]
-      }
-    }
-    Views: {
-      ai_usage_today: {
-        Row: {
+      }: {
           credits_used_today: number | null
           org_id: string | null
           plan: string | null

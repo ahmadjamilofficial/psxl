@@ -53,9 +53,10 @@ export function PortfolioTaxReturns({ transactions, isLoading = false }: Props) 
     .filter(t => (t.currency ?? currencyForExchange(t.exchange)) === activeCurrency)
     .map(t => t.exchange.trim().toUpperCase())
     .filter(Boolean))], [transactions, activeCurrency]);
-  const suggestedJurisdiction: Jurisdiction | null = currencyExchanges.length > 0 && currencyExchanges.every(exchange => exchange === "PSX" || exchange === "KSE" || exchange === "KSE100")
+  const venueCountries = currencyExchanges.map(code => exchangeInfo(code)?.country);
+  const suggestedJurisdiction: Jurisdiction | null = venueCountries.length > 0 && venueCountries.every(country => country === "Pakistan")
     ? "PSX"
-    : currencyExchanges.length > 0 && currencyExchanges.every(exchange => exchange === "NSE" || exchange === "BSE" || exchange === "XNSE" || exchange === "XBOM")
+    : venueCountries.length > 0 && venueCountries.every(country => country === "India")
       ? "NSE"
       : null;
   useEffect(() => {
@@ -103,11 +104,11 @@ export function PortfolioTaxReturns({ transactions, isLoading = false }: Props) 
     </div>
     <div className="grid gap-3 sm:grid-cols-3">
       <label className="text-xs font-medium" style={muted}>Tax year<select value={activeYear} onChange={e => setYear(e.target.value)} className="mt-1.5 w-full rounded-xl border bg-transparent px-3 py-2.5 text-sm" style={{ borderColor: "var(--hairline)", color: "var(--color-text)" }}>{(years.length ? years : [activeYear]).map(y => <option key={y} value={y}>{y}</option>)}</select></label>
-      <label className="text-xs font-medium" style={muted}>Market / tax rules<select value={jurisdiction} onChange={e => { setJurisdiction(e.target.value as Jurisdiction); setJurisdictionTouched(true); }} className="mt-1.5 w-full rounded-xl border bg-transparent px-3 py-2.5 text-sm" style={{ borderColor: "var(--hairline)", color: "var(--color-text)" }}><option value="PSX">Pakistan · PSX</option><option value="NSE">India · NSE</option><option value="CUSTOM">Custom rules</option></select></label>
+      <label className="text-xs font-medium" style={muted}>Tax residence / profile<select value={jurisdiction} onChange={e => { setJurisdiction(e.target.value as Jurisdiction); setJurisdictionTouched(true); }} className="mt-1.5 w-full rounded-xl border bg-transparent px-3 py-2.5 text-sm" style={{ borderColor: "var(--hairline)", color: "var(--color-text)" }}><option value="PSX">Pakistan · PSX</option><option value="NSE">India · NSE</option><option value="CUSTOM">Custom rules</option></select></label>
       <label className="text-xs font-medium" style={muted}>Currency<select value={activeCurrency} onChange={e => setCurrency(e.target.value)} className="mt-1.5 w-full rounded-xl border bg-transparent px-3 py-2.5 text-sm" style={{ borderColor: "var(--hairline)", color: "var(--color-text)" }}>{(currencies.length ? currencies : [activeCurrency]).map(c => <option key={c} value={c}>{c}</option>)}</select></label>
     </div>
     {jurisdiction === "CUSTOM" && <div className="rounded-xl border p-3 text-xs" style={{ borderColor: "var(--hairline)", ...muted }}>
-      {customRulesLoading ? "Checking saved custom rules…" : customRules ? `Using your saved custom rates: short-term ${customRules.short}%, long-term ${customRules.long}%, threshold ${customRules.days} days.` : <>No verified automatic tax profile is available for {currencyExchanges.length ? currencyExchanges.map(code => exchangeInfo(code)?.name ?? code).join(", ") : "this market"}. Set your tax residence and custom rates in <Link to="/app/tax" className="font-semibold underline" style={{ color: "var(--color-accent)" }}>Tax Center</Link>. FIFO gains remain available; tax due is withheld until rules are configured.</>}
+      {customRulesLoading ? "Checking saved custom rules…" : customRules ? `Using your saved custom rates: short-term ${customRules.short}%, long-term ${customRules.long}%, threshold ${customRules.days} days.` : <>No verified automatic tax profile is available for {currencyExchanges.length ? currencyExchanges.map(code => exchangeInfo(code)?.name ?? code).join(", ") : "this market"}. Set your tax residence and a supported tax profile in <Link to="/app/tax" className="font-semibold underline" style={{ color: "var(--color-accent)" }}>Tax Center</Link>. FIFO gains remain available; tax estimates stay disabled until a profile is saved.</>}
     </div>}
     {jurisdiction === "PSX" && <div className="flex flex-wrap items-center gap-3 text-xs" style={muted}><span>Filer status</span><div className="flex rounded-lg border p-0.5" style={{ borderColor: "var(--hairline)" }}>{(["Filer", "Non-Filer"] as const).map(status => <button key={status} type="button" onClick={() => setFilerStatus(status)} className="rounded-md px-3 py-1.5 font-semibold" style={{ background: filerStatus === status ? "var(--sidebar-accent)" : "transparent", color: filerStatus === status ? "var(--color-text)" : "var(--ink-3)" }}>{status}</button>)}</div></div>}
     <div className="rounded-xl border p-3" style={{ borderColor: "var(--hairline)", background: "var(--color-login-bg)" }}>
@@ -122,7 +123,7 @@ export function PortfolioTaxReturns({ transactions, isLoading = false }: Props) 
         { label: "Realized gains", value: formatMoney(tax.totalGain, activeCurrency), note: "FIFO-matched disposals" },
         { label: "Short-term gains", value: formatMoney(tax.shortTermGain, activeCurrency), note: "Below holding threshold" },
         { label: "Long-term gains", value: formatMoney(tax.longTermGain, activeCurrency), note: "At / above holding threshold" },
-        { label: "Estimated CGT", value: taxRulesAvailable ? formatMoney(tax.estimatedTaxDue, activeCurrency) : "Not configured", note: taxRulesAvailable ? "Indicative calculation" : "No verified rules for selected market" },
+        { label: "Estimated CGT", value: taxRulesAvailable ? formatMoney(tax.estimatedTaxDue, activeCurrency) : "Tax profile needed", note: taxRulesAvailable ? "Indicative calculation · verify residence" : "Select a tax residence in Tax Center" },
       ].map(item => <div key={item.label} className="rounded-xl border p-4" style={cardStyle}><p className="text-xs" style={subtle}>{item.label}</p><p className="tnum mt-2 text-xl font-semibold">{item.value}</p><p className="mt-1 text-[11px]" style={subtle}>{item.note}</p></div>)}
     </div>
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -130,8 +131,8 @@ export function PortfolioTaxReturns({ transactions, isLoading = false }: Props) 
     </div>
     <div className="overflow-x-auto">
       <div className="mb-2 flex items-center gap-2"><FileSpreadsheet size={15} style={{ color: "var(--color-accent)" }} /><h3 className="text-sm font-semibold">Tax return schedule · FIFO disposals</h3></div>
-      <table className="w-full min-w-[720px] text-xs"><thead><tr className="text-left" style={subtle}>{["Ticker", "Buy date", "Sell date", "Qty", "Holding days", "Gain", "Tax"].map(label => <th key={label} className="border-b px-2 py-2 font-medium" style={{ borderColor: "var(--hairline)" }}>{label}</th>)}</tr></thead>
-        <tbody>{tax.lots.slice(0, 100).map((lot, index) => <tr key={`${lot.ticker}-${lot.sellDate}-${index}`} className="border-b" style={{ borderColor: "var(--hairline)" }}><td className="px-2 py-2.5 font-semibold">{lot.ticker}</td><td className="px-2 py-2.5">{lot.buyDate}</td><td className="px-2 py-2.5">{lot.sellDate}</td><td className="px-2 py-2.5 text-right">{lot.quantity}</td><td className="px-2 py-2.5 text-right">{lot.holdingDays}</td><td className="px-2 py-2.5 text-right tnum">{formatMoney(lot.gain, activeCurrency)}</td><td className="px-2 py-2.5 text-right tnum">{taxRulesAvailable ? formatMoney(lot.taxDue, activeCurrency) : "—"}</td></tr>)}</tbody>
+      <table className="w-full min-w-[860px] text-xs"><thead><tr className="text-left" style={subtle}>{["Ticker", "Exchange", "Currency", "Buy date", "Sell date", "Qty", "Holding days", "Gain", "Tax"].map(label => <th key={label} className="border-b px-2 py-2 font-medium" style={{ borderColor: "var(--hairline)" }}>{label}</th>)}</tr></thead>
+        <tbody>{tax.lots.slice(0, 100).map((lot, index) => <tr key={`${lot.ticker}-${lot.sellDate}-${index}`} className="border-b" style={{ borderColor: "var(--hairline)" }}><td className="px-2 py-2.5 font-semibold">{lot.ticker}</td><td className="px-2 py-2.5">{lot.exchange}</td><td className="px-2 py-2.5">{activeCurrency}</td><td className="px-2 py-2.5">{lot.buyDate}</td><td className="px-2 py-2.5">{lot.sellDate}</td><td className="px-2 py-2.5 text-right">{lot.quantity}</td><td className="px-2 py-2.5 text-right">{lot.holdingDays}</td><td className="px-2 py-2.5 text-right tnum">{formatMoney(lot.gain, activeCurrency)}</td><td className="px-2 py-2.5 text-right tnum">{taxRulesAvailable ? formatMoney(lot.taxDue, activeCurrency) : "—"}</td></tr>)}</tbody>
       </table>
       {tax.lots.length === 0 && <p className="py-7 text-center text-sm" style={subtle}>No realized sales matched for this period. Your ledger will update this schedule automatically when posted sales are recorded.</p>}
     </div>

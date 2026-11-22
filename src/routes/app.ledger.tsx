@@ -38,6 +38,7 @@ import {
   type BrokerInput,
 } from "@/lib/data-hooks";
 import type { TxAction } from "@/lib/demo-data";
+import { SUPPORTED_EXCHANGES, exchangeCurrency, exchangeInfo } from "@/lib/market-currency";
 
 export const Route = createFileRoute("/app/ledger")({
   component: Ledger,
@@ -390,52 +391,52 @@ function TxFormModal({
                 className={fieldClass}
                 style={{ borderColor: "var(--hairline)" }}
                 value={form.exchange}
-                onChange={(e) => set("exchange", e.target.value.toUpperCase().trim())}
-                list="wab-global-exchanges"
-                placeholder="Exchange code (e.g. NYSE, LSE, PSX)"
+                onChange={(e) => {
+                  const exchange = e.target.value.toUpperCase().trim();
+                  set("exchange", exchange);
+                  const detectedCurrency = exchangeCurrency(exchange);
+                  if (detectedCurrency) set("currency", detectedCurrency);
+                }}
+                list="psxl-global-exchanges"
+                placeholder="Search code or choose a market"
                 autoComplete="off"
               />
-              <datalist id="wab-global-exchanges">
-                {[
-                  "PSX",
-                  "NSE",
-                  "BSE",
-                  "NYSE",
-                  "NASDAQ",
-                  "AMEX",
-                  "TSX",
-                  "LSE",
-                  "AIM",
-                  "Euronext",
-                  "XETRA",
-                  "FWB",
-                  "SIX",
-                  "BME",
-                  "MIL",
-                  "TSE",
-                  "HKEX",
-                  "SSE",
-                  "SZSE",
-                  "KRX",
-                  "ASX",
-                  "NZX",
-                  "SGX",
-                  "SET",
-                  "IDX",
-                  "Bursa Malaysia",
-                  "Tadawul",
-                  "ADX",
-                  "DFM",
-                  "QSE",
-                  "KSE",
-                  "JSE",
-                  "Bovespa",
-                  "NYSE Arca",
-                  "OTC",
-                ].map((exchange) => (
-                  <option key={exchange} value={exchange} />
+              <datalist id="psxl-global-exchanges">
+                {SUPPORTED_EXCHANGES.map((exchange) => (
+                  <option key={exchange.code} value={exchange.code}>
+                    {exchange.name} · {exchange.country} · {exchange.currency}
+                  </option>
                 ))}
               </datalist>
+              {exchangeInfo(form.exchange) ? (
+                <p className="mt-1.5 text-[11px]" style={{ color: "var(--ink-3)" }}>
+                  {exchangeInfo(form.exchange)!.name} · {exchangeInfo(form.exchange)!.country} · {exchangeInfo(form.exchange)!.currency} trading currency
+                </p>
+              ) : (
+                <p className="mt-1.5 text-[11px]" style={{ color: "var(--ink-3)" }}>
+                  Enter an exchange code. For unlisted venues, select the trade currency manually.
+                </p>
+              )}
+            </div>
+
+            {/* Trade currency — separate from broker account base currency */}
+            <div>
+              <label className={labelClass} style={{ color: "var(--ink-2)" }}>
+                Trade currency
+              </label>
+              <select
+                className={fieldClass}
+                style={{ borderColor: "var(--hairline)" }}
+                value={form.currency ?? exchangeCurrency(form.exchange) ?? "USD"}
+                onChange={(e) => set("currency", e.target.value)}
+              >
+                {["USD","EUR","GBP","PKR","INR","CAD","AUD","NZD","HKD","JPY","KRW","SGD","CHF","CNY","TWD","IDR","MYR","THB","VND","PHP","LKR","BDT","SAR","AED","QAR","TRY","ILS","ZAR","NGN","EGP","KES","KWD","BRL","MXN","PEN","MAD","ARS","PLN","SEK","NOK","DKK","CZK","HUF"].map((code) => (
+                  <option key={code} value={code}>{code}</option>
+                ))}
+              </select>
+              <p className="mt-1.5 text-[11px]" style={{ color: "var(--ink-3)" }}>
+                Currency used for this trade's price, fees and withholding.
+              </p>
             </div>
 
             {/* Notes */}

@@ -93,11 +93,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          brandText("{{brand}} is an AI-powered trade reconciliation and CGT tax engine for PSX (Pakistan) and NSE (India) traders. Upload broker slips, get a FIFO-accurate, audit-ready ledger in minutes. Free for 50 transactions/month."),
+          brandText("{{brand}} helps stock traders reconcile broker statements, audit trades, track fees and withholding tax, and calculate traceable FIFO capital gains for supported PSX (Pakistan) and NSE (India) workflows. Start free with 30 parsed transactions per month."),
       },
       { name: "author", content: brandText("{{brand}}") },
       { name: "robots", content: "index, follow, max-image-preview:large" },
-      { name: "keywords", content: "PSXL, financial operations, trade reconciliation, broker statement parser, PSX, NSE, FIFO capital gains tax, audit trail, portfolio ledger" },
+      { name: "keywords", content: "PSXL, broker statement reconciliation, stock trade reconciliation software, broker contract note parser, PSX tax calculator, Pakistan capital gains tax, India stock tax calculator, NSE FIFO capital gains, trade audit trail, portfolio ledger" },
       {
         name: "googlebot",
         content: "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
@@ -229,7 +229,7 @@ function RootShell({ children }: { children: ReactNode }) {
         "@id": "https://psxl.live/#website",
         url: "https://psxl.live",
         name: brandText("{{brand}}"),
-        description: "AI-Native Financial Audit & Compliance for PSX and NSE Traders",
+        description: "Broker Statement Reconciliation, Trade Audits & FIFO Tax Tools for PSX and NSE",
         publisher: { "@id": "https://psxl.live/#org" },
       },
     ],

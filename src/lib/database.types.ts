@@ -61,6 +61,7 @@ export interface Database {
           confidence_score: number;
           status: "posted" | "needs_review";
           exchange: string;
+          currency: string;
           broker: string;
           source: Json;
           created_at: string;
@@ -81,6 +82,7 @@ export interface Database {
           confidence_score?: number;
           status?: "posted" | "needs_review";
           exchange?: string;
+          currency?: string;
           broker?: string;
           source?: Json;
           created_at?: string;

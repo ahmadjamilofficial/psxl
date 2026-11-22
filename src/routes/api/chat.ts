@@ -1104,6 +1104,7 @@ export const Route = createFileRoute("/api/chat")({
                 ref_id: z.string().nullable(),
                 broker: z.string().nullable(),
                 exchange: z.string().nullable(),
+                currency: z.string().nullable(),
                 status: z.string().nullable(),
               }),
               execute: async ({ id, ...input }) => {

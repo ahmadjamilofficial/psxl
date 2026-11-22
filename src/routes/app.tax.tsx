@@ -194,7 +194,20 @@ function TaxCenter() {
       <div>
         <h1 style={{ fontFamily: "var(--font-heading)", fontSize: "1.5rem" }}>Tax Center</h1>
         <p className="mt-0.5 text-sm" style={{ color: "var(--ink-2)" }}>
-          FIFO lot matching, holding-period tiers and CGT bands computed in code — never AI-guessed.
+          Traceable FIFO calculations with clear assumptions. AI never invents your tax rates.
+        </p>
+      </div>
+
+      <div
+        className="rounded-xl px-4 py-3 text-sm"
+        role="note"
+        style={{ background: "var(--accent-6)", border: "1px solid var(--accent-15)", color: "var(--ink-2)" }}
+      >
+        <p className="font-semibold" style={{ color: "var(--color-text)" }}>
+          {detectedJ === "PSX" ? "Pakistan · PSX market detected" : detectedJ === "NSE" ? "India · NSE market detected" : "Market not yet supported for automatic tax rules"}
+        </p>
+        <p className="mt-1 text-xs leading-relaxed">
+          Your market is inferred from imported trades. Your tax residence can be different from the exchange country, so confirm the correct tax jurisdiction before using an estimate. Automatic rule sets are currently limited to PSX and NSE; other markets need verified local rules or a custom profile.
         </p>
       </div>
 
@@ -224,7 +237,7 @@ function TaxCenter() {
           </div>
           <div>
             <label className="mb-1.5 block text-xs font-medium" style={{ color: "var(--ink-2)" }}>
-              Jurisdiction
+              Tax rule set / market
             </label>
             <select
               value={activeJurisdiction}
@@ -234,7 +247,7 @@ function TaxCenter() {
             >
               <option value="PSX">PSX — Pakistan</option>
               <option value="NSE">NSE — India</option>
-              <option value="CUSTOM">Other / Custom jurisdiction</option>
+              <option value="CUSTOM">Other market — configure custom rules</option>
             </select>
           </div>
           {activeJurisdiction === "PSX" && (

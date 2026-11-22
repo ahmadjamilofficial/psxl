@@ -45,6 +45,8 @@ describe("global exchange directory", () => {
     expect(normalizeMarketTicker("PETR4", "Bovespa")).toBe("PETR4.SA");
     expect(normalizeMarketTicker("MAYBANK", "Bursa Malaysia")).toBe("MAYBANK.KL");
     expect(normalizeMarketTicker("SHOP", "NYSE")).toBe("SHOP");
+    expect(normalizeMarketTicker("UNKNOWN", "UNKNOWN")).toBeNull();
+    expect(normalizeMarketTicker("SAP", "EURONEXT")).toBeNull();
   });
 
   it("does not pretend an unknown exchange has a verified currency", () => {

@@ -35,8 +35,8 @@ export const Route = createFileRoute("/api/market-data")({
           if (!body || !Array.isArray(body.tickers)) {
             return Response.json({ prices: [], error: "Provide a tickers array." }, { status: 400 });
           }
-          if (body.tickers.length > 50) {
-            return Response.json({ prices: [], error: "Request up to 50 symbols at a time." }, { status: 400 });
+          if (body.tickers.length > 100) {
+            return Response.json({ prices: [], error: "Request up to 100 symbols at a time." }, { status: 400 });
           }
           const tickers = body.tickers
             .filter((item): item is { ticker: string; exchange: string } =>

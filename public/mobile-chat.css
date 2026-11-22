@@ -284,3 +284,140 @@
   }
 }
 
+
+
+/* ── iPad / tablet layout ──────────────────────────────────────────────────
+   Give the 768–1023px range its own layout instead of stretching the phone UI.
+   Desktop navigation takes over at 1024px; phone rules remain untouched. */
+@media (min-width: 768px) and (max-width: 1023px) {
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  .app-mobile-main {
+    min-width: 0;
+    padding-bottom: calc(5.75rem + env(safe-area-inset-bottom, 0px)) !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+
+  .app-mobile-main:not(:has(.wab-composer)) {
+    padding-inline: clamp(16px, 2.5vw, 28px);
+  }
+
+  /* A floating, centered dock with proper iPad touch targets. */
+  nav.fixed.inset-x-0.bottom-0.z-40 {
+    left: 50%;
+    right: auto;
+    width: min(100%, 760px);
+    padding-inline: 18px;
+    padding-bottom: max(14px, env(safe-area-inset-bottom, 0px));
+    transform: translateX(-50%);
+  }
+
+  nav.fixed.inset-x-0.bottom-0.z-40 > div {
+    max-width: none;
+    gap: 6px;
+    padding: 8px;
+    border-radius: 20px;
+  }
+
+  nav.fixed.inset-x-0.bottom-0.z-40 a,
+  nav.fixed.inset-x-0.bottom-0.z-40 button {
+    min-height: 56px;
+    gap: 5px;
+    padding: 7px 8px;
+    font-size: 11px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  nav.fixed.inset-x-0.bottom-0.z-40 svg {
+    width: 21px;
+    height: 21px;
+  }
+
+  /* Keep the app header balanced and controls easy to tap. */
+  .app-mobile-main ~ header {
+    min-height: 58px;
+  }
+
+  header button,
+  header a {
+    min-height: 40px;
+  }
+
+  /* Dashboard: use the available width without forcing desktop's cramped
+     four-column cards or leaving tablet-sized blank gutters. */
+  .app-mobile-main > div.mx-auto {
+    max-width: 100%;
+    padding: 22px 4px 30px;
+  }
+
+  .overview-hero h1 {
+    font-size: 1.9rem !important;
+    line-height: 1.15;
+  }
+
+  .app-mobile-main .grid.gap-4.sm\\:grid-cols-2.lg\\:grid-cols-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .app-mobile-main .grid.gap-4.lg\\:grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .app-mobile-main .rounded-xl.bg-surface,
+  .app-mobile-main .rounded-2xl.bg-surface {
+    min-width: 0;
+  }
+
+  .app-mobile-main table {
+    min-width: 620px;
+  }
+
+  .app-mobile-main [role="tabpanel"],
+  .app-mobile-main [data-slot="card"] {
+    min-width: 0;
+  }
+
+  /* Avoid tiny chart labels and clipped chart cards on touch screens. */
+  .app-mobile-main .recharts-responsive-container {
+    min-width: 0;
+  }
+
+  .app-mobile-main button,
+  .app-mobile-main a,
+  .app-mobile-main input,
+  .app-mobile-main select {
+    touch-action: manipulation;
+  }
+
+  /* The assistant workspace needs the full tablet height above the dock. */
+  .app-mobile-main:has(.wab-composer) {
+    padding-bottom: calc(6.5rem + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .wab-composer-area {
+    padding-inline: 22px;
+    padding-bottom: 14px;
+  }
+
+  .chat-scroll [class*="max-w-[48rem]"] {
+    width: 100%;
+    max-width: 48rem;
+    margin-inline: auto;
+  }
+}
+
+/* Wider iPad portrait / compact landscape: give the dashboard's insight
+   column room beside the main timeline without over-compressing cards. */
+@media (min-width: 900px) and (max-width: 1023px) {
+  .app-mobile-main .grid.items-start.gap-5.lg\\:grid-cols-\\[minmax\\(0\\,1fr\\)_340px\\] {
+    grid-template-columns: minmax(0, 1fr) 300px;
+    align-items: start;
+  }
+}

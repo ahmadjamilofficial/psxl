@@ -58,6 +58,8 @@ const EXCHANGES: ExchangeInfo[] = [
   { code: "BUD", name: "Budapest Stock Exchange", country: "Hungary", currency: "HUF" },
   { code: "B3", name: "B3 Brasil Bolsa Balcão", country: "Brazil", currency: "BRL" },
   { code: "BMV", name: "Bolsa Mexicana de Valores", country: "Mexico", currency: "MXN" },
+  { code: "BVL", name: "Lima Stock Exchange", country: "Peru", currency: "PEN" },
+  { code: "CASA", name: "Casablanca Stock Exchange", country: "Morocco", currency: "MAD" },
   { code: "BCBA", name: "Buenos Aires Stock Exchange", country: "Argentina", currency: "ARS" },
   { code: "SSE", name: "Shanghai Stock Exchange", country: "China", currency: "CNY" },
   { code: "SZSE", name: "Shenzhen Stock Exchange", country: "China", currency: "CNY" },
@@ -95,6 +97,7 @@ for (const exchange of EXCHANGES) {
 // Do not use ambiguous aliases such as TSE (used by multiple countries) as an alias
 // for a different exchange; transaction imports should prefer the canonical code.
 const ALIASES: Record<string, string> = {
+  KSE: "PSX",
   KSE100: "PSX",
   KARACHI: "PSX",
   XBOM: "BSE",
@@ -133,8 +136,8 @@ const ALIASES: Record<string, string> = {
   XCSE: "CPH",
   XNZE: "NZX",
   XCAI: "EGX",
-  XCAS: "EGX",
-  XLIM: "B3",
+  XCAS: "CASA",
+  XLIM: "BVL",
   XPHS: "PSE",
   XBKK: "SET",
   XIST: "BIST",

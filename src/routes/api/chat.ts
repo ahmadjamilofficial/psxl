@@ -930,6 +930,7 @@ export const Route = createFileRoute("/api/chat")({
                     reference: trade.ref_id,
                     broker: trade.broker,
                     exchange: trade.exchange,
+                    currency: trade.currency,
                     status: trade.status,
                     confidence_score: trade.confidence_score,
                   },

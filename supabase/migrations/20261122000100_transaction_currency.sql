@@ -33,7 +33,8 @@ SET currency = COALESCE(
     WHEN 'NSEKE' THEN 'KES' WHEN 'KWSE' THEN 'KWD'
     ELSE NULL
   END,
-  'USD'
+  (SELECT NULLIF(BTRIM(ba.currency), '') FROM public.broker_accounts ba WHERE ba.id = t.broker_account_id),
+  'PKR'
 )
 WHERE t.currency IS NULL OR BTRIM(t.currency) = '';
 

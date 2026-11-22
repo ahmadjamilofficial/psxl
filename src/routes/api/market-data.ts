@@ -43,7 +43,7 @@ export const Route = createFileRoute("/api/market-data")({
               typeof item?.ticker === "string" &&
               typeof item?.exchange === "string" &&
               /^(?:\\^)?[A-Z0-9][A-Z0-9.&_=-]{0,19}$/i.test(item.ticker.trim()) &&
-              /^[A-Z0-9_-]{2,16}$/i.test(item.exchange.trim()),
+              /^[A-Z0-9 _.-]{2,40}$/i.test(item.exchange.trim()),
             )
             .map((item) => ({ ticker: item.ticker.trim().toUpperCase(), exchange: item.exchange.trim().toUpperCase() }));
           if (tickers.length !== body.tickers.length) {

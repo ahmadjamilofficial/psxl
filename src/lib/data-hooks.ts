@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { parseDocument, parseTextDocument } from "./ai-service";
 import { supabase } from "./supabase";
 import type { Transaction } from "./demo-data";
-import { currencyForExchange, exchangeCurrency } from "./market-currency";
+import { exchangeCurrency } from "./market-currency";
 
 // ── Transactions ──────────────────────────────────────────────────────────────
 

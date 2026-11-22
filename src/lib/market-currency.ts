@@ -180,15 +180,20 @@ const YAHOO_SUFFIX: Record<string, string> = {
 export function normalizeMarketTicker(
   ticker: string | null | undefined,
   exchange: string | null | undefined,
-): string {
+ ): string | null {
   const symbol = (ticker ?? "").trim().toUpperCase();
-  if (!symbol) return "";
+  if (!symbol) return null;
   // Provider-ready symbols (e.g. VOD.L, 0700.HK) should never be suffixed twice.
   if (symbol.includes(".") || symbol.startsWith("^") || symbol.startsWith("=")) return symbol;
   const rawCode = (exchange ?? "").trim().toUpperCase();
   const canonical = ALIASES[rawCode] ?? rawCode;
   const suffix = YAHOO_SUFFIX[canonical];
-  return suffix ? symbol + suffix : symbol;
+  if (suffix) return symbol + suffix;
+  // Only the major US venues safely use an unsuffixed Yahoo symbol.
+  // Never let an unknown/non-US venue accidentally resolve to a US ticker.
+  const info = exchangeInfo(exchange);
+  if (info?.country === "United States") return symbol;
+  return null;
 }
 
 export function exchangeCurrency(exchange: string | null | undefined): string | null {

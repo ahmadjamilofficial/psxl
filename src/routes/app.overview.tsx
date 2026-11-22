@@ -69,6 +69,8 @@ function MetricCard({
   tone,
   i,
   askWhy,
+  actionLabel,
+  actionTo,
 }: {
   label: string;
   value: string;
@@ -76,6 +78,8 @@ function MetricCard({
   tone: "ok" | "bad" | "warn" | "info";
   i: number;
   askWhy?: string;
+  actionLabel?: string;
+  actionTo?: "/app/tax";
 }) {
   const { setOpen } = useCommandBar();
 
@@ -101,6 +105,11 @@ function MetricCard({
         <p className="mt-1 text-xs" style={{ color: "var(--ink-3)" }}>
           {sub}
         </p>
+        {actionLabel && actionTo && (
+          <Link to={actionTo} className="mt-3 inline-flex items-center gap-1 text-xs font-semibold" style={{ color: "var(--color-accent)" }}>
+            {actionLabel} <ArrowRight size={12} />
+          </Link>
+        )}
       </div>
     </motion.div>
   );
@@ -430,6 +439,8 @@ function MissionControl() {
             tone="warn"
             i={3}
             askWhy="Why did my estimated tax change?"
+            actionLabel={reportingJurisdiction === "CUSTOM" ? "Set up tax profile" : undefined}
+            actionTo={reportingJurisdiction === "CUSTOM" ? "/app/tax" : undefined}
           />
         </div>
       </div>

@@ -134,7 +134,6 @@ const ALIASES: Record<string, string> = {
   XSHG: "SSE",
   XTAI: "TWSE",
   XCBO: "CBOE",
-  XCSE: "CPH",
   XNZE: "NZX",
   XCAI: "EGX",
   XCAS: "CASA",

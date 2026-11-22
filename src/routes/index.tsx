@@ -36,12 +36,12 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          brandText("Upload financial records, statements, CSVs, PDFs, or trade data. {{brand}} reconciles broker records, audits trades, detects discrepancies, and calculates FIFO capital gains tax for PSX and NSE investors."),
+          brandText("Reconcile stock trades and broker statements in minutes. {{brand}} extracts PDF, image, CSV and Excel trade records, detects missing trades and fee or WHT mismatches, and calculates traceable FIFO capital gains for supported PSX Pakistan and NSE India workflows."),
       },
       {
         name: "keywords",
         content:
-          brandText("financial operations, trade reconciliation, broker slip parser, capital gains tax, FIFO tax engine, audit trail, {{brand}}"),
+          brandText("broker statement reconciliation, stock trade audit, broker contract note parser, PSX Pakistan tax calculator, NSE India capital gains tax, FIFO tax engine, trade discrepancy detection, portfolio ledger, {{brand}}"),
       },
       { property: "og:title", content: brandText("{{brand}} — Broker Reconciliation & Trade Audit for PSX and NSE") },
       {

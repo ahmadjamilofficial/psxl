@@ -81,7 +81,7 @@ const EXCHANGES: ExchangeInfo[] = [
   { code: "NGX", name: "Nigerian Exchange", country: "Nigeria", currency: "NGN" },
   { code: "EGX", name: "Egyptian Exchange", country: "Egypt", currency: "EGP" },
   { code: "NSEKE", name: "Nairobi Securities Exchange", country: "Kenya", currency: "KES" },
-  { code: "KSE", name: "Kuwait Boursa", country: "Kuwait", currency: "KWD" },
+  { code: "KWSE", name: "Kuwait Boursa", country: "Kuwait", currency: "KWD" },
 ];
 
 const EXCHANGE_CURRENCY: Record<string, string> = {};
@@ -129,6 +129,15 @@ const ALIASES: Record<string, string> = {
   XSHE: "SZSE",
   XSHG: "SSE",
   XTAI: "TWSE",
+  XCBO: "CBOE",
+  XCSE: "CPH",
+  XNZE: "NZX",
+  XCAI: "EGX",
+  XCAS: "EGX",
+  XLIM: "B3",
+  XPHS: "PSE",
+  XBKK: "SET",
+  XIST: "BIST",
   XTAE: "TASE",
   XJSE: "JSE",
   XSAU: "TADAWUL",

@@ -60,6 +60,7 @@ interface TxRow {
   ref_id: string;
   broker: string;
   exchange: string;
+  currency: string;
   broker_account_id?: string;
   confidence_score: number;
   status: "posted" | "needs_review";
@@ -1452,6 +1453,7 @@ function Ledger() {
       "ref_id",
       "broker",
       "exchange",
+      "currency",
       "status",
       "confidence_score",
     ];
@@ -1467,6 +1469,7 @@ function Ledger() {
         t.ref_id,
         t.broker,
         t.exchange,
+        t.currency,
         t.status,
         t.confidence_score,
       ].join(","),
@@ -1993,6 +1996,7 @@ function Ledger() {
               ref_id: editRow.ref_id,
               broker: editRow.broker,
               exchange: editRow.exchange,
+              currency: editRow.currency,
               broker_account_id: editRow.broker_account_id,
             }}
             brokers={brokers as { id: string; name: string; broker_name: string }[]}

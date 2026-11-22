@@ -78,6 +78,29 @@ The code also recognizes selected common ISO 10383 Market Identifier Codes (MICs
 
 **Important limitations:** A recognized code currently lets PSXL identify a venue, its country label and a default trading currency. It does not mean that the market's securities master, live market data, broker statement parser, corporate-action handling, FX conversion, or local tax legislation has been integrated. Unknown codes still need review; a USD fallback is a display fallback only and must not be interpreted as evidence that an unknown instrument trades in USD.
 
+
+## Global market plumbing added (22 November 2026)
+
+The application now has a first pass at using the exchange directory rather than treating every symbol as a US ticker:
+
+- Ledger entry offers the supported exchange directory and preselects the exchange's usual trading currency.
+- Each transaction stores its own `currency`, separate from the broker account's base currency. This is necessary for multi-market portfolios and mixed-currency broker accounts.
+- The market-data route maps common exchange codes and names to provider ticker suffixes (for example PSX `.KAR`, NSE `.NS`, BSE `.BO`, LSE `.L`, TSX `.TO`, ASX `.AX`, HKEX `.HK`, Tokyo `.T`, Xetra `.DE`, and other regional suffixes).
+- Provider-reported quote currency is preferred over an inferred exchange currency.
+- Quote requests are validated, deduplicated and fetched with bounded concurrency; one request accepts up to 100 symbols.
+- AI ledger tools preserve exchange and transaction currency instead of collapsing non-PSX/NSE transactions into PSX.
+
+Database migration required: apply `supabase/migrations/20261122000100_transaction_currency.sql` to the connected Supabase project before deploying the application code. It adds `transactions.currency`, backfills existing rows from known listing venues and defaults new legacy records to PKR (the existing PSX default).
+
+### What this does not guarantee
+
+- Yahoo Finance does not provide reliable coverage for every MIC, symbol, instrument class or market. A recognized exchange can still return no quote.
+- Some venues share a currency or exchange group but require the exact local listing suffix. Multi-country venues such as Euronext should be selected by the actual listing venue where possible.
+- This does not add exchange-specific broker statement parsers, streaming quotes, official reference securities master data, market calendars, corporate actions, or verified local tax rules.
+- Unknown exchanges must be reviewed and the trade currency selected manually. A fallback currency must never be interpreted as a confirmed market currency.
+
+For authoritative exchange identity, refresh the directory against the monthly ISO 10383 register: https://www.iso20022.org/market-identifier-codes
+
 ## Product requirements before enabling another country
 
 A country/market preset is only marked **verified** after the rule set has:

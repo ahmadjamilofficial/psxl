@@ -87,7 +87,7 @@ export function PortfolioTaxReturns({ transactions, isLoading = false }: Props) 
       ["Purchases", purchaseValue], ["Sale proceeds", saleProceeds], ["Dividend income", dividendIncome],
       ["Short-term gains", tax.shortTermGain], ["Long-term gains", tax.longTermGain],
       ["Total realized gains", tax.totalGain], ["Dividend withholding tax", tax.dividendWHT],
-      ["Estimated capital gains tax", tax.estimatedTaxDue], ["Computed at", tax.computedAt], [],
+      ["Estimated capital gains tax", taxRulesAvailable ? tax.estimatedTaxDue : "Not configured"], ["Computed at", tax.computedAt], [],
       ["Ticker", "Exchange", "Currency", "Buy date", "Sell date", "Quantity", "Cost basis", "Sale price", "Holding days", "Gain", "Tax rate", "Tax due"],
       ...tax.lots.map(lot => [lot.ticker, lot.exchange, activeCurrency, lot.buyDate, lot.sellDate, lot.quantity, lot.costBasis, lot.salePrice, lot.holdingDays, lot.gain, taxRulesAvailable ? lot.taxRate : "N/A", taxRulesAvailable ? lot.taxDue : "N/A"]),
     ];

@@ -38,7 +38,7 @@ SET currency = COALESCE(
 WHERE t.currency IS NULL OR BTRIM(t.currency) = '';
 
 ALTER TABLE public.transactions
-  ALTER COLUMN currency SET DEFAULT 'USD',
+  ALTER COLUMN currency SET DEFAULT 'PKR',
   ALTER COLUMN currency SET NOT NULL;
 
 COMMENT ON COLUMN public.transactions.currency IS

@@ -58,6 +58,26 @@ Official references:
 - Income Tax Department — capital gains overview and holding periods: https://www.incometaxindia.gov.in/w/capital-gain
 - Finance Act 2026: https://www.incometaxindia.gov.in/documents/d/guest/finance-act-2026-pdf-1
 
+
+## Expanded exchange directory (22 November 2026)
+
+PSXL now has an exchange metadata/currency directory covering major venues across North America, Europe, Asia-Pacific, the Middle East, Africa and Latin America. This is **exchange recognition and currency metadata**, not a claim that every exchange has live quotes, broker import templates, or a verified tax calculator.
+
+| Region | Exchanges / venues currently in directory |
+|---|---|
+| South Asia | PSX (Pakistan), NSE and BSE (India), Colombo Stock Exchange, Dhaka Stock Exchange |
+| North America | NYSE, Nasdaq, NYSE American, Cboe, US OTC, TSX, TSX Venture, Canadian Securities Exchange |
+| Europe | LSE, AIM, Xetra, Frankfurt, Euronext, Borsa Italiana, BME, Vienna, Warsaw, Nasdaq Nordic venues, Oslo, Prague, Budapest, Athens |
+| East Asia | HKEX, Tokyo Stock Exchange / JPX, Osaka Exchange, Korea Exchange / KOSDAQ, Shanghai, Shenzhen, Taiwan Stock Exchange, Taipei Exchange |
+| Southeast Asia | SGX, Indonesia Stock Exchange, Bursa Malaysia, Stock Exchange of Thailand, Ho Chi Minh Stock Exchange, Hanoi Stock Exchange, Philippine Stock Exchange |
+| Middle East | Saudi Exchange, Abu Dhabi Securities Exchange, Dubai Financial Market, Qatar Stock Exchange, Borsa Istanbul, Tel Aviv Stock Exchange, Kuwait Boursa |
+| Africa | Johannesburg Stock Exchange, Nigerian Exchange, Egyptian Exchange, Nairobi Securities Exchange |
+| Latin America | B3 Brazil, Bolsa Mexicana de Valores, Buenos Aires Stock Exchange |
+
+The code also recognizes selected common ISO 10383 Market Identifier Codes (MICs) and vendor aliases. The exchange directory is in `src/lib/market-currency.ts`; tests are in `src/lib/market-currency.test.ts`.
+
+**Important limitations:** A recognized code currently lets PSXL identify a venue, its country label and a default trading currency. It does not mean that the market's securities master, live market data, broker statement parser, corporate-action handling, FX conversion, or local tax legislation has been integrated. Unknown codes still need review; a USD fallback is a display fallback only and must not be interpreted as evidence that an unknown instrument trades in USD.
+
 ## Product requirements before enabling another country
 
 A country/market preset is only marked **verified** after the rule set has:

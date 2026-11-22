@@ -85,7 +85,7 @@ export function computeTax(txs: Transaction[], profile: TaxProfile): TaxComputat
   const lots: FifoLot[] = [];
 
   for (const event of events) {
-    const marketKey = event.exchange + ":" + event.ticker;
+    const marketKey = event.exchange + ":" + event.ticker + ":" + (event.currency ?? "");
     if (event.action === "BUY") {
       if (!buyQueues[marketKey]) buyQueues[marketKey] = [];
       const unitCost = event.price + (event.quantity > 0 ? event.fees / event.quantity : 0);

@@ -871,6 +871,7 @@ function ImportPanel({
           ref_id: ["ref id", "reference", "reference id", "order id", "trade id", "contract no"],
           broker: ["broker", "broker name", "member", "dealer"],
           exchange: ["exchange", "market"],
+          currency: ["currency", "trade currency", "settlement currency", "ccy"],
         };
         const numberValue = (value: unknown): number => {
           const cleaned = String(value ?? "")
@@ -941,6 +942,7 @@ function ImportPanel({
                 ref_id: String(pick("ref_id") ?? "").trim(),
                 broker: String(pick("broker") ?? "").trim(),
                 exchange: String(pick("exchange") ?? "OTHER").trim() || "OTHER",
+                currency: String(pick("currency") ?? exchangeCurrency(String(pick("exchange") ?? "OTHER")) ?? "USD").trim().toUpperCase(),
                 _raw: file.name,
               });
             }
@@ -956,7 +958,7 @@ function ImportPanel({
           const raw = await complete({
             systemPrompt:
               "You extract brokerage transactions. Reply with ONLY a JSON array, no prose.",
-            userPrompt: `Extract ALL transactions from this financial document as a JSON array. Each object must have: ticker, action (BUY/SELL/DIV), quantity, price, fees, wht, trade_date (YYYY-MM-DD), ref_id, broker, exchange.\n\n${content.slice(0, 50000)}`,
+            userPrompt: `Extract ALL transactions from this financial document as a JSON array. Each object must have: ticker, action (BUY/SELL/DIV), quantity, price, currency (ISO code when present), fees, wht, trade_date (YYYY-MM-DD), ref_id, broker, exchange.\n\n${content.slice(0, 50000)}`,
           });
           const clean = raw
             .replace(/\`\`\`[a-z]*\n?/g, "")
@@ -991,6 +993,7 @@ function ImportPanel({
               ref_id: String(r["ref_id"] ?? ""),
               broker: String(r["broker"] ?? ""),
               exchange: String(r["exchange"] ?? "OTHER"),
+              currency: String(r["currency"] ?? exchangeCurrency(String(r["exchange"] ?? "OTHER")) ?? "USD").toUpperCase(),
               _raw: file.name,
             });
           }

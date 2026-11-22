@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { parseDocument, parseTextDocument } from "./ai-service";
 import { supabase } from "./supabase";
 import type { Transaction } from "./demo-data";
-import { currencyForExchange } from "./market-currency";
+import { currencyForExchange, exchangeCurrency } from "./market-currency";
 
 // ── Transactions ──────────────────────────────────────────────────────────────
 
@@ -36,7 +36,7 @@ export function useTransactions(orgId: string | undefined) {
         broker: row.broker,
         brokerAccountId: row.broker_account_id ?? undefined,
         exchange: row.exchange as Transaction["exchange"],
-        currency: (row as unknown as { broker_accounts?: { currency?: string } | null }).broker_accounts?.currency ?? currencyForExchange(row.exchange),
+        currency: row.currency ?? exchangeCurrency(row.exchange) ?? (row as unknown as { broker_accounts?: { currency?: string } | null }).broker_accounts?.currency ?? "USD",
       })) as Transaction[];
     },
     staleTime: 0,
@@ -58,6 +58,7 @@ export interface TransactionInput {
   ref_id: string;
   broker: string;
   exchange: string;
+  currency?: string;
   broker_account_id?: string;
 }
 
@@ -83,6 +84,7 @@ export function useCreateTransaction() {
           ref_id: values.ref_id ?? "",
           broker: values.broker ?? "",
           exchange: values.exchange || "NYSE",
+          currency: values.currency ?? exchangeCurrency(values.exchange) ?? "USD",
           confidence_score: 1,
           status: "posted",
         } as never)
@@ -122,6 +124,7 @@ export function useUpdateTransaction() {
         "ref_id",
         "broker",
         "exchange",
+        "currency",
         "broker_account_id",
       ];
       for (const field of fields) {

@@ -8,6 +8,7 @@ export interface ExchangeInfo {
   name: string;
   country: string;
   currency: string;
+  providerSuffix?: string;
 }
 
 const EXCHANGES: ExchangeInfo[] = [
@@ -147,6 +148,45 @@ const ALIASES: Record<string, string> = {
 };
 
 export const SUPPORTED_EXCHANGES = EXCHANGES;
+
+const YAHOO_SUFFIX: Record<string, string> = {
+  PSX: ".KAR", NSE: ".NS", BSE: ".BO",
+  LSE: ".L", AIM: ".L", TSX: ".TO", TSXV: ".V", CNSX: ".CN",
+  ASX: ".AX", NZX: ".NZ", HKEX: ".HK",
+  TSE: ".T", JPX: ".T", OSE: ".OS",
+  KRX: ".KS", KOSDAQ: ".KQ", SGX: ".SI",
+  SIX: ".SW", SWX: ".SW", BX: ".SW",
+  XETRA: ".DE", XETR: ".DE", FRA: ".F", ETR: ".DE",
+  EURONEXT: ".PA", EPA: ".PA", AMS: ".AS", EBR: ".BR", ELI: ".LS",
+  BIT: ".MI", BME: ".MC", VIE: ".VI", WSE: ".WA",
+  STO: ".ST", OSL: ".OL", CPH: ".CO", HEL: ".HE",
+  ATHEX: ".AT", PRA: ".PR", BUD: ".BD",
+  B3: ".SA", BMV: ".MX", BVL: ".LM", CASA: ".CS", BCBA: ".BA",
+  SSE: ".SS", SZSE: ".SZ", TWSE: ".TW", TPEX: ".TWO",
+  IDX: ".JK", MYX: ".KL", SET: ".BK", HOSE: ".VN", HNX: ".VN",
+  PSE: ".PS", CSE: ".CM", DSE: ".DH",
+  TADAWUL: ".SR", ADX: ".ADX", DFM: ".DFM", QSE: ".QA",
+  BIST: ".IS", TASE: ".TA", JSE: ".JO", EGX: ".CA",
+};
+
+export function normalizeMarketTicker(
+  ticker: string | null | undefined,
+  exchange: string | null | undefined,
+): string {
+  const symbol = (ticker ?? "").trim().toUpperCase();
+  if (!symbol) return "";
+  // Provider-ready symbols (e.g. VOD.L, 0700.HK) should never be suffixed twice.
+  if (symbol.includes(".") || symbol.startsWith("^") || symbol.startsWith("=")) return symbol;
+  const rawCode = (exchange ?? "").trim().toUpperCase();
+  const canonical = ALIASES[rawCode] ?? rawCode;
+  const suffix = YAHOO_SUFFIX[canonical];
+  return suffix ? symbol + suffix : symbol;
+}
+
+export function exchangeCurrency(exchange: string | null | undefined): string | null {
+  return exchangeInfo(exchange)?.currency ?? null;
+}
+
 
 export function exchangeInfo(exchange: string | null | undefined): ExchangeInfo | undefined {
   const code = (exchange ?? "").trim().toUpperCase();

@@ -1270,7 +1270,7 @@ function ImportPanel({
                         </td>
                         <td className="px-3 py-2">{row.action}</td>
                         <td className="px-3 py-2 tabular-nums">{row.quantity}</td>
-                        <td className="px-3 py-2 tabular-nums">{row.price}</td>
+                        <td className="px-3 py-2 tabular-nums">{row.price} {row.currency}</td>
                         <td className="px-3 py-2">{row.trade_date}</td>
                         <td
                           className="px-3 py-2 truncate max-w-[80px]"
@@ -1495,6 +1495,7 @@ function Ledger() {
         Action: t.action,
         Quantity: t.quantity,
         Price: t.price,
+        Currency: t.currency,
         Fees: t.fees,
         WHT: t.wht,
         "Trade date": t.trade_date,
@@ -1833,7 +1834,7 @@ function Ledger() {
                       {tx.quantity.toLocaleString()}
                     </td>
                     <td className="tnum px-4 py-3 text-right text-sm">
-                      {tx.price.toLocaleString("en-PK", { minimumFractionDigits: 2 })}
+                      {tx.price.toLocaleString("en-PK", { minimumFractionDigits: 2 })} {tx.currency}
                     </td>
                     <td
                       className="tnum px-4 py-3 text-right text-sm hidden sm:table-cell"

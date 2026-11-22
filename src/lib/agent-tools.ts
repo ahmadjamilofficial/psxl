@@ -3,6 +3,7 @@
 // Every write is confirmed by the user before execution.
 
 import { supabase } from "./supabase";
+import { exchangeCurrency } from "./market-currency";
 
 // ── Tool result type ──────────────────────────────────────────────────────────
 
@@ -64,7 +65,8 @@ export const TOOL_DECLARATIONS = [
         trade_date: { type: "STRING", description: "Date in YYYY-MM-DD format" },
         ref_id: { type: "STRING", description: "Broker reference ID" },
         broker: { type: "STRING", description: "Broker name" },
-        exchange: { type: "STRING", description: "Exchange code or Yahoo Finance market symbol suffix (for example NYSE, NASDAQ, LSE, TSX, ASX, HKEX, NSE, PSX)" },
+        exchange: { type: "STRING", description: "Exchange code (for example NYSE, NASDAQ, LSE, TSX, ASX, HKEX, NSE, PSX)" },
+        currency: { type: "STRING", description: "Trade currency such as USD, EUR, GBP, PKR, INR; infer from the exchange when known" },
       },
     },
   },
@@ -86,6 +88,7 @@ export const TOOL_DECLARATIONS = [
         ref_id: { type: "STRING" },
         broker: { type: "STRING" },
         exchange: { type: "STRING" },
+        currency: { type: "STRING" },
         status: { type: "STRING", description: "posted or needs_review" },
       },
     },
@@ -146,7 +149,7 @@ export async function executeTool(
         let q = supabase
           .from("transactions")
           .select(
-            "id, ticker, action, quantity, price, fees, wht, trade_date, ref_id, broker, exchange, status, confidence_score",
+            "id, ticker, action, quantity, price, fees, wht, trade_date, ref_id, broker, exchange, currency, status, confidence_score",
           )
           .eq("org_id", ctx.orgId)
           .order("trade_date", { ascending: false })
@@ -196,6 +199,7 @@ export async function executeTool(
             ref_id: String(args.ref_id ?? `AUTO-${Date.now()}`),
             broker: String(args.broker ?? ""),
             exchange: String(args.exchange ?? ctx.jurisdiction),
+            currency: String(args.currency ?? exchangeCurrency(String(args.exchange ?? ctx.jurisdiction)) ?? "USD"),
             confidence_score: 0.95,
             status: "posted",
             source: { via: "ai_agent", actor: ctx.userEmail },
@@ -236,6 +240,7 @@ export async function executeTool(
           "ref_id",
           "broker",
           "exchange",
+          "currency",
           "status",
         ]) {
           if (args[key] !== undefined) updates[key] = args[key];

@@ -160,12 +160,12 @@ function ErrorBanner({
       color: "var(--bad)",
       bg: "color-mix(in srgb, var(--bad) 6%, transparent)",
       border: "color-mix(in srgb, var(--bad) 20%, transparent)",
-      title: plan === "free" ? "You've reached today's AI limit" : "Daily AI limit reached",
+      title: "You've reached your daily AI limit",
       body:
         plan === "free"
-          ? `Your Free plan includes ${AI_PLAN_DAILY_LIMITS["free"]} AI requests per day. Your limit resets in 24 hours.`
+          ? `Your Basic plan includes ${AI_PLAN_DAILY_LIMITS["free"]} AI requests per day. Your limit resets on a rolling 24-hour window. Upgrade for more daily usage.`
           : message,
-      cta: plan === "free" ? "Upgrade to Pro" : null,
+      cta: plan === "free" ? "Upgrade to Standard" : plan === "standard" ? "Upgrade to Pro" : "View plan & usage",
       ctaLink: "/app/billing",
     },
     credits: {
@@ -1292,8 +1292,10 @@ export function ParserWorkspace({ threadId }: { threadId: string }) {
               .catch(() => "");
             if (text) {
               try {
-                const body = JSON.parse(text) as { message?: string };
-                message = body.message ?? text;
+                const body = JSON.parse(text) as { code?: string; message?: string };
+                // Preserve the machine-readable error code so quota exhaustion
+                // is rendered as an upgrade prompt, not a provider-credit error.
+                message = body.code ? `${body.code}: ${body.message ?? text}` : body.message ?? text;
               } catch {
                 message = text.slice(0, 300);
               }

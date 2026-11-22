@@ -78,6 +78,7 @@ CREATE TABLE public.transactions (
   confidence_score numeric NOT NULL DEFAULT 1.0,
   status text NOT NULL DEFAULT 'posted'::text CHECK (status = ANY (ARRAY['posted'::text, 'needs_review'::text])),
   exchange text NOT NULL DEFAULT 'PSX'::text,
+  currency text NOT NULL DEFAULT 'USD'::text,
   broker text NOT NULL DEFAULT ''::text,
   source jsonb NOT NULL DEFAULT '{}'::jsonb,
   created_at timestamp with time zone NOT NULL DEFAULT now(),

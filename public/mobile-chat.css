@@ -361,12 +361,12 @@
     line-height: 1.15;
   }
 
-  .app-mobile-main .grid.gap-4.sm\\:grid-cols-2.lg\\:grid-cols-4 {
+  .app-mobile-main .grid.gap-4[class~="sm:grid-cols-2"][class~="lg:grid-cols-4"] {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
   }
 
-  .app-mobile-main .grid.gap-4.lg\\:grid-cols-2 {
+  .app-mobile-main .grid.gap-4[class~="lg:grid-cols-2"] {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -416,7 +416,7 @@
 /* Wider iPad portrait / compact landscape: give the dashboard's insight
    column room beside the main timeline without over-compressing cards. */
 @media (min-width: 900px) and (max-width: 1023px) {
-  .app-mobile-main .grid.items-start.gap-5.lg\\:grid-cols-\\[minmax\\(0\\,1fr\\)_340px\\] {
+  .app-mobile-main .grid.items-start.gap-5[class~="lg:grid-cols-[minmax(0,1fr)_340px]"] {
     grid-template-columns: minmax(0, 1fr) 300px;
     align-items: start;
   }

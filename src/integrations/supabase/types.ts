@@ -2759,6 +2759,7 @@ export type Database = {
           created_at?: string
           document_id?: string | null
           exchange?: string
+          currency?: string
           fees?: number
           id?: string
           notes?: string | null

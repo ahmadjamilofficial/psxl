@@ -23,7 +23,7 @@ const EXCHANGES: ExchangeInfo[] = [
   { code: "AIM", name: "London Stock Exchange AIM", country: "United Kingdom", currency: "GBP" },
   { code: "TSX", name: "Toronto Stock Exchange", country: "Canada", currency: "CAD" },
   { code: "TSXV", name: "TSX Venture Exchange", country: "Canada", currency: "CAD" },
-  { code: "CSE", name: "Canadian Securities Exchange", country: "Canada", currency: "CAD" },
+  { code: "CNSX", name: "Canadian Securities Exchange", country: "Canada", currency: "CAD" },
   { code: "ASX", name: "Australian Securities Exchange", country: "Australia", currency: "AUD" },
   { code: "NZX", name: "New Zealand Exchange", country: "New Zealand", currency: "NZD" },
   { code: "HKEX", name: "Hong Kong Exchanges and Clearing", country: "Hong Kong", currency: "HKD" },

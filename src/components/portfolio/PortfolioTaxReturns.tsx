@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { Calculator, Download, FileSpreadsheet, ShieldCheck } from "lucide-react";
 import { computeTax, type Jurisdiction } from "@/lib/tax";
-import { currencyForExchange } from "@/lib/market-currency";
+import { currencyForExchange, exchangeInfo } from "@/lib/market-currency";
 import type { Transaction } from "@/lib/demo-data";
 
 type Props = { transactions: Transaction[]; isLoading?: boolean };
@@ -45,9 +45,23 @@ export function PortfolioTaxReturns({ transactions, isLoading = false }: Props) 
   const [year, setYear] = useState("");
   const [currency, setCurrency] = useState("");
   const [jurisdiction, setJurisdiction] = useState<Jurisdiction>("PSX");
+  const [jurisdictionTouched, setJurisdictionTouched] = useState(false);
   const [filerStatus, setFilerStatus] = useState<"Filer" | "Non-Filer">("Filer");
   const activeYear = years.includes(year) ? year : years[0] ?? String(new Date().getFullYear());
   const activeCurrency = currencies.includes(currency) ? currency : currencies[0] ?? "PKR";
+  const currencyExchanges = useMemo(() => [...new Set(transactions
+    .filter(t => (t.currency ?? currencyForExchange(t.exchange)) === activeCurrency)
+    .map(t => t.exchange.trim().toUpperCase())
+    .filter(Boolean))], [transactions, activeCurrency]);
+  const suggestedJurisdiction: Jurisdiction | null = currencyExchanges.length > 0 && currencyExchanges.every(exchange => exchange === "PSX" || exchange === "KSE" || exchange === "KSE100")
+    ? "PSX"
+    : currencyExchanges.length > 0 && currencyExchanges.every(exchange => exchange === "NSE" || exchange === "BSE" || exchange === "XNSE" || exchange === "XBOM")
+      ? "NSE"
+      : null;
+  useEffect(() => {
+    if (!jurisdictionTouched && suggestedJurisdiction) setJurisdiction(suggestedJurisdiction);
+  }, [suggestedJurisdiction, jurisdictionTouched]);
+  const taxRulesAvailable = jurisdiction === "PSX" || jurisdiction === "NSE" || Boolean(customRules);
   const yearRecords = useMemo(() => transactions.filter(t => t.trade_date.startsWith(activeYear) && (t.currency ?? currencyForExchange(t.exchange)) === activeCurrency), [transactions, activeYear, activeCurrency]);
   const posted = useMemo(() => transactions.filter(t => t.status === "posted" && (t.currency ?? currencyForExchange(t.exchange)) === activeCurrency), [transactions, activeCurrency]);
   const tax = useMemo(() => computeTax(posted, {
@@ -74,8 +88,8 @@ export function PortfolioTaxReturns({ transactions, isLoading = false }: Props) 
       ["Short-term gains", tax.shortTermGain], ["Long-term gains", tax.longTermGain],
       ["Total realized gains", tax.totalGain], ["Dividend withholding tax", tax.dividendWHT],
       ["Estimated capital gains tax", tax.estimatedTaxDue], ["Computed at", tax.computedAt], [],
-      ["Ticker", "Exchange", "Buy date", "Sell date", "Quantity", "Cost basis", "Sale price", "Holding days", "Gain", "Tax rate", "Tax due"],
-      ...tax.lots.map(lot => [lot.ticker, lot.exchange, lot.buyDate, lot.sellDate, lot.quantity, lot.costBasis, lot.salePrice, lot.holdingDays, lot.gain, lot.taxRate, lot.taxDue]),
+      ["Ticker", "Exchange", "Currency", "Buy date", "Sell date", "Quantity", "Cost basis", "Sale price", "Holding days", "Gain", "Tax rate", "Tax due"],
+      ...tax.lots.map(lot => [lot.ticker, lot.exchange, activeCurrency, lot.buyDate, lot.sellDate, lot.quantity, lot.costBasis, lot.salePrice, lot.holdingDays, lot.gain, taxRulesAvailable ? lot.taxRate : "N/A", taxRulesAvailable ? lot.taxDue : "N/A"]),
     ];
     downloadTaxReturn(`psxl-tax-return-workpaper-${jurisdiction}-${activeYear}.csv`, rows);
   }
@@ -84,16 +98,16 @@ export function PortfolioTaxReturns({ transactions, isLoading = false }: Props) 
 
   return <section className="space-y-5 rounded-2xl border p-4 sm:p-6" style={cardStyle}>
     <div className="flex flex-wrap items-start justify-between gap-3">
-      <div className="flex items-start gap-3"><div className="flex size-10 shrink-0 items-center justify-center rounded-xl" style={{ background: "var(--accent-10)" }}><Calculator size={19} style={{ color: "var(--color-accent)" }} /></div><div><h2 className="text-lg font-semibold tracking-tight">Tax calculations & returns</h2><p className="mt-1 text-xs" style={subtle}>Automatically calculated from your posted ledger transactions.</p></div></div>
-      <button type="button" onClick={exportReturn} disabled={isLoading || postedYear.length === 0 || (jurisdiction === "CUSTOM" && !customRules)} className="inline-flex items-center gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40" style={{ background: "var(--color-accent)" }}><Download size={14} /> Export tax workpaper</button>
+      <div className="flex items-start gap-3"><div className="flex size-10 shrink-0 items-center justify-center rounded-xl" style={{ background: "var(--accent-10)" }}><Calculator size={19} style={{ color: "var(--color-accent)" }} /></div><div><h2 className="text-lg font-semibold tracking-tight">Tax calculations & returns</h2><p className="mt-1 text-xs" style={subtle}>Currency-aware FIFO calculations from posted trades. Tax rules follow your selected tax residence, not simply the listing exchange.</p></div></div>
+      <button type="button" onClick={exportReturn} disabled={isLoading || postedYear.length === 0 || !taxRulesAvailable} className="inline-flex items-center gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40" style={{ background: "var(--color-accent)" }}><Download size={14} /> Export tax workpaper</button>
     </div>
     <div className="grid gap-3 sm:grid-cols-3">
       <label className="text-xs font-medium" style={muted}>Tax year<select value={activeYear} onChange={e => setYear(e.target.value)} className="mt-1.5 w-full rounded-xl border bg-transparent px-3 py-2.5 text-sm" style={{ borderColor: "var(--hairline)", color: "var(--color-text)" }}>{(years.length ? years : [activeYear]).map(y => <option key={y} value={y}>{y}</option>)}</select></label>
-      <label className="text-xs font-medium" style={muted}>Market / tax rules<select value={jurisdiction} onChange={e => setJurisdiction(e.target.value as Jurisdiction)} className="mt-1.5 w-full rounded-xl border bg-transparent px-3 py-2.5 text-sm" style={{ borderColor: "var(--hairline)", color: "var(--color-text)" }}><option value="PSX">Pakistan · PSX</option><option value="NSE">India · NSE</option><option value="CUSTOM">Custom rules</option></select></label>
+      <label className="text-xs font-medium" style={muted}>Market / tax rules<select value={jurisdiction} onChange={e => { setJurisdiction(e.target.value as Jurisdiction); setJurisdictionTouched(true); }} className="mt-1.5 w-full rounded-xl border bg-transparent px-3 py-2.5 text-sm" style={{ borderColor: "var(--hairline)", color: "var(--color-text)" }}><option value="PSX">Pakistan · PSX</option><option value="NSE">India · NSE</option><option value="CUSTOM">Custom rules</option></select></label>
       <label className="text-xs font-medium" style={muted}>Currency<select value={activeCurrency} onChange={e => setCurrency(e.target.value)} className="mt-1.5 w-full rounded-xl border bg-transparent px-3 py-2.5 text-sm" style={{ borderColor: "var(--hairline)", color: "var(--color-text)" }}>{(currencies.length ? currencies : [activeCurrency]).map(c => <option key={c} value={c}>{c}</option>)}</select></label>
     </div>
     {jurisdiction === "CUSTOM" && <div className="rounded-xl border p-3 text-xs" style={{ borderColor: "var(--hairline)", ...muted }}>
-      {customRulesLoading ? "Loading saved custom tax rules…" : customRules ? `Using saved custom rates: short-term ${customRules.short}%, long-term ${customRules.long}%, threshold ${customRules.days} days.` : <>No custom rates are saved yet. <Link to="/app/tax" className="font-semibold underline" style={{ color: "var(--color-accent)" }}>Configure tax rules</Link> before using this estimate.</>}
+      {customRulesLoading ? "Checking saved custom rules…" : customRules ? `Using your saved custom rates: short-term ${customRules.short}%, long-term ${customRules.long}%, threshold ${customRules.days} days.` : <>No verified automatic tax profile is available for {currencyExchanges.length ? currencyExchanges.map(code => exchangeInfo(code)?.name ?? code).join(", ") : "this market"}. Set your tax residence and custom rates in <Link to="/app/tax" className="font-semibold underline" style={{ color: "var(--color-accent)" }}>Tax Center</Link>. FIFO gains remain available; tax due is withheld until rules are configured.</>}
     </div>}
     {jurisdiction === "PSX" && <div className="flex flex-wrap items-center gap-3 text-xs" style={muted}><span>Filer status</span><div className="flex rounded-lg border p-0.5" style={{ borderColor: "var(--hairline)" }}>{(["Filer", "Non-Filer"] as const).map(status => <button key={status} type="button" onClick={() => setFilerStatus(status)} className="rounded-md px-3 py-1.5 font-semibold" style={{ background: filerStatus === status ? "var(--sidebar-accent)" : "transparent", color: filerStatus === status ? "var(--color-text)" : "var(--ink-3)" }}>{status}</button>)}</div></div>}
     <div className="rounded-xl border p-3" style={{ borderColor: "var(--hairline)", background: "var(--color-login-bg)" }}>
@@ -108,7 +122,7 @@ export function PortfolioTaxReturns({ transactions, isLoading = false }: Props) 
         { label: "Realized gains", value: formatMoney(tax.totalGain, activeCurrency), note: "FIFO-matched disposals" },
         { label: "Short-term gains", value: formatMoney(tax.shortTermGain, activeCurrency), note: "Below holding threshold" },
         { label: "Long-term gains", value: formatMoney(tax.longTermGain, activeCurrency), note: "At / above holding threshold" },
-        { label: "Estimated CGT", value: jurisdiction === "CUSTOM" && !customRules ? "Configure rules" : formatMoney(tax.estimatedTaxDue, activeCurrency), note: "Indicative calculation" },
+        { label: "Estimated CGT", value: taxRulesAvailable ? formatMoney(tax.estimatedTaxDue, activeCurrency) : "Not configured", note: taxRulesAvailable ? "Indicative calculation" : "No verified rules for selected market" },
       ].map(item => <div key={item.label} className="rounded-xl border p-4" style={cardStyle}><p className="text-xs" style={subtle}>{item.label}</p><p className="tnum mt-2 text-xl font-semibold">{item.value}</p><p className="mt-1 text-[11px]" style={subtle}>{item.note}</p></div>)}
     </div>
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

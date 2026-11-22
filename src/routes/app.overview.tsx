@@ -44,7 +44,7 @@ import { PortfolioRiskSnapshot } from "@/components/portfolio/PortfolioRiskSnaps
 import { PortfolioAnalyticsLab } from "@/components/portfolio/PortfolioAnalyticsLab";
 import { PortfolioTaxReturns } from "@/components/portfolio/PortfolioTaxReturns";
 import { useLedgerContext } from "@/lib/use-ledger-context";
-import { currencyForExchange } from "@/lib/market-currency";
+import { currencyForExchange, exchangeInfo } from "@/lib/market-currency";
 import { FinancialHealthScore } from "@/components/intelligence/FinancialHealthScore";
 import { PriorityCard, PriorityCardSkeleton } from "@/components/intelligence/PriorityCard";
 import {
@@ -240,7 +240,8 @@ function MissionControl() {
   const reportingExchangeCounts = new Map<string, number>();
   for (const tx of reportingTransactions) reportingExchangeCounts.set(tx.exchange, (reportingExchangeCounts.get(tx.exchange) ?? 0) + 1);
   const reportingExchange = [...reportingExchangeCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
-  const reportingJurisdiction = reportingExchange === "PSX" ? "PSX" : reportingExchange === "NSE" ? "NSE" : "CUSTOM";
+  const reportingVenue = exchangeInfo(reportingExchange);
+  const reportingJurisdiction = reportingExchange === "PSX" || reportingVenue?.country === "Pakistan" ? "PSX" : reportingExchange === "NSE" || reportingVenue?.country === "India" ? "NSE" : "CUSTOM";
   const tax = computeTax(reportingTransactions, {
     jurisdiction: reportingJurisdiction,
     filerStatus: "Filer",
@@ -424,8 +425,8 @@ function MissionControl() {
           />
           <MetricCard
             label="Estimated Tax Liability"
-            value={reportingJurisdiction === "CUSTOM" ? "Configure tax rules" : `${currency} ${fmt(tax.estimatedTaxDue)}`}
-            sub={reportingJurisdiction === "CUSTOM" ? "Custom jurisdiction · set rates in Tax Center" : `FIFO · ${reportingJurisdiction} tax profile`}
+            value={reportingJurisdiction === "CUSTOM" ? "Tax profile needed" : `${currency} ${fmt(tax.estimatedTaxDue)}`}
+            sub={reportingJurisdiction === "CUSTOM" ? "Select your tax residence in Tax Center" : `Indicative FIFO estimate · ${reportingJurisdiction}; confirm tax residence`}
             tone="warn"
             i={3}
             askWhy="Why did my estimated tax change?"

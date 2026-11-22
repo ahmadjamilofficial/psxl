@@ -13,6 +13,7 @@ export const Route = createFileRoute("/api/market-data")({
           const interval = url.searchParams.get("interval") || "1d";
           if (!/^(?:\^)?[A-Z0-9][A-Z0-9.&_-]{0,19}$/.test(symbol) || !/^[A-Z0-9 _.-]{2,40}$/.test(exchange) || !["1d", "5d", "1mo", "3mo", "1y"].includes(range) || !["5m", "30m", "1d"].includes(interval)) return Response.json({ points: [], error: "Invalid ticker, exchange, range, or interval. Ticker must be a symbol, not a company name." }, { status: 400 });
           const ticker = normalizeMarketTicker(symbol, exchange);
+          if (!ticker) return Response.json({ points: [], error: "This exchange is recognized for ledger and currency tracking, but its quote-provider symbol mapping is not available yet. Choose the exact local exchange or enter a provider-ready symbol such as ABC.L." }, { status: 422 });
           const response = await fetch("https://query1.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(ticker) + "?interval=" + interval + "&range=" + range, { headers: { "User-Agent": "Mozilla/5.0" } });
           if (!response.ok) return Response.json({ points: [], error: `Market data provider returned HTTP ${response.status} for ${ticker}. The symbol may not be listed on the selected exchange or the provider may be unavailable.`, provider: "Yahoo Finance", requestedSymbol: symbol, providerSymbol: ticker }, { status: 502 });
           const data = await response.json();
@@ -136,6 +137,7 @@ async function fetchYahooPrices(
     const batch = unique.slice(i, i + batchSize);
     const results = await Promise.all(batch.map(async ({ ticker, exchange }) => {
       const providerSymbol = normalizeMarketTicker(ticker, exchange);
+      if (!providerSymbol) return null;
       const quote = await fetchYahooPrice(providerSymbol);
       if (!quote) return null;
       return {

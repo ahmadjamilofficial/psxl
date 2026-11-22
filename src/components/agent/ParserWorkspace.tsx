@@ -163,9 +163,9 @@ function ErrorBanner({
       title: "You've reached your daily AI limit",
       body:
         plan === "free"
-          ? `Your Basic plan includes ${AI_PLAN_DAILY_LIMITS["free"]} AI requests per day. Your limit resets on a rolling 24-hour window. Upgrade for more daily usage.`
+          ? `Your Basic plan has used its ${AI_PLAN_DAILY_LIMITS["free"]}-credit rolling 24-hour allowance. Upgrade to Standard for a larger allowance, or Pro for the highest daily limit. Your allowance refreshes as older usage leaves the 24-hour window.`
           : message,
-      cta: plan === "free" ? "Upgrade to Standard" : plan === "standard" ? "Upgrade to Pro" : "View plan & usage",
+      cta: plan === "free" ? "Upgrade to Standard" : plan === "standard" ? "Upgrade to Pro" : "View billing & usage",
       ctaLink: "/app/billing",
     },
     credits: {

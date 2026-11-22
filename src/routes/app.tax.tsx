@@ -36,6 +36,7 @@ function TaxCenter() {
   const [customShortTermRate, setCustomShortTermRate] = useState("");
   const [customLongTermRate, setCustomLongTermRate] = useState("");
   const [customLongTermDays, setCustomLongTermDays] = useState("365");
+  const [taxResidenceCountry, setTaxResidenceCountry] = useState("");
   const [customTaxProfileId, setCustomTaxProfileId] = useState<string | null>(null);
   const [customRatesLoading, setCustomRatesLoading] = useState(false);
   const [savingCustomRates, setSavingCustomRates] = useState(false);
@@ -67,6 +68,7 @@ function TaxCenter() {
         if (rules.short_term_rate_percent != null) setCustomShortTermRate(String(rules.short_term_rate_percent));
         if (rules.long_term_rate_percent != null) setCustomLongTermRate(String(rules.long_term_rate_percent));
         if (rules.long_term_days != null) setCustomLongTermDays(String(rules.long_term_days));
+        if (typeof rules.tax_residence_country === "string") setTaxResidenceCountry(rules.tax_residence_country);
         setCustomRatesMessage("Saved custom tax rules loaded.");
       }
       setCustomRatesLoading(false);
@@ -80,13 +82,14 @@ function TaxCenter() {
     const longRate = Number(customLongTermRate);
     const longDays = Number(customLongTermDays);
     if (
+      taxResidenceCountry.trim() === "" ||
       customShortTermRate.trim() === "" ||
       customLongTermRate.trim() === "" ||
       !Number.isFinite(shortRate) || shortRate < 0 || shortRate > 100 ||
       !Number.isFinite(longRate) || longRate < 0 || longRate > 100 ||
       !Number.isInteger(longDays) || longDays < 1 || longDays > 3650
     ) {
-      setCustomRatesMessage("Enter valid CGT rates from 0–100% and a holding period from 1–3650 days.");
+      setCustomRatesMessage("Select your tax residence, enter CGT rates from 0–100%, and set a holding period from 1–3650 days.");
       return;
     }
 
@@ -96,6 +99,8 @@ function TaxCenter() {
       short_term_rate_percent: shortRate,
       long_term_rate_percent: longRate,
       long_term_days: longDays,
+      tax_residence_country: taxResidenceCountry.trim(),
+      rules_source: "user_configured",
     };
     try {
       if (customTaxProfileId) {
@@ -136,7 +141,7 @@ function TaxCenter() {
   const transactionYears = [...new Set(taxTransactions.map((transaction) => transaction.trade_date.slice(0, 4)).filter(Boolean))].sort((a, b) => Number(b) - Number(a));
   const defaultTaxYear = transactionYears[0] ?? currentYear;
   const activeYear = taxYear ?? defaultTaxYear;
-  const customRatesConfigured = activeJurisdiction !== "CUSTOM" || (customShortTermRate.trim() !== "" && customLongTermRate.trim() !== "" && Number.isFinite(Number(customShortTermRate)) && Number.isFinite(Number(customLongTermRate)) && Number(customShortTermRate) >= 0 && Number(customShortTermRate) <= 100 && Number(customLongTermRate) >= 0 && Number(customLongTermRate) <= 100);
+  const customRatesConfigured = activeJurisdiction !== "CUSTOM" || (taxResidenceCountry.trim() !== "" && customShortTermRate.trim() !== "" && customLongTermRate.trim() !== "" && Number.isFinite(Number(customShortTermRate)) && Number.isFinite(Number(customLongTermRate)) && Number(customShortTermRate) >= 0 && Number(customShortTermRate) <= 100 && Number(customLongTermRate) >= 0 && Number(customLongTermRate) <= 100);
   const availableTaxYears = [...new Set([currentYear, ...transactionYears])].sort((a, b) => Number(b) - Number(a));
 
   const tax = computeTax(taxTransactions, {
@@ -207,7 +212,7 @@ function TaxCenter() {
           {detectedJ === "PSX" ? "Pakistan · PSX market detected" : detectedJ === "NSE" ? "India · NSE market detected" : "Market not yet supported for automatic tax rules"}
         </p>
         <p className="mt-1 text-xs leading-relaxed">
-          Your market is inferred from imported trades. Your tax residence can be different from the exchange country, so confirm the correct tax jurisdiction before using an estimate. Automatic rule sets are currently limited to PSX and NSE; other markets need verified local rules or a custom profile.
+          Exchange recognition and tax residence are separate. Confirm your tax residence before using an estimate. PSX/NSE figures use legacy indicative schedules and are not filing-grade; other jurisdictions require user-configured rates until official rules are implemented and tested.
         </p>
       </div>
 
@@ -237,7 +242,7 @@ function TaxCenter() {
           </div>
           <div>
             <label className="mb-1.5 block text-xs font-medium" style={{ color: "var(--ink-2)" }}>
-              Tax rule set / market
+              Tax rule set
             </label>
             <select
               value={activeJurisdiction}
@@ -247,7 +252,7 @@ function TaxCenter() {
             >
               <option value="PSX">PSX — Pakistan</option>
               <option value="NSE">NSE — India</option>
-              <option value="CUSTOM">Other market — configure custom rules</option>
+              <option value="CUSTOM">Custom rules — other jurisdiction</option>
             </select>
           </div>
           {activeJurisdiction === "PSX" && (
@@ -267,20 +272,27 @@ function TaxCenter() {
             </div>
           )}
           {activeJurisdiction === "CUSTOM" && (
-            <div className="grid min-w-[260px] flex-1 gap-3 sm:grid-cols-3">
+            <div className="grid min-w-[260px] flex-1 gap-3 sm:grid-cols-2">
               <label className="text-xs font-medium" style={{ color: "var(--ink-2)" }}>
-                Short-term CGT % (local rule)
+                Tax residence country
+                <select value={taxResidenceCountry} onChange={(e) => setTaxResidenceCountry(e.target.value)} className="mt-1 w-full rounded-[10px] border bg-surface px-3 py-2.5 text-sm" style={{ borderColor: "var(--hairline)" }}>
+                  <option value="">Select country</option>
+                  {["Australia","Canada","Germany","Hong Kong","India","Japan","New Zealand","Pakistan","Singapore","South Africa","Switzerland","United Arab Emirates","United Kingdom","United States","Other"].map((country) => <option key={country} value={country}>{country}</option>)}
+                </select>
+              </label>
+              <label className="text-xs font-medium" style={{ color: "var(--ink-2)" }}>
+                Short-term CGT % (your configured rule)
                 <input type="number" min="0" max="100" step="0.1" value={customShortTermRate} onChange={(e) => setCustomShortTermRate(e.target.value)} className="mt-1 w-full rounded-[10px] border bg-surface px-3 py-2.5 text-sm" style={{ borderColor: "var(--hairline)" }} />
               </label>
               <label className="text-xs font-medium" style={{ color: "var(--ink-2)" }}>
-                Long-term CGT % (local rule)
+                Long-term CGT % (your configured rule)
                 <input type="number" min="0" max="100" step="0.1" value={customLongTermRate} onChange={(e) => setCustomLongTermRate(e.target.value)} className="mt-1 w-full rounded-[10px] border bg-surface px-3 py-2.5 text-sm" style={{ borderColor: "var(--hairline)" }} />
               </label>
               <label className="text-xs font-medium" style={{ color: "var(--ink-2)" }}>
-                Long-term after (days)
+                Long-term holding threshold (days)
                 <input type="number" min="1" max="3650" step="1" value={customLongTermDays} onChange={(e) => setCustomLongTermDays(e.target.value)} className="mt-1 w-full rounded-[10px] border bg-surface px-3 py-2.5 text-sm" style={{ borderColor: "var(--hairline)" }} />
               </label>
-              <div className="flex flex-wrap items-center gap-3 sm:col-span-3">
+              <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
                 <Btn onClick={saveCustomTaxRules} disabled={savingCustomRates || customRatesLoading}>
                   {savingCustomRates ? "Saving rules…" : customRatesLoading ? "Loading saved rules…" : "Save custom tax rules"}
                 </Btn>
@@ -297,18 +309,19 @@ function TaxCenter() {
               const rows = [
                 [brandText("{{brand}} Tax Report"), "Value"],
                 ["Tax year", activeYear],
-                ["Jurisdiction", activeJurisdiction],
+                ["Tax rule set", activeJurisdiction],
+                ["Tax residence country", taxResidenceCountry || "Not supplied"],
                 ["Filer status", filerStatus],
                 ["Currency", currency],
                 ["Short-term gain", tax.shortTermGain],
                 ["Long-term gain", tax.longTermGain],
                 ["Total gain", tax.totalGain],
                 ["Dividend withholding tax", tax.dividendWHT],
-                ["Estimated tax due", tax.estimatedTaxDue],
+                ["Estimated tax due", customRatesConfigured ? tax.estimatedTaxDue : "Not configured"],
                 ["Computed at", tax.computedAt],
                 [],
-                ["Ticker", "Exchange", "Buy date", "Sell date", "Quantity", "Cost basis", "Sale price", "Holding days", "Gain", "Tax rate", "Tax due"],
-                ...tax.lots.map((lot) => [lot.ticker, lot.exchange, lot.buyDate, lot.sellDate, lot.quantity, lot.costBasis, lot.salePrice, lot.holdingDays, lot.gain, lot.taxRate, lot.taxDue]),
+                ["Ticker", "Exchange", "Currency", "Buy date", "Sell date", "Quantity", "Cost basis", "Sale price", "Holding days", "Gain", "Tax rate", "Tax due"],
+                ...tax.lots.map((lot) => [lot.ticker, lot.exchange, activeCurrency, lot.buyDate, lot.sellDate, lot.quantity, lot.costBasis, lot.salePrice, lot.holdingDays, lot.gain, customRatesConfigured ? lot.taxRate : "N/A", customRatesConfigured ? lot.taxDue : "N/A"]),
               ];
               const csv = rows.map((row) => row.map((cell) => {
                 const value = String(cell ?? "");
@@ -357,8 +370,8 @@ function TaxCenter() {
           },
           {
             label: "Estimated Tax Due",
-            value: customRatesConfigured ? `${currency} ${fmt(tax.estimatedTaxDue)}` : "Configure rates",
-            sublabel: customRatesConfigured ? "FIFO · deterministic estimate" : "No tax estimate until rates are entered",
+            value: customRatesConfigured ? `${currency} ${fmt(tax.estimatedTaxDue)}` : "Tax profile needed",
+            sublabel: activeJurisdiction === "CUSTOM" ? (customRatesConfigured ? "User-configured rates · indicative" : "Set residence and rates") : "Legacy indicative schedule · verify before filing",
             tone: "warn" as const,
             i: 3,
           },
@@ -461,6 +474,7 @@ function TaxCenter() {
                   {[
                     "Ticker",
                     "Exchange",
+                    "Currency",
                     "Buy date",
                     "Sell date",
                     "Qty",
@@ -490,6 +504,7 @@ function TaxCenter() {
                   >
                     <td className="px-3 py-3 text-sm font-semibold">{lot.ticker}</td>
                     <td className="px-3 py-3 text-xs" style={{ color: "var(--ink-3)" }}>{lot.exchange}</td>
+                    <td className="px-3 py-3 text-xs">{activeCurrency}</td>
                     <td className="px-3 py-3 text-xs" style={{ color: "var(--ink-2)" }}>
                       {lot.buyDate}
                     </td>
@@ -512,13 +527,13 @@ function TaxCenter() {
                       {fmt(lot.gain)}
                     </td>
                     <td className="tnum px-3 py-3 text-sm" style={{ color: "var(--ink-2)" }}>
-                      {activeJurisdiction === "CUSTOM" && !customRatesConfigured ? "—" : `${(lot.taxRate * 100).toFixed(1)}%`}
+                      {!customRatesConfigured ? "—" : `${(lot.taxRate * 100).toFixed(1)}%`}
                     </td>
                     <td
                       className="tnum px-3 py-3 text-sm font-medium"
                       style={{ color: "var(--color-accent)" }}
                     >
-                      {activeJurisdiction === "CUSTOM" && !customRatesConfigured ? "—" : fmt(lot.taxDue)}
+                      {!customRatesConfigured ? "—" : fmt(lot.taxDue)}
                     </td>
                   </tr>
                 ))}
@@ -607,8 +622,7 @@ function TaxCenter() {
           style={{ color: "var(--info)", marginTop: 2, flexShrink: 0 }}
         />
         <p style={{ color: "var(--ink-2)" }}>
-          <strong>Not tax or legal advice.</strong> These calculations are indicative only and based
-          on the data you have uploaded. Always consult a qualified tax professional before filing.
+          <strong>Not tax or legal advice.</strong> These calculations are indicative only. Custom rates are supplied by your organisation; PSX/NSE schedules are legacy approximations and may omit statutory conditions. Confirm residence, security type, exemptions and current law with a qualified tax professional before filing.
         </p>
       </div>
     </div>

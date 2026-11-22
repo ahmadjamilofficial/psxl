@@ -89,15 +89,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
 
       // ── Primary SEO ──────────────────────────────────────────────────────
-      { title: brandText("{{brand}} — AI-Native Financial Audit & Compliance for PSX, NSE Traders") },
+      { title: brandText("{{brand}} — Global Portfolio Ledger, Broker Reconciliation & Trade Audits") },
       {
         name: "description",
         content:
-          brandText("{{brand}} helps stock traders reconcile broker statements, audit trades, track fees and withholding tax, and calculate traceable FIFO capital gains for supported PSX (Pakistan) and NSE (India) workflows. Start free with 30 parsed transactions per month."),
+          brandText("{{brand}} helps investors track multi-exchange portfolios, reconcile broker statements, audit trades, and calculate traceable FIFO gains. Currency-aware ledger tools support global exchange workflows; tax estimates are limited to explicitly supported or user-configured profiles. Start free with 30 parsed transactions per month."),
       },
       { name: "author", content: brandText("{{brand}}") },
       { name: "robots", content: "index, follow, max-image-preview:large" },
-      { name: "keywords", content: "PSXL, broker statement reconciliation, stock trade reconciliation software, broker contract note parser, PSX tax calculator, Pakistan capital gains tax, India stock tax calculator, NSE FIFO capital gains, trade audit trail, portfolio ledger" },
+      { name: "keywords", content: "global portfolio ledger, multi-currency stock portfolio, broker statement reconciliation, stock trade reconciliation software, broker contract note parser, PSX tax calculator, Pakistan capital gains tax, India stock tax calculator, NSE FIFO capital gains, trade audit trail, portfolio ledger" },
       {
         name: "googlebot",
         content: "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
@@ -110,12 +110,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:site_name", content: brandText("{{brand}}") },
       {
         property: "og:title",
-        content: brandText("{{brand}} — AI-Native Trade Reconciliation & CGT Engine for PSX & NSE"),
+        content: brandText("{{brand}} — Global Portfolio Ledger & AI Trade Reconciliation"),
       },
       {
         property: "og:description",
         content:
-          brandText("Replace hours of manual ledger work with {{brand}}. Upload any PSX or NSE broker slip — AI extracts every field, FIFO math computes your CGT, and an immutable audit trail keeps you filing-ready."),
+          brandText("Replace hours of manual ledger work with {{brand}}. Track multi-exchange holdings and currencies, import broker statements, reconcile trades, and review traceable FIFO calculations with an immutable audit trail."),
       },
       { property: "og:locale", content: "en_US" },
       { property: "og:image", content: "https://psxl.live/favicon.png" },
@@ -128,7 +128,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "twitter:description",
         content:
-          "Upload your PSX/NSE broker slips. AI extracts the data, FIFO math computes your capital gains tax, and an immutable audit trail keeps you filing-ready.",
+          "Track global exchange holdings, import broker statements, reconcile trades, and review currency-aware FIFO calculations with an immutable audit trail.",
       },
 
       // ── App/ / Mobile ─────────────────────────────────────────────────────
@@ -181,7 +181,7 @@ function RootShell({ children }: { children: ReactNode }) {
         applicationCategory: "FinanceApplication",
         operatingSystem: "Web",
         description:
-          "Financial record parsing, trade reconciliation, discrepancy detection, and deterministic FIFO capital-gains calculations for supported PSX and NSE workflows.",
+          "Multi-exchange portfolio tracking, broker record parsing, trade reconciliation, discrepancy detection, and currency-aware FIFO calculations. Tax rules are explicitly limited to supported or user-configured profiles.",
         offers: [
           {
             "@type": "Offer",
@@ -209,7 +209,8 @@ function RootShell({ children }: { children: ReactNode }) {
         ],
         featureList: [
           "Multimodal trade confirmation parser (PDF, image, CSV)",
-          "FIFO capital gains tax computation for PSX and NSE",
+          "Currency-aware FIFO lot matching across supported exchanges",
+          "Tax calculations for supported or user-configured profiles",
           "Traceable audit history",
           "AI anomaly detection and reconciliation",
           "Tax-loss harvesting suggestions",
@@ -229,7 +230,7 @@ function RootShell({ children }: { children: ReactNode }) {
         "@id": "https://psxl.live/#website",
         url: "https://psxl.live",
         name: brandText("{{brand}}"),
-        description: "Broker Statement Reconciliation, Trade Audits & FIFO Tax Tools for PSX and NSE",
+        description: "Global Portfolio Ledger, Broker Statement Reconciliation & Trade Audits",
         publisher: { "@id": "https://psxl.live/#org" },
       },
     ],

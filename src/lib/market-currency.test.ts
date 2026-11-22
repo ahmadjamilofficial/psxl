@@ -16,11 +16,15 @@ describe("global exchange directory", () => {
     expect(currencyForExchange("XHKG")).toBe("HKD");
     expect(currencyForExchange("XSHG")).toBe("CNY");
     expect(currencyForExchange("XSAU")).toBe("SAR");
+    expect(currencyForExchange("XCAS")).toBe("MAD");
+    expect(currencyForExchange("XLIM")).toBe("PEN");
+    expect(currencyForExchange("XBKK")).toBe("THB");
   });
 
   it("returns market metadata for normalized exchange codes", () => {
     expect(exchangeInfo("  xnas ")?.name).toBe("Nasdaq");
     expect(exchangeInfo("PSX")?.country).toBe("Pakistan");
+    expect(currencyForExchange("KSE")).toBe("PKR"); // legacy Karachi Stock Exchange alias
     expect(exchangeInfo("CNSX")?.currency).toBe("CAD");
     expect(exchangeInfo("CSE")?.country).toBe("Sri Lanka");
   });

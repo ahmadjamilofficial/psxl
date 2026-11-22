@@ -22,7 +22,7 @@ function downloadTaxReturn(filename: string, rows: unknown[][]) {
 
 export function PortfolioTaxReturns({ transactions, isLoading = false }: Props) {
   const { profile } = useAuth();
-  const [customRules, setCustomRules] = useState<{ short: number; long: number; days: number } | null>(null);
+  const [customRules, setCustomRules] = useState<{ short: number; long: number; days: number; country: string } | null>(null);
   const [customRulesLoading, setCustomRulesLoading] = useState(false);
   useEffect(() => {
     if (!profile?.org_id) return;
@@ -34,7 +34,8 @@ export function PortfolioTaxReturns({ transactions, isLoading = false }: Props) 
       const short = Number(rules.short_term_rate_percent);
       const long = Number(rules.long_term_rate_percent);
       const days = Number(rules.long_term_days);
-      setCustomRules(Number.isFinite(short) && Number.isFinite(long) && Number.isInteger(days) && short >= 0 && short <= 100 && long >= 0 && long <= 100 && days >= 1 ? { short, long, days } : null);
+      const country = typeof rules.tax_residence_country === "string" ? rules.tax_residence_country.trim() : "";
+      setCustomRules(Number.isFinite(short) && Number.isFinite(long) && Number.isInteger(days) && short >= 0 && short <= 100 && long >= 0 && long <= 100 && days >= 1 && country.length > 0 ? { short, long, days, country } : null);
       setCustomRulesLoading(false);
     }).catch(() => { if (!cancelled) { setCustomRules(null); setCustomRulesLoading(false); } });
     return () => { cancelled = true; };
@@ -108,7 +109,7 @@ export function PortfolioTaxReturns({ transactions, isLoading = false }: Props) 
       <label className="text-xs font-medium" style={muted}>Currency<select value={activeCurrency} onChange={e => setCurrency(e.target.value)} className="mt-1.5 w-full rounded-xl border bg-transparent px-3 py-2.5 text-sm" style={{ borderColor: "var(--hairline)", color: "var(--color-text)" }}>{(currencies.length ? currencies : [activeCurrency]).map(c => <option key={c} value={c}>{c}</option>)}</select></label>
     </div>
     {jurisdiction === "CUSTOM" && <div className="rounded-xl border p-3 text-xs" style={{ borderColor: "var(--hairline)", ...muted }}>
-      {customRulesLoading ? "Checking saved custom rules…" : customRules ? `Using your saved custom rates: short-term ${customRules.short}%, long-term ${customRules.long}%, threshold ${customRules.days} days.` : <>No verified automatic tax profile is available for {currencyExchanges.length ? currencyExchanges.map(code => exchangeInfo(code)?.name ?? code).join(", ") : "this market"}. Set your tax residence and a supported tax profile in <Link to="/app/tax" className="font-semibold underline" style={{ color: "var(--color-accent)" }}>Tax Center</Link>. FIFO gains remain available; tax estimates stay disabled until a profile is saved.</>}
+      {customRulesLoading ? "Checking saved custom rules…" : customRules ? `Using your organisation’s user-configured ${customRules.country} rates: short-term ${customRules.short}%, long-term ${customRules.long}%, threshold ${customRules.days} days. This is an indicative custom profile, not an official PSXL tax preset.` : <>No verified automatic tax profile is available for {currencyExchanges.length ? currencyExchanges.map(code => exchangeInfo(code)?.name ?? code).join(", ") : "this market"}. Set your tax residence and a supported tax profile in <Link to="/app/tax" className="font-semibold underline" style={{ color: "var(--color-accent)" }}>Tax Center</Link>. FIFO gains remain available; tax estimates stay disabled until a profile is saved.</>}
     </div>}
     {jurisdiction === "PSX" && <div className="flex flex-wrap items-center gap-3 text-xs" style={muted}><span>Filer status</span><div className="flex rounded-lg border p-0.5" style={{ borderColor: "var(--hairline)" }}>{(["Filer", "Non-Filer"] as const).map(status => <button key={status} type="button" onClick={() => setFilerStatus(status)} className="rounded-md px-3 py-1.5 font-semibold" style={{ background: filerStatus === status ? "var(--sidebar-accent)" : "transparent", color: filerStatus === status ? "var(--color-text)" : "var(--ink-3)" }}>{status}</button>)}</div></div>}
     <div className="rounded-xl border p-3" style={{ borderColor: "var(--hairline)", background: "var(--color-login-bg)" }}>

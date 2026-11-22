@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { currencyForExchange, exchangeInfo, SUPPORTED_EXCHANGES } from "./market-currency";
+import { currencyForExchange, exchangeCurrency, exchangeInfo, normalizeMarketTicker, SUPPORTED_EXCHANGES } from "./market-currency";
 
 describe("global exchange directory", () => {
   it("includes major exchanges across all regions", () => {
@@ -27,6 +27,24 @@ describe("global exchange directory", () => {
     expect(currencyForExchange("KSE")).toBe("PKR"); // legacy Karachi Stock Exchange alias
     expect(exchangeInfo("CNSX")?.currency).toBe("CAD");
     expect(exchangeInfo("CSE")?.country).toBe("Sri Lanka");
+  });
+
+  it("normalizes common international tickers for the quote provider", () => {
+    expect(normalizeMarketTicker("OGDC", "PSX")).toBe("OGDC.KAR");
+    expect(normalizeMarketTicker("RELIANCE", "NSE")).toBe("RELIANCE.NS");
+    expect(normalizeMarketTicker("VOD", "LSE")).toBe("VOD.L");
+    expect(normalizeMarketTicker("SHOP", "TSX")).toBe("SHOP.TO");
+    expect(normalizeMarketTicker("BHP", "ASX")).toBe("BHP.AX");
+    expect(normalizeMarketTicker("0700", "HKEX")).toBe("0700.HK");
+    expect(normalizeMarketTicker("7203", "TSE")).toBe("7203.T");
+    expect(normalizeMarketTicker("005930", "KRX")).toBe("005930.KS");
+    expect(normalizeMarketTicker("SAP", "XETRA")).toBe("SAP.DE");
+    expect(normalizeMarketTicker("AAPL", "NYSE")).toBe("AAPL");
+    expect(normalizeMarketTicker("VOD.L", "LSE")).toBe("VOD.L");
+  });
+
+  it("does not pretend an unknown exchange has a verified currency", () => {
+    expect(exchangeCurrency("UNKNOWN")).toBeNull();
   });
 
   it("keeps unknown exchanges safe with a fallback currency", () => {

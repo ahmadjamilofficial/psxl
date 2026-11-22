@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { exchangeCurrency } from "@/lib/market-currency";
 import { ASSISTANT_NAME, BRAND_NAME, brandText } from "@/lib/brand";
 import {
   convertToModelMessages,
@@ -266,6 +267,7 @@ function asTransaction(row: {
   status: string;
   broker: string;
   exchange: string;
+  currency?: string | null;
 }): Transaction {
   return {
     id: row.id,
@@ -280,7 +282,8 @@ function asTransaction(row: {
     confidence_score: Number(row.confidence_score ?? 0),
     status: row.status as Transaction["status"],
     broker: row.broker,
-    exchange: row.exchange === "NSE" ? "NSE" : "PSX",
+    exchange: row.exchange,
+    currency: row.currency ?? exchangeCurrency(row.exchange) ?? undefined,
   };
 }
 
@@ -896,7 +899,7 @@ export const Route = createFileRoute("/api/chat")({
                 let query = supabase
                   .from("transactions")
                   .select(
-                    "id,ticker,action,quantity,price,fees,wht,trade_date,ref_id,broker,exchange,status,confidence_score",
+                    "id,ticker,action,quantity,price,fees,wht,trade_date,ref_id,broker,exchange,currency,status,confidence_score",
                   )
                   .eq("org_id", thread.org_id)
                   .order("trade_date", { ascending: false })
@@ -956,7 +959,7 @@ export const Route = createFileRoute("/api/chat")({
                 let query = supabase
                   .from("transactions")
                   .select(
-                    "id,ticker,action,quantity,price,fees,wht,trade_date,ref_id,broker,exchange,status",
+                    "id,ticker,action,quantity,price,fees,wht,trade_date,ref_id,broker,exchange,currency,status",
                   )
                   .eq("org_id", thread.org_id)
                   .order("trade_date", { ascending: false })
@@ -1027,6 +1030,7 @@ export const Route = createFileRoute("/api/chat")({
                 ref_id: z.string().nullable(),
                 broker: z.string().nullable(),
                 exchange: z.string().nullable(),
+                currency: z.string().nullable().optional(),
                 confidence_score: z.number().min(0).max(1).optional(),
               }),
               execute: async (input) => {
@@ -1069,6 +1073,7 @@ export const Route = createFileRoute("/api/chat")({
                   ref_id: input.ref_id ?? "",
                   broker: input.broker ?? "",
                   exchange: input.exchange ?? "PSX",
+                  currency: input.currency ?? exchangeCurrency(input.exchange ?? "PSX") ?? "USD",
                   confidence_score: confidence,
                   status: (confidence >= 0.75 ? "posted" : "needs_review") as
                     "posted" | "needs_review",

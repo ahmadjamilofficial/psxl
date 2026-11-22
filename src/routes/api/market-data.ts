@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { normalizeMarketTicker } from "@/lib/market-currency";
 
 export const Route = createFileRoute("/api/market-data")({
   server: {
@@ -11,7 +12,7 @@ export const Route = createFileRoute("/api/market-data")({
           const range = url.searchParams.get("range") || "1mo";
           const interval = url.searchParams.get("interval") || "1d";
           if (!/^(?:\^)?[A-Z0-9][A-Z0-9.&_-]{0,19}$/.test(symbol) || !/^[A-Z0-9_-]{2,16}$/.test(exchange) || !["1d", "5d", "1mo", "3mo", "1y"].includes(range) || !["5m", "30m", "1d"].includes(interval)) return Response.json({ points: [], error: "Invalid ticker, exchange, range, or interval. Ticker must be a symbol, not a company name." }, { status: 400 });
-          const ticker = normalizeTicker(symbol, exchange);
+          const ticker = normalizeMarketTicker(symbol, exchange);
           const response = await fetch("https://query1.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(ticker) + "?interval=" + interval + "&range=" + range, { headers: { "User-Agent": "Mozilla/5.0" } });
           if (!response.ok) return Response.json({ points: [], error: `Market data provider returned HTTP ${response.status} for ${ticker}. The symbol may not be listed on the selected exchange or the provider may be unavailable.`, provider: "Yahoo Finance", requestedSymbol: symbol, providerSymbol: ticker }, { status: 502 });
           const data = await response.json();
@@ -28,16 +29,28 @@ export const Route = createFileRoute("/api/market-data")({
       },
       POST: async ({ request }) => {
         try {
-          const body = (await request.json()) as {
-            tickers: Array<{ ticker: string; exchange: string }>;
-          };
-          const tickers = body.tickers || [];
-
+          const body = (await request.json().catch(() => null)) as {
+            tickers?: Array<{ ticker?: string; exchange?: string }>;
+          } | null;
+          if (!body || !Array.isArray(body.tickers)) {
+            return Response.json({ prices: [], error: "Provide a tickers array." }, { status: 400 });
+          }
+          if (body.tickers.length > 50) {
+            return Response.json({ prices: [], error: "Request up to 50 symbols at a time." }, { status: 400 });
+          }
+          const tickers = body.tickers
+            .filter((item): item is { ticker: string; exchange: string } =>
+              typeof item?.ticker === "string" &&
+              typeof item?.exchange === "string" &&
+              /^(?:\\^)?[A-Z0-9][A-Z0-9.&_=-]{0,19}$/i.test(item.ticker.trim()) &&
+              /^[A-Z0-9_-]{2,16}$/i.test(item.exchange.trim()),
+            )
+            .map((item) => ({ ticker: item.ticker.trim().toUpperCase(), exchange: item.exchange.trim().toUpperCase() }));
+          if (tickers.length !== body.tickers.length) {
+            return Response.json({ prices: [], error: "One or more symbols or exchange codes are invalid." }, { status: 400 });
+          }
           const prices = await fetchYahooPrices(tickers);
-
-          return new Response(JSON.stringify({ prices }), {
-            headers: { "Content-Type": "application/json" },
-          });
+          return Response.json({ prices, requested: tickers.length, returned: prices.length });
         } catch (error) {
           return new Response(JSON.stringify({ prices: [] }), {
             status: 500,
@@ -109,23 +122,6 @@ async function fetchYahooPrice(ticker: string): Promise<TickerQuote | null> {
   }
 }
 
-// ─── Normalize ticker symbols for Yahoo Finance ─────────────────────────────
-
-function normalizeTicker(ticker: string, exchange: string): string {
-  // A Yahoo Finance symbol can be supplied directly (for example VOD.L or 0700.HK).
-  if (ticker.includes(".") || ticker.startsWith("^") || ticker.startsWith("=")) return ticker;
-  const suffixByExchange: Record<string, string> = {
-    PSX: ".KAR", KSE: ".KAR", NSE: ".NS", BSE: ".BO",
-    LSE: ".L", LONDON: ".L", TSX: ".TO", TSXV: ".V",
-    ASX: ".AX", HKEX: ".HK", TSE: ".T", JPX: ".T",
-    KRX: ".KS", SGX: ".SI", SIX: ".SW", SWX: ".SW",
-    FRA: ".F", XETRA: ".DE", EURONEXT: ".PA",
-  };
-  const suffix = suffixByExchange[exchange.toUpperCase()];
-  // US listings and unrecognised markets use the symbol as supplied.
-  return suffix ? ticker + suffix : ticker;
-}
-
 // ─── Fetch multiple ticker prices (batched) ─────────────────────────────────
 
 async function fetchYahooPrices(
@@ -133,28 +129,27 @@ async function fetchYahooPrices(
 ): Promise<MarketPrice[]> {
   const prices: MarketPrice[] = [];
 
-  for (const { ticker, exchange } of tickers) {
-    const normalized = normalizeTicker(ticker, exchange);
-    const quote = await fetchYahooPrice(normalized);
-
-    if (quote) {
-      const currency = quote.currency || "USD";
-      const marketPrice: MarketPrice = {
+  // Bound concurrency: parallelize across symbols without flooding the quote provider.
+  const unique = [...new Map(tickers.map((item) => [`${item.exchange}:${item.ticker}`, item])).values()];
+  const batchSize = 6;
+  for (let i = 0; i < unique.length; i += batchSize) {
+    const batch = unique.slice(i, i + batchSize);
+    const results = await Promise.all(batch.map(async ({ ticker, exchange }) => {
+      const providerSymbol = normalizeMarketTicker(ticker, exchange);
+      const quote = await fetchYahooPrice(providerSymbol);
+      if (!quote) return null;
+      return {
         ticker,
         exchange,
         price: quote.regularMarketPrice,
         change: quote.regularMarketChange,
         changePercent: quote.regularMarketChangePercent,
-        currency,
+        // Prefer the provider's instrument currency over a guessed exchange default.
+        currency: quote.currency || "USD",
         lastUpdated: new Date().toISOString(),
-      };
-
-      prices.push(marketPrice);
-    }
-
-    // Add small delay between requests to avoid rate limiting
-    await new Promise((resolve) => setTimeout(resolve, 100));
+      } satisfies MarketPrice;
+    }));
+    prices.push(...results.filter((item): item is MarketPrice => item !== null));
   }
-
   return prices;
 }

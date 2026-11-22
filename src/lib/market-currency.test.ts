@@ -23,6 +23,7 @@ describe("global exchange directory", () => {
 
   it("returns market metadata for normalized exchange codes", () => {
     expect(exchangeInfo("  xnas ")?.name).toBe("Nasdaq");
+    expect(exchangeInfo("Bursa Malaysia")?.code).toBe("MYX");
     expect(exchangeInfo("PSX")?.country).toBe("Pakistan");
     expect(currencyForExchange("KSE")).toBe("PKR"); // legacy Karachi Stock Exchange alias
     expect(exchangeInfo("CNSX")?.currency).toBe("CAD");
@@ -41,6 +42,9 @@ describe("global exchange directory", () => {
     expect(normalizeMarketTicker("SAP", "XETRA")).toBe("SAP.DE");
     expect(normalizeMarketTicker("AAPL", "NYSE")).toBe("AAPL");
     expect(normalizeMarketTicker("VOD.L", "LSE")).toBe("VOD.L");
+    expect(normalizeMarketTicker("PETR4", "Bovespa")).toBe("PETR4.SA");
+    expect(normalizeMarketTicker("MAYBANK", "Bursa Malaysia")).toBe("MAYBANK.KL");
+    expect(normalizeMarketTicker("SHOP", "NYSE")).toBe("SHOP");
   });
 
   it("does not pretend an unknown exchange has a verified currency", () => {

@@ -61,8 +61,10 @@ export function PortfolioTaxReturns({ transactions, isLoading = false }: Props) 
       ? "NSE"
       : null;
   useEffect(() => {
-    if (!jurisdictionTouched && suggestedJurisdiction) setJurisdiction(suggestedJurisdiction);
-  }, [suggestedJurisdiction, jurisdictionTouched]);
+    if (jurisdictionTouched) return;
+    if (suggestedJurisdiction) setJurisdiction(suggestedJurisdiction);
+    else if (customRules) setJurisdiction("CUSTOM");
+  }, [suggestedJurisdiction, customRules, jurisdictionTouched]);
   const taxRulesAvailable = jurisdiction === "PSX" || jurisdiction === "NSE" || Boolean(customRules);
   const yearRecords = useMemo(() => transactions.filter(t => t.trade_date.startsWith(activeYear) && (t.currency ?? currencyForExchange(t.exchange)) === activeCurrency), [transactions, activeYear, activeCurrency]);
   const posted = useMemo(() => transactions.filter(t => t.status === "posted" && (t.currency ?? currencyForExchange(t.exchange)) === activeCurrency), [transactions, activeCurrency]);

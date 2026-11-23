@@ -4,6 +4,7 @@ import { brandText } from "@/lib/brand";
 // Every number is deterministic. AI only explains.
 
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
@@ -31,6 +32,7 @@ import {
 } from "recharts";
 import { reveal, Panel } from "@/components/kit";
 import { useAuth } from "@/lib/auth-context";
+import { supabase } from "@/lib/supabase";
 import { useTransactions, useReconciliationFlags } from "@/lib/data-hooks";
 import { computeTax } from "@/lib/tax";
 import {
@@ -233,6 +235,42 @@ function FoundSomethingSection({
 function MissionControl() {
   const { profile } = useAuth();
   const { jurisdiction: detectedJurisdiction, currency: ledgerCurrency } = useLedgerContext();
+  const [savedCustomTaxRules, setSavedCustomTaxRules] = useState<{ short: number; long: number; days: number; country: string } | null>(null);
+
+  useEffect(() => {
+    if (!profile?.org_id) {
+      setSavedCustomTaxRules(null);
+      return;
+    }
+    let cancelled = false;
+    void supabase
+      .from("tax_profiles")
+      .select("cgt_rules")
+      .eq("org_id", profile.org_id)
+      .eq("jurisdiction", "CUSTOM")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error || !data?.cgt_rules) {
+          setSavedCustomTaxRules(null);
+          return;
+        }
+        const rules = data.cgt_rules as Record<string, unknown>;
+        const short = Number(rules.short_term_rate_percent);
+        const long = Number(rules.long_term_rate_percent);
+        const days = Number(rules.long_term_days);
+        const country = typeof rules.tax_residence_country === "string" ? rules.tax_residence_country.trim() : "";
+        setSavedCustomTaxRules(
+          Number.isFinite(short) && Number.isFinite(long) && Number.isInteger(days) &&
+          short >= 0 && short <= 100 && long >= 0 && long <= 100 && days >= 1 && country.length > 0
+            ? { short, long, days, country }
+            : null,
+        );
+      });
+    return () => { cancelled = true; };
+  }, [profile?.org_id]);
 
   const { data: transactions = [], isLoading: txLoading } = useTransactions(profile?.org_id);
   const { data: flags = [] } = useReconciliationFlags(profile?.org_id);
@@ -255,7 +293,11 @@ function MissionControl() {
     jurisdiction: reportingJurisdiction,
     filerStatus: "Filer",
     taxYear: currentYear,
+    customShortTermRate: (savedCustomTaxRules?.short ?? 0) / 100,
+    customLongTermRate: (savedCustomTaxRules?.long ?? 0) / 100,
+    customLongTermDays: savedCustomTaxRules?.days ?? 365,
   });
+  const taxProfileNeeded = reportingJurisdiction === "CUSTOM" && !savedCustomTaxRules;
   const unreconciledCount = transactions.filter((t) => t.status === "needs_review").length;
 
   const totalPortfolioValue = summary?.totalValue ?? 0;
@@ -434,13 +476,13 @@ function MissionControl() {
           />
           <MetricCard
             label="Estimated Tax Liability"
-            value={reportingJurisdiction === "CUSTOM" ? "Tax profile needed" : `${currency} ${fmt(tax.estimatedTaxDue)}`}
-            sub={reportingJurisdiction === "CUSTOM" ? "Select your tax residence in Tax Center" : `Indicative FIFO estimate · ${reportingJurisdiction}; confirm tax residence`}
+            value={taxProfileNeeded ? "Tax profile needed" : `${currency} ${fmt(tax.estimatedTaxDue)}`}
+            sub={taxProfileNeeded ? "Select your tax residence in Tax Center" : reportingJurisdiction === "CUSTOM" ? `Using your saved ${savedCustomTaxRules?.country} custom rates · indicative only` : `Indicative FIFO estimate · ${reportingJurisdiction}; confirm tax residence`}
             tone="warn"
             i={3}
             askWhy="Why did my estimated tax change?"
-            actionLabel={reportingJurisdiction === "CUSTOM" ? "Set up tax profile" : undefined}
-            actionTo={reportingJurisdiction === "CUSTOM" ? "/app/tax" : undefined}
+            actionLabel={taxProfileNeeded ? "Set up tax profile" : undefined}
+            actionTo={taxProfileNeeded ? "/app/tax" : undefined}
           />
         </div>
       </div>

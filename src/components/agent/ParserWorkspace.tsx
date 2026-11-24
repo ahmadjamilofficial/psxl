@@ -17,6 +17,7 @@ import {
   Circle,
   Clock,
   Download,
+  Copy,
   FileText,
   Loader2,
   Plus,
@@ -34,7 +35,7 @@ import {
   ConversationScrollButton,
   ConversationScrollOnSend,
 } from "@/components/ai-elements/conversation";
-import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
+import { Message, MessageContent, MessageResponse, MessageActions, MessageAction } from "@/components/ai-elements/message";
 import {
   PromptInput,
   PromptInputFooter,
@@ -371,16 +372,39 @@ function narrateAssistantTools(parts: UIMessage["parts"]): string {
   return paragraphs.join("\n\n");
 }
 
-function triggerCsvDownload(filename: string, csv: string) {
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+function triggerFileDownload(filename: string, content: string, mimeType = "text/plain;charset=utf-8") {
+  const blob = new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = filename.endsWith(".csv") ? filename : `${filename}.csv`;
+  a.download = filename || "psxl-export.txt";
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  // Do not revoke synchronously: mobile browsers may not have started the download yet.
+  window.setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
+
+function triggerCsvDownload(filename: string, csv: string) {
+  triggerFileDownload(filename.endsWith(".csv") ? filename : `${filename}.csv`, csv, "text/csv;charset=utf-8");
+}
+
+async function copyMessageText(value: string) {
+  if (navigator?.clipboard?.writeText && window.isSecureContext) {
+    await navigator.clipboard.writeText(value);
+    return;
+  }
+  const textarea = document.createElement("textarea");
+  textarea.value = value;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+  textarea.select();
+  textarea.setSelectionRange(0, textarea.value.length);
+  const copied = document.execCommand("copy");
+  document.body.removeChild(textarea);
+  if (!copied) throw new Error("Copy is not supported by this browser.");
 }
 
 // ── Tool card ─────────────────────────────────────────────────────────────────
@@ -401,7 +425,37 @@ function ToolCard({
   const isError = !!part.errorText;
 
   useEffect(() => {
-    if (rawName === "prepare_spreadsheet" && isDone && part.output) {
+    if (rawName === "prepare_file" && isDone && part.output) {
+    const out = part.output as Record<string, unknown>;
+    const content = typeof out["content"] === "string" ? out["content"] : "";
+    const filename = String(out["filename"] ?? "psxl-export.txt");
+    const mimeType = String(out["mimeType"] ?? "text/plain;charset=utf-8");
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="my-3 flex items-center gap-3 rounded-2xl border px-4 py-3"
+        style={{ borderColor: "var(--hairline)", background: "var(--surface)" }}
+      >
+        <FileText size={17} style={{ color: "var(--ok)" }} />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold">File ready</p>
+          <p className="truncate text-xs" style={{ color: "var(--ink-3)" }}>{filename}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => triggerFileDownload(filename, content, mimeType)}
+          className="flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-white"
+          style={{ background: "var(--ok)" }}
+          disabled={!content}
+        >
+          <Download size={12} /> Download
+        </button>
+      </motion.div>
+    );
+  }
+
+  if (rawName === "prepare_spreadsheet" && isDone && part.output) {
       const out = part.output as Record<string, unknown>;
       if (typeof out["csv"] === "string" && typeof out["filename"] === "string") {
         triggerCsvDownload(out["filename"] as string, out["csv"] as string);
@@ -1079,6 +1133,35 @@ function Chat({
                   })}
                   {fallbackText ? <MessageResponse>{fallbackText}</MessageResponse> : null}
                 </MessageContent>
+                {message.role === "assistant" && (() => {
+                  const responseText = message.parts
+                    .filter((part) => part.type === "text")
+                    .map((part) => (part as { text: string }).text)
+                    .filter(Boolean)
+                    .join("\n\n");
+                  if (!responseText.trim()) return null;
+                  return (
+                    <MessageActions className="px-1">
+                      <MessageAction
+                        tooltip="Copy response"
+                        aria-label="Copy response"
+                        onClick={() => void copyMessageText(responseText).then(
+                          () => toast.success("Response copied"),
+                          (error) => toast.error(error instanceof Error ? error.message : "Copy failed"),
+                        )}
+                      >
+                        <Copy size={14} />
+                      </MessageAction>
+                      <MessageAction
+                        tooltip="Download response"
+                        aria-label="Download response"
+                        onClick={() => triggerFileDownload("psxl-response.md", responseText, "text/markdown;charset=utf-8")}
+                      >
+                        <Download size={14} />
+                      </MessageAction>
+                    </MessageActions>
+                  );
+                })()}
               </Message>
             );
           })}

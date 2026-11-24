@@ -1481,6 +1481,53 @@ export const Route = createFileRoute("/api/chat")({
                 };
               },
             }),
+            prepare_file: tool({
+              description:
+                "Create a real downloadable file when the user explicitly asks you to generate, create, or export a file/document. Use format=markdown for reports and documents, text for plain text, json for structured data, or csv for tabular data. Put the complete file contents in content and choose a descriptive filename. Do not merely print the file contents in chat; call this tool so the user receives a download card.",
+              inputSchema: z.object({
+                filename: z.string().min(1).max(160),
+                format: z.enum(["markdown", "text", "json", "csv"]),
+                content: z.string().max(5_000_000),
+              }),
+              execute: async ({ filename, format, content }) => {
+                const safeName = filename
+                  .trim()
+                  .replace(/[\\\\/:*?"<>|\\x00-\\x1f]/g, "-")
+                  .replace(/\\s+/g, "-")
+                  .slice(0, 140) || "psxl-export";
+                const extensions: Record<string, string> = {
+                  markdown: ".md",
+                  text: ".txt",
+                  json: ".json",
+                  csv: ".csv",
+                };
+                const extension = extensions[format];
+                const finalName = safeName.toLowerCase().endsWith(extension)
+                  ? safeName
+                  : `${safeName.replace(/\\.[^.]+$/, "")}${extension}`;
+                const mimeTypes: Record<string, string> = {
+                  markdown: "text/markdown;charset=utf-8",
+                  text: "text/plain;charset=utf-8",
+                  json: "application/json;charset=utf-8",
+                  csv: "text/csv;charset=utf-8",
+                };
+                if (format === "json") {
+                  try {
+                    JSON.parse(content);
+                  } catch {
+                    throw new Error("The requested JSON file is not valid JSON. Correct it before exporting.");
+                  }
+                }
+                return {
+                  filename: finalName,
+                  format,
+                  mimeType: mimeTypes[format],
+                  content,
+                  bytes: new TextEncoder().encode(content).length,
+                  ready: true,
+                };
+              },
+            }),
             // ── create_notification: agent can push a real in-app notification ──
             create_notification: tool({
               description:

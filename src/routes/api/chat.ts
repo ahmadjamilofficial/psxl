@@ -1492,8 +1492,9 @@ export const Route = createFileRoute("/api/chat")({
               execute: async ({ filename, format, content }) => {
                 const safeName = filename
                   .trim()
-                  .replace(/[\\\\/:*?"<>|\\x00-\\x1f]/g, "-")
-                  .replace(/\\s+/g, "-")
+                  .replaceAll("\\", "-")
+                  .replace(/[\/:*?"<>|]/g, "-")
+                  .replace(/\s+/g, "-")
                   .slice(0, 140) || "psxl-export";
                 const extensions: Record<string, string> = {
                   markdown: ".md",
@@ -1504,7 +1505,7 @@ export const Route = createFileRoute("/api/chat")({
                 const extension = extensions[format];
                 const finalName = safeName.toLowerCase().endsWith(extension)
                   ? safeName
-                  : `${safeName.replace(/\\.[^.]+$/, "")}${extension}`;
+                  : `${safeName.replace(/\.[^.]+$/, "")}${extension}`;
                 const mimeTypes: Record<string, string> = {
                   markdown: "text/markdown;charset=utf-8",
                   text: "text/plain;charset=utf-8",

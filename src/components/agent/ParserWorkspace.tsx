@@ -1138,7 +1138,7 @@ function Chat({
                     .filter((part) => part.type === "text")
                     .map((part) => (part as { text: string }).text)
                     .filter(Boolean)
-                    .join("\\n\\n");
+                    .join("\n\n");
                   if (!responseText.trim()) return null;
                   return (
                     <MessageActions className="px-1">

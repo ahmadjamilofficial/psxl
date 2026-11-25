@@ -102,13 +102,22 @@ export function PortfolioRiskSnapshot({
                 </span>
               </div>
               <div
-                className="h-1.5 overflow-hidden rounded-full"
+                className="h-2 overflow-hidden rounded-full"
                 style={{ background: "var(--hairline)" }}
+                role="progressbar"
+                aria-label={`${position.ticker} share of portfolio cost basis`}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Number(weight.toFixed(1))}
+                aria-valuetext={`${weight.toFixed(1)} percent`}
+                title={`${weight.toFixed(1)}% of recorded portfolio cost basis`}
               >
                 <div
-                  className="h-full rounded-full"
+                  className="h-full rounded-full transition-[width] duration-500 ease-out"
                   style={{
-                    width: `${Math.min(weight, 100)}%`,
+                    // Keep very small holdings visible without changing the
+                    // percentage shown to users or exposed to assistive tech.
+                    width: `${weight > 0 ? Math.max(0.75, Math.min(weight, 100)) : 0}%`,
                     background: index === 0 ? "var(--color-accent)" : "var(--chart-2)",
                   }}
                 />

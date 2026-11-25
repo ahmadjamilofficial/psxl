@@ -17,7 +17,8 @@ export interface PlanLimits {
   transactionsPerMonth: number | null;
   taxProfiles: number | null;
   brokerAccounts: number | null;
-  dailyAiCredits: number;
+  monthlyAiCredits: number;
+  uploadsPerMonth: number;
   maxAgentSteps: number;
   aiQuality: "limited" | "standard" | "high";
   features: {
@@ -45,23 +46,24 @@ export const KELVIQ_CHECKOUT_URL =
 export const PLANS: Record<PlanId, PlanLimits> = {
   free: {
     id: "free",
-    name: "Basic",
-    note: "Completely free. Core tools only — limited AI quality and variety.",
+    name: "Free",
+    note: "A complete trading ledger with a practical monthly AI allowance.",
     kelviqPlan: "free-plan",
     monthlyPrice: 0,
     yearlyPrice: 0,
     trialDays: 0,
     popular: false,
-    transactionsPerMonth: 30,
+    transactionsPerMonth: 10000,
     taxProfiles: 1,
     brokerAccounts: 1,
-    dailyAiCredits: 8,
+    monthlyAiCredits: 30,
+    uploadsPerMonth: 2,
     maxAgentSteps: 4,
     aiQuality: "limited",
     features: {
       csvExport: true,
       pdfExport: false,
-      anomalyDetection: false,
+      anomalyDetection: true,
       taxLossHarvesting: false,
       multiAccount: false,
       teamRoles: false,
@@ -72,9 +74,10 @@ export const PLANS: Record<PlanId, PlanLimits> = {
     },
     highlights: [
       "Completely free — no card required",
-      "30 parsed transactions / month",
-      "Limited AI quality and shorter answers",
-      "Core ledger and CSV export",
+      "500 ledger transactions / month",
+      "30 AI prompts / credits per month",
+      "2 statement uploads / month",
+      "Basic anomaly detection and CSV export",
       "1 tax profile · 1 broker account",
     ],
   },
@@ -90,7 +93,8 @@ export const PLANS: Record<PlanId, PlanLimits> = {
     transactionsPerMonth: 500,
     taxProfiles: 2,
     brokerAccounts: 3,
-    dailyAiCredits: 60,
+    monthlyAiCredits: 300,
+    uploadsPerMonth: 30,
     maxAgentSteps: 8,
     aiQuality: "standard",
     features: {
@@ -106,7 +110,9 @@ export const PLANS: Record<PlanId, PlanLimits> = {
       specialistAgents: false,
     },
     highlights: [
-      "500 parsed transactions / month",
+      "10,000 ledger transactions / month",
+      "300 AI credits / month",
+      "30 statement uploads / month",
       "Standard AI quality",
       "Natural conversations and memory",
       "Document and transaction analysis",
@@ -123,10 +129,11 @@ export const PLANS: Record<PlanId, PlanLimits> = {
     yearlyPrice: 90,
     trialDays: 0,
     popular: true,
-    transactionsPerMonth: null,
+    transactionsPerMonth: 100000,
     taxProfiles: null,
     brokerAccounts: 10,
-    dailyAiCredits: 200,
+    monthlyAiCredits: 1500,
+    uploadsPerMonth: 1000,
     maxAgentSteps: 12,
     aiQuality: "high",
     features: {
@@ -142,9 +149,12 @@ export const PLANS: Record<PlanId, PlanLimits> = {
       specialistAgents: true,
     },
     highlights: [
-      "Unlimited parsed transactions",
+      "Up to 100,000 ledger transactions / month",
+      "1,500 AI credits / month",
+      "High-volume statement uploads (fair use)",
       "Highest AI quality and variety",
       "Everything in Standard",
+      "Advanced portfolio and risk intelligence",
       "Tax-loss harvesting",
       "Background agent tasks",
       "Advanced integrations",

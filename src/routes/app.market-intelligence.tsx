@@ -19,8 +19,8 @@ function MarketIntelligence() {
   async function refreshQuotes() {
     if(!symbols.length){toast.info("Add a PSX ticker or post a PSX trade first.");return;}
     try {
-      const results = await refetchQuotes();
-      const returned = results.filter(result => result.data != null).length;
+      const result = await refetchQuotes();
+      const returned = result.data?.length ?? 0;
       if(returned===0) toast.warning("No quotes were returned. The provider may not cover these PSX symbols.");
       else if(returned<symbols.length) toast.warning("Received "+returned+" of "+symbols.length+" requested quotes.");
       else toast.success("Updated "+returned+" market quotes.");

@@ -81,6 +81,7 @@ function Reconciliation() {
         trade_date: t.trade_date,
         ref_id: t.ref_id,
         broker: t.broker,
+        broker_account_id: t.brokerAccountId,
         exchange: t.exchange,
         status: t.status,
       }));

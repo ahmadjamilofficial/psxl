@@ -242,14 +242,18 @@ export function useMarketQuotes(orgId: string | undefined, instruments: MarketQu
       });
 
       if (stale.length > 0) {
-        const response = await fetch("/api/market-data", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ tickers: stale }),
-        });
-        const body = await response.json().catch(() => null);
-        if (!response.ok) throw new Error(body?.error ?? "Market quote request failed.");
-        const prices = Array.isArray(body?.prices) ? body.prices as MarketQuote[] : [];
+        const prices: MarketQuote[] = [];
+        for (let offset = 0; offset < stale.length; offset += 100) {
+          const batch = stale.slice(offset, offset + 100);
+          const response = await fetch("/api/market-data", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ tickers: batch }),
+          });
+          const body = await response.json().catch(() => null);
+          if (!response.ok) throw new Error(body?.error ?? "Market quote request failed.");
+          if (Array.isArray(body?.prices)) prices.push(...body.prices as MarketQuote[]);
+        }
         for (const instrument of stale) {
           const quote = prices.find((item) =>
             item.ticker.toUpperCase() === instrument.ticker &&

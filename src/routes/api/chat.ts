@@ -38,23 +38,32 @@ function isSimpleGreeting(messages: unknown[]): boolean {
     .find(
       (message) =>
         message && typeof message === "object" && (message as { role?: unknown }).role === "user",
-    ) as { parts?: unknown[] } | undefined;
+    ) as { parts?: unknown[]; content?: unknown; text?: unknown } | undefined;
+  if (!last) return false;
+
+  // The AI SDK normally sends UIMessage.parts, but older clients and some
+  // mobile builds send a plain content/text field. Support both shapes so a
+  // basic greeting never falls through to a paid model request.
+  const parts = Array.isArray(last.parts) ? last.parts : [];
   if (
-    !last?.parts ||
-    last.parts.some(
+    parts.some(
       (part) => part && typeof part === "object" && (part as { type?: string }).type === "file",
     )
   )
     return false;
-  const value = last.parts
+
+  const fromParts = parts
     .map((part) =>
       part && typeof part === "object" && (part as { type?: string }).type === "text"
         ? ((part as { text?: string }).text ?? "")
         : "",
     )
-    .join(" ")
-    .trim();
-  return /^(hi|hello|hey|helo|good morning|good afternoon|good evening|yo|salaam|assalamualaikum)[!.\s]*$/i.test(
+    .join(" ");
+  const value = (fromParts || (typeof last.content === "string" ? last.content : "") ||
+    (typeof last.text === "string" ? last.text : "")).trim();
+  if (!value || value.length > 80) return false;
+
+  return /^(hi|hello|hey|helo|good morning|good afternoon|good evening|yo|salaam|assalamualaikum)(?:\\s+(there|bro|brother|psxl))?[!.?,\\s]*$/i.test(
     value,
   );
 }
@@ -562,11 +571,15 @@ export const Route = createFileRoute("/api/chat")({
           // Enforce the same limit shown in the Usage screen on the server.
           // Client-side counters are informational and must never be trusted.
           const usageSince = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+          const pendingSince = new Date(Date.now() - 15 * 60 * 1000).toISOString();
           const { data: usageRows, error: usageReadError } = await supabase
             .from("ai_usage")
             .select("credits_used, created_at")
             .eq("user_id", authData.user.id)
-            .eq("status", "ok")
+            // Successful calls count for the full rolling window. Pending calls
+            // count only briefly to prevent concurrent requests overspending quota;
+            // abandoned serverless invocations cannot reserve credits forever.
+            .or(`status.eq.ok,and(status.eq.pending,created_at.gte.${pendingSince})`)
             .gte("created_at", usageSince);
           if (usageReadError) {
             console.error("[PSXL Chat] Usage quota lookup failed:", usageReadError.message);
@@ -629,7 +642,7 @@ export const Route = createFileRoute("/api/chat")({
               model: chosenModel.modelId,
               inference_requests: 1,
               credits_used: 1,
-              status: "ok",
+              status: "pending",
             } as never);
           if (usageWriteError) {
             console.error("[PSXL Chat] Usage quota write failed:", usageWriteError.message);
@@ -644,6 +657,11 @@ export const Route = createFileRoute("/api/chat")({
           try {
             uiMessages = await spreadsheetsToText(body.messages as UIMessage[]);
           } catch (e) {
+            await supabase.from("ai_usage").update({
+              status: "failed",
+              credits_used: 0,
+              provider_error: "message_conversion_error",
+            }).eq("id", usageId).eq("user_id", authData.user.id);
             return new Response(
               JSON.stringify({
                 code: "message_conversion_error",
@@ -2166,8 +2184,20 @@ NEW TOOLS ADDED:
                 ? lastError
                 : new Error("Every AI provider is busy. Please try again in a moment.");
             },
-            onError: (e) => describeStreamError(e, "stream"),
+            onError: (e) => {
+              void supabase.from("ai_usage").update({
+                status: "failed",
+                credits_used: 0,
+                provider_error: (e instanceof Error ? e.message : String(e)).slice(0, 500),
+              }).eq("id", usageId).eq("user_id", authData.user.id);
+              return describeStreamError(e, "stream");
+            },
             onFinish: async ({ messages }) => {
+              await supabase.from("ai_usage").update({
+                status: "ok",
+                credits_used: 1,
+                provider_error: null,
+              }).eq("id", usageId).eq("user_id", authData.user.id);
               await persistMessages(messages);
             },
           });

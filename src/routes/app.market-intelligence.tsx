@@ -54,9 +54,9 @@ function MarketIntelligence() {
       counts.set(code, (counts.get(code) ?? 0) + 1);
     }
     if (counts.size > 1) return "MIXED";
-    return [...counts.keys()][0] ?? profile?.jurisdiction === "PSX"
-      ? ([...counts.keys()][0] ?? "PKR")
-      : [...counts.keys()][0] ?? "USD";
+    const onlyCurrency = [...counts.keys()][0];
+    if (onlyCurrency) return onlyCurrency;
+    return profile?.jurisdiction === "PSX" ? "PKR" : "USD";
   }, [transactions, profile?.jurisdiction]);
 
   const exchanges = [...new Set(instruments.map((item) => item.exchange))];

@@ -50,7 +50,7 @@ import { ChatSidebar } from "@/components/agent/ChatSidebar";
 import { takePendingFiles, takePendingPrompt } from "@/lib/chat-session";
 import { supabase } from "@/lib/supabase";
 import { withTimeout } from "@/lib/utils";
-import { useDeleteChatThread, AI_PLAN_DAILY_LIMITS } from "@/lib/data-hooks";
+import { useDeleteChatThread, AI_PLAN_MONTHLY_LIMITS } from "@/lib/data-hooks";
 import { loadComposerDraft, saveComposerDraft, clearComposerDraft } from "@/lib/chat-session";
 
 // ── Suggestion chips ──────────────────────────────────────────────────────────
@@ -161,10 +161,10 @@ function ErrorBanner({
       color: "var(--bad)",
       bg: "color-mix(in srgb, var(--bad) 6%, transparent)",
       border: "color-mix(in srgb, var(--bad) 20%, transparent)",
-      title: "You've reached your daily AI limit",
+      title: "You've reached your AI credit limit",
       body:
         plan === "free"
-          ? `Your Basic plan has used its ${AI_PLAN_DAILY_LIMITS["free"]}-credit rolling 24-hour allowance. Upgrade to Standard for a larger allowance, or Pro for the highest daily limit. Your allowance refreshes as older usage leaves the 24-hour window.`
+          ? `Your Basic plan has used its ${AI_PLAN_MONTHLY_LIMITS["free"]}-credit rolling 30-day allowance. Upgrade to Standard for a larger allowance, or Pro for the highest monthly limit. Your allowance refreshes as older usage leaves the 30-day window.`
           : message,
       cta: plan === "free" ? "Upgrade to Standard" : plan === "standard" ? "Upgrade to Pro" : "View billing & usage",
       ctaLink: "/app/billing",

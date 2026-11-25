@@ -68,12 +68,17 @@ function Reconciliation() {
 
   async function runReconciliation() {
     if (!profile?.org_id) return;
+    if (dateFrom && dateTo && dateFrom > dateTo) {
+      toast.error("The start date must be on or before the end date.");
+      return;
+    }
     setRunning(true);
     setRan(false);
     setLocalFlags([]);
 
     try {
       const castTx = transactions.map((t) => ({
+        id: t.id,
         ticker: t.ticker,
         action: t.action,
         quantity: Number(t.quantity),
@@ -251,6 +256,9 @@ function Reconciliation() {
             </Btn>
           </div>
         </div>
+        <p className="mt-3 text-xs" style={{ color: "var(--ink-3)" }}>
+          Only posted ledger entries are reconciled. Earlier trades remain in the inventory replay even when you filter the findings to a later date.
+        </p>
       </Panel>
 
       {/* Results */}

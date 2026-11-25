@@ -38,9 +38,40 @@ export function usePortfolioSummary() {
 
   const taxYear = String(new Date().getFullYear());
 
-  // Use React Query to handle async computation with live market data
+  // Every input that can change the computed portfolio must participate in the
+  // cache key. Previously edits to price, quantity, fees, action or currency
+  // could leave the dashboard showing an old allocation until the cache expired.
+  const transactionInputs = transactions.map((tx) => [
+    tx.id,
+    tx.status,
+    tx.action,
+    tx.trade_date,
+    tx.exchange,
+    tx.ticker,
+    tx.currency,
+    tx.quantity,
+    tx.price,
+    tx.fees,
+    tx.wht,
+    tx.ref_id,
+  ]);
+  const flagInputs = flags.map((flag) => [
+    flag.id,
+    flag.severity,
+    flag.flag_type,
+    flag.actual,
+    flag.expected,
+  ]);
+
   const { data: summary, isLoading: summaryLoading } = useQuery({
-    queryKey: ["portfolio_summary", profile?.org_id, transactions.map(t => t.id + ":" + t.status + ":" + t.trade_date).join("|")],
+    queryKey: [
+      "portfolio_summary",
+      profile?.org_id,
+      jurisdiction,
+      taxYear,
+      transactionInputs,
+      flagInputs,
+    ],
     enabled: !txLoading && !!profile?.org_id,
     queryFn: async () => {
       const computed = await computePortfolioSummary(transactions, jurisdiction, taxYear);

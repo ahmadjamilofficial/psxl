@@ -3,6 +3,9 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   BarChart3,
   BookOpen,
+  Building2,
+  TrendingUp,
+  BrainCircuit,
   ChevronDown,
   CreditCard,
   GitFork,
@@ -61,6 +64,9 @@ const navGroups = [
     title: "Workspace",
     items: [
       { label: "Portfolio", icon: LayoutDashboard, to: "/app/overview" },
+      { label: "Investor Intelligence", icon: BrainCircuit, to: "/app/investor-intelligence" },
+      { label: "Market Intelligence", icon: TrendingUp, to: "/app/market-intelligence" },
+      { label: "Broker Desk", icon: Building2, to: "/app/broker-desk" },
       { label: "Ledger", icon: BookOpen, to: "/app/ledger" },
       { label: "Exceptions", icon: GitFork, to: "/app/reconciliation" },
       { label: "Data Sources", icon: Plug, to: "/app/sources" },

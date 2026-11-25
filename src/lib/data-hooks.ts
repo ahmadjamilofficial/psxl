@@ -1,6 +1,6 @@
 // ─── React Query hooks for real Supabase data ─────────────────────────────────
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { parseDocument, parseTextDocument } from "./ai-service";
 import { supabase } from "./supabase";
 import type { Transaction } from "./demo-data";
@@ -188,6 +188,63 @@ export function useMonthlyTransactionCount(orgId: string | undefined) {
     refetchInterval: 15_000,
     staleTime: 10_000,
   });
+}
+
+// ── Shared market quotes ──────────────────────────────────────────────────────
+
+export interface MarketQuoteInput {
+  ticker: string;
+  exchange: string;
+}
+
+export interface MarketQuote {
+  ticker: string;
+  exchange: string;
+  price: number;
+  change: number;
+  changePercent: number;
+  currency: string;
+  lastUpdated: string;
+}
+
+export function useMarketQuotes(orgId: string | undefined, instruments: MarketQuoteInput[]) {
+  const unique = [...new Map(
+    instruments.map((item) => [`${item.exchange.toUpperCase()}:${item.ticker.toUpperCase()}`, {
+      ticker: item.ticker.toUpperCase(),
+      exchange: item.exchange.toUpperCase(),
+    }]),
+  ).values()].sort((a, b) => `${a.exchange}:${a.ticker}`.localeCompare(`${b.exchange}:${b.ticker}`));
+
+  const results = useQueries({
+    queries: unique.map((instrument) => ({
+      queryKey: ["market_quote", orgId, instrument.exchange, instrument.ticker],
+      enabled: !!orgId,
+      queryFn: async (): Promise<MarketQuote | null> => {
+        const response = await fetch("/api/market-data", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tickers: [instrument] }),
+        });
+        const body = await response.json().catch(() => null);
+        if (!response.ok) throw new Error(body?.error ?? "Market quote request failed.");
+        const quote = (body?.prices ?? []).find(
+          (item: MarketQuote) => item.ticker.toUpperCase() === instrument.ticker && item.exchange.toUpperCase() === instrument.exchange,
+        ) as MarketQuote | undefined;
+        return quote ?? null;
+      },
+      staleTime: 30_000,
+      refetchInterval: 60_000,
+      retry: 1,
+    })),
+  });
+
+  return {
+    quotes: results.flatMap((result) => result.data ? [result.data] : []),
+    isLoading: results.some((result) => result.isLoading),
+    isFetching: results.some((result) => result.isFetching),
+    errors: results.map((result) => result.error).filter(Boolean),
+    refetch: () => Promise.all(results.map((result) => result.refetch())),
+  };
 }
 
 // ── Reconciliation flags ──────────────────────────────────────────────────────

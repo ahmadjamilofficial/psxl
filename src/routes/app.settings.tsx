@@ -20,7 +20,8 @@ import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { setNotificationPrefs } from "@/lib/notifications";
 import {
-  useAiUsageToday,
+  useAiUsage30Days,
+  useMonthlyDocumentCount,
   useDeleteOrganization,
   useMonthlyTransactionCount,
   useTransactions,
@@ -66,14 +67,16 @@ function Settings() {
   const [inviteOpen, setInviteOpen] = useState(false);
 
   const deleteOrgMutation = useDeleteOrganization();
-  const { data: aiUsage } = useAiUsageToday(user?.id);
+  const { data: aiUsage } = useAiUsage30Days(user?.id);
+  const { data: monthlyDocuments = 0 } = useMonthlyDocumentCount(profile?.org_id);
   const { data: monthlyTransactions = 0 } = useMonthlyTransactionCount(profile?.org_id);
   const { data: ledgerTransactions = [] } = useTransactions(profile?.org_id);
   const activePlan = planOf(normalizePlanId(profile?.plan));
-  const aiLimit = activePlan.dailyAiCredits;
+  const aiLimit = activePlan.monthlyAiCredits;
   const transactionLimit = activePlan.transactionsPerMonth;
-  const aiUsed = aiUsage?.credits_used_today ?? 0;
+  const aiUsed = aiUsage?.credits_used_month ?? 0;
   const aiPercent = Math.min(100, Math.round((aiUsed / aiLimit) * 100));
+  const uploadPercent = Math.min(100, Math.round((monthlyDocuments / activePlan.uploadsPerMonth) * 100));
   const transactionPercent =
     transactionLimit === null
       ? 0
@@ -412,8 +415,7 @@ function Settings() {
                   <div>
                     <p className="text-sm font-semibold">Usage</p>
                     <p className="mt-1 text-xs" style={{ color: "var(--ink-3)" }}>
-                      Current limits for your {activePlan.name} plan. AI resets on a rolling 24-hour
-                      window; transactions reset each calendar month.
+                      Current limits for your {activePlan.name} plan. AI credits and uploads use a rolling 30-day window; transactions reset each calendar month.
                     </p>
                   </div>
                   <span
@@ -429,7 +431,14 @@ function Settings() {
                     used={aiUsed}
                     limit={aiLimit}
                     percent={aiPercent}
-                    suffix="credits / rolling 24h"
+                    suffix="credits / rolling 30 days"
+                  />
+                  <UsageMeter
+                    label="Statement uploads"
+                    used={monthlyDocuments}
+                    limit={activePlan.uploadsPerMonth}
+                    percent={uploadPercent}
+                    suffix="uploads / rolling 30 days"
                   />
                   <UsageMeter
                     label="Ledger records"
@@ -447,16 +456,30 @@ function Settings() {
                   />
                 </div>
               </Panel>
+              {(aiPercent >= 80 || transactionPercent >= 80 || uploadPercent >= 80) && (
+                <Panel>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold">You’re getting close to your plan limit</p>
+                      <p className="mt-1 text-xs" style={{ color: "var(--ink-2)" }}>
+                        Upgrade to Standard or Pro for a larger AI and data allowance. Your records remain accessible on every plan.
+                      </p>
+                    </div>
+                    <Btn onClick={() => navigate({ to: "/app/billing" })}>Explore plans</Btn>
+                  </div>
+                </Panel>
+              )}
               <Panel>
                 <p className="mb-3 text-sm font-semibold">What counts?</p>
                 <ul className="space-y-2 text-xs leading-relaxed" style={{ color: "var(--ink-2)" }}>
                   <li>
-                    • Each successful PSXL AI request uses one AI credit. Requests are blocked once
-                    the plan limit is reached.
+                    • Each successful PSXL AI prompt uses one credit. The allowance is measured over a rolling 30-day window and requests stop at the plan limit.
                   </li>
                   <li>
-                    • Imported or manually created ledger transactions count toward the monthly
-                    transaction allowance.
+                    • Imported or manually created ledger transactions count toward the monthly transaction allowance.
+                  </li>
+                  <li>
+                    • Each uploaded statement counts toward the rolling 30-day upload allowance. Existing documents and ledger history remain accessible when you reach a limit.
                   </li>
                   <li>
                     • Requests accepted for processing are metered before streaming begins; provider

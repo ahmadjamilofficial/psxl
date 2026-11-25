@@ -472,37 +472,57 @@ export function useDeleteChatThread() {
 
 // ── AI usage (quota tracking) ─────────────────────────────────────────────────
 
-export interface AiUsageToday {
-  credits_used_today: number;
-  requests_today: number;
+export interface AiUsage30Days {
+  credits_used_month: number;
+  requests_month: number;
 }
 
-/** Wab plan daily credit limits (mirrors ai_plan_limits table). */
-export const AI_PLAN_DAILY_LIMITS: Record<string, number> = {
-  free: 8,
-  standard: 60,
-  pro: 200,
-  enterprise: 200,
+/** Code-defined monthly limits. The existing ai_usage table remains unchanged. */
+export const AI_PLAN_MONTHLY_LIMITS: Record<string, number> = {
+  free: 30,
+  standard: 300,
+  pro: 1500,
+  enterprise: 1500,
 };
 
-export function useAiUsageToday(userId: string | undefined) {
+export function useAiUsage30Days(userId: string | undefined) {
   return useQuery({
-    queryKey: ["ai_usage_today", userId],
+    queryKey: ["ai_usage_30_days", userId],
     enabled: !!userId,
     queryFn: async () => {
-      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
       const { data, error } = await supabase
         .from("ai_usage")
         .select("credits_used")
         .eq("user_id", userId!)
         .eq("status", "ok")
         .gte("created_at", since);
-      if (error) return { credits_used_today: 0, requests_today: 0 } as AiUsageToday;
-      const credits_used_today = (data ?? []).reduce((s, r) => s + (r.credits_used ?? 0), 0);
-      return { credits_used_today, requests_today: data?.length ?? 0 } as AiUsageToday;
+      if (error) return { credits_used_month: 0, requests_month: 0 } as AiUsage30Days;
+      const credits_used_month = (data ?? []).reduce((s, r) => s + (r.credits_used ?? 0), 0);
+      return { credits_used_month, requests_month: data?.length ?? 0 } as AiUsage30Days;
     },
     refetchInterval: 60_000,
     staleTime: 30_000,
+  });
+}
+
+/** Number of statements uploaded in the last 30 days (plan metering). */
+export function useMonthlyDocumentCount(orgId: string | undefined) {
+  return useQuery({
+    queryKey: ["documents_month", orgId],
+    enabled: !!orgId,
+    queryFn: async () => {
+      const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const { count, error } = await supabase
+        .from("documents")
+        .select("id", { count: "exact", head: true })
+        .eq("org_id", orgId!)
+        .gte("created_at", since);
+      if (error) throw new Error(`Could not load statement upload usage: ${error.message}`);
+      return count ?? 0;
+    },
+    refetchInterval: 30_000,
+    staleTime: 15_000,
   });
 }
 

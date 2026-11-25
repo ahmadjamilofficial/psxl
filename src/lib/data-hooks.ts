@@ -1,6 +1,6 @@
 // ─── React Query hooks for real Supabase data ─────────────────────────────────
 
-import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { parseDocument, parseTextDocument } from "./ai-service";
 import { supabase } from "./supabase";
 import type { Transaction } from "./demo-data";
@@ -220,6 +220,7 @@ export interface MarketQuote {
 }
 
 export function useMarketQuotes(orgId: string | undefined, instruments: MarketQuoteInput[]) {
+  const queryClient = useQueryClient();
   const unique = [...new Map(
     instruments.map((item) => [`${item.exchange.toUpperCase()}:${item.ticker.toUpperCase()}`, {
       ticker: item.ticker.toUpperCase(),
@@ -227,35 +228,53 @@ export function useMarketQuotes(orgId: string | undefined, instruments: MarketQu
     }] as const),
   ).values()].sort((a, b) => `${a.exchange}:${a.ticker}`.localeCompare(`${b.exchange}:${b.ticker}`));
 
-  const results = useQueries({
-    queries: unique.map((instrument) => ({
-      queryKey: ["market_quote", orgId, instrument.exchange, instrument.ticker],
-      enabled: !!orgId,
-      queryFn: async (): Promise<MarketQuote | null> => {
+  const query = useQuery({
+    queryKey: ["market_quotes", orgId, unique],
+    enabled: !!orgId && unique.length > 0,
+    queryFn: async () => {
+      const cacheKey = (instrument: MarketQuoteInput) => [
+        "market_quote", orgId, instrument.exchange, instrument.ticker,
+      ] as const;
+      const now = Date.now();
+      const stale = unique.filter((instrument) => {
+        const cached = queryClient.getQueryData<MarketQuote | null>(cacheKey(instrument));
+        return !cached || now - Date.parse(cached.lastUpdated) > 30_000;
+      });
+
+      if (stale.length > 0) {
         const response = await fetch("/api/market-data", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ tickers: [instrument] }),
+          body: JSON.stringify({ tickers: stale }),
         });
         const body = await response.json().catch(() => null);
         if (!response.ok) throw new Error(body?.error ?? "Market quote request failed.");
-        const quote = (body?.prices ?? []).find(
-          (item: MarketQuote) => item.ticker.toUpperCase() === instrument.ticker && item.exchange.toUpperCase() === instrument.exchange,
-        ) as MarketQuote | undefined;
-        return quote ?? null;
-      },
-      staleTime: 30_000,
-      refetchInterval: 60_000,
-      retry: 1,
-    })),
+        const prices = Array.isArray(body?.prices) ? body.prices as MarketQuote[] : [];
+        for (const instrument of stale) {
+          const quote = prices.find((item) =>
+            item.ticker.toUpperCase() === instrument.ticker &&
+            item.exchange.toUpperCase() === instrument.exchange
+          ) ?? null;
+          queryClient.setQueryData(cacheKey(instrument), quote);
+        }
+      }
+
+      return unique.flatMap((instrument) => {
+        const quote = queryClient.getQueryData<MarketQuote | null>(cacheKey(instrument));
+        return quote ? [quote] : [];
+      });
+    },
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+    retry: 1,
   });
 
   return {
-    quotes: results.flatMap((result) => result.data ? [result.data] : []),
-    isLoading: results.some((result) => result.isLoading),
-    isFetching: results.some((result) => result.isFetching),
-    errors: results.map((result) => result.error).filter(Boolean),
-    refetch: () => Promise.all(results.map((result) => result.refetch())),
+    quotes: query.data ?? [],
+    isLoading: query.isLoading,
+    isFetching: query.isFetching,
+    error: query.error,
+    refetch: query.refetch,
   };
 }
 

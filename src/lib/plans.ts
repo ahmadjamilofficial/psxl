@@ -46,8 +46,8 @@ export const KELVIQ_CHECKOUT_URL =
 export const PLANS: Record<PlanId, PlanLimits> = {
   free: {
     id: "free",
-    name: "Free",
-    note: "A complete trading ledger with a practical monthly AI allowance.",
+    name: "Basic",
+    note: "Free forever. A complete trading ledger with a practical monthly AI allowance.",
     kelviqPlan: "free-plan",
     monthlyPrice: 0,
     yearlyPrice: 0,

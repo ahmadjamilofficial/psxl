@@ -6,6 +6,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { normalizePlanId, planOf } from "@/lib/plans";
 
 const CORS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -59,6 +60,29 @@ export const Route = createFileRoute("/api/documents/upload")({
         }
         const orgId = profile.org_id;
 
+        // Resolve the active plan from the existing subscription row. This is
+        // application-level metering only; no billing or schema writes occur.
+        const { data: subscription } = await db
+          .from("subscriptions")
+          .select("plan, status, trial_end_at, charge_period, current_period_end, created_at, cancel_at_period_end")
+          .eq("org_id", orgId)
+          .maybeSingle();
+        const subscriptionStatus = String(subscription?.status ?? "active").toLowerCase();
+        const trialValid = subscriptionStatus === "trialing" && Boolean(subscription?.trial_end_at) &&
+          new Date(subscription!.trial_end_at!).getTime() > Date.now();
+        const periodDays = subscription?.charge_period === "YEARLY" ? 365 : 30;
+        const startedAt = subscription?.created_at ? new Date(subscription.created_at).getTime() : 0;
+        const strictEnd = startedAt ? startedAt + periodDays * 86_400_000 : 0;
+        const serverEnd = subscription?.current_period_end ? new Date(subscription.current_period_end).getTime() : 0;
+        const cycleEnd = Math.min(...[strictEnd, serverEnd].filter((value) => value > 0));
+        const cycleExpired = cycleEnd > 0 && Date.now() >= cycleEnd;
+        const activePaid = ["active", "trialing"].includes(subscriptionStatus) &&
+          !subscription?.cancel_at_period_end && !cycleExpired &&
+          (subscriptionStatus !== "trialing" || trialValid);
+        const plan = activePaid ? normalizePlanId(subscription?.plan) : "free";
+        const uploadLimit = planOf(plan).uploadsPerMonth;
+        const uploadSince = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
         // Parse multipart form
         let form: FormData;
         try {
@@ -90,6 +114,32 @@ export const Route = createFileRoute("/api/documents/upload")({
               `${file.name} exceeds the ${limit} MB limit for ${ext.toUpperCase()} files`,
               { status: 413, headers: CORS },
             );
+        }
+
+        const { count: uploadsUsed, error: uploadCountError } = await db
+          .from("documents")
+          .select("id", { count: "exact", head: true })
+          .eq("org_id", orgId)
+          .gte("created_at", uploadSince);
+        if (uploadCountError) {
+          return new Response("Could not verify your statement upload allowance. Please retry.", {
+            status: 503,
+            headers: CORS,
+          });
+        }
+        const used = uploadsUsed ?? 0;
+        if (used + files.length > uploadLimit) {
+          return new Response(JSON.stringify({
+            code: "upload_quota_exceeded",
+            plan,
+            limit: uploadLimit,
+            used,
+            requested: files.length,
+            message: `Your ${planOf(plan).name} plan allows ${uploadLimit} statement uploads per rolling 30 days. Upgrade for a higher allowance.`,
+          }), {
+            status: 429,
+            headers: { ...CORS, "Content-Type": "application/json", "Retry-After": "2592000" },
+          });
         }
 
         for (const value of files) {

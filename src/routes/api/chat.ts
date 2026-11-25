@@ -561,10 +561,10 @@ export const Route = createFileRoute("/api/chat")({
 
           // Enforce the same limit shown in the Usage screen on the server.
           // Client-side counters are informational and must never be trusted.
-          const usageSince = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+          const usageSince = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
           const { data: usageRows, error: usageReadError } = await supabase
             .from("ai_usage")
-            .select("credits_used")
+            .select("credits_used, created_at")
             .eq("user_id", authData.user.id)
             .eq("status", "ok")
             .gte("created_at", usageSince);
@@ -579,18 +579,18 @@ export const Route = createFileRoute("/api/chat")({
             (total, row) => total + Number(row.credits_used ?? 0),
             0,
           );
-          if (creditsUsed >= limits.dailyAiCredits) {
+          if (creditsUsed >= limits.monthlyAiCredits) {
             return new Response(
               JSON.stringify({
                 code: "quota_exceeded",
                 plan,
-                daily_limit: limits.dailyAiCredits,
+                monthly_limit: limits.monthlyAiCredits,
                 credits_used: creditsUsed,
-                message: `Your ${limits.name} plan has used all ${limits.dailyAiCredits} AI credits for the last 24 hours.`,
+                message: `You’ve used all ${limits.monthlyAiCredits} AI credits in your rolling 30-day allowance. Upgrade your plan for more AI capacity.`,
               }),
               {
                 status: 429,
-                headers: { "Content-Type": "application/json", "Retry-After": "86400" },
+                headers: { "Content-Type": "application/json", "Retry-After": "2592000" },
               },
             );
           }

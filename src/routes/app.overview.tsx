@@ -1,4 +1,5 @@
 import { brandText } from "@/lib/brand";
+import { OperationsActionCenter } from "@/components/intelligence/OperationsActionCenter";
 // ─── PSXL Mission Control Dashboard ────────────────────────────────────────
 // "What is happening in my financial world right now?"
 // Every number is deterministic. AI only explains.
@@ -437,6 +438,8 @@ function MissionControl() {
           Upload Data
         </Link>
       </div>
+
+      <OperationsActionCenter />
 
       {/* Key Metrics Grid */}
       <div

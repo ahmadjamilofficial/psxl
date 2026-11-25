@@ -7,6 +7,7 @@ export type ReconciliationTransaction = {
   trade_date: string;
   ref_id?: string | null;
   broker?: string | null;
+  broker_account_id?: string | null;
   exchange?: string | null;
   status?: string | null;
 };
@@ -78,8 +79,8 @@ export function runReconciliation(
   for (const tx of rows) {
     const synthetic = isSyntheticReference(tx.ref_id);
     const key = synthetic
-      ? [tx.broker, tx.exchange, tx.ticker, tx.action, tx.quantity, tx.price, tx.trade_date].join("|")
-      : [tx.broker, tx.ref_id].join("|");
+      ? [tx.broker, tx.broker_account_id ?? "", tx.exchange, tx.ticker, tx.action, tx.quantity, tx.price, tx.trade_date].join("|")
+      : [tx.broker, tx.broker_account_id ?? "", tx.ref_id, tx.ticker, tx.action, tx.quantity, tx.price, tx.trade_date].join("|");
     const prior = seen.get(key);
     if (prior) {
       if (tx.id) duplicateIds.add(tx.id);
@@ -174,7 +175,7 @@ export function runReconciliation(
     if (!tx.ticker || !Number.isFinite(tx.quantity) || tx.quantity <= 0) continue;
     if (tx.action !== "BUY" && tx.action !== "SELL") continue;
 
-    const key = [tx.broker, tx.exchange, tx.ticker].join("|");
+    const key = [tx.broker, tx.broker_account_id ?? "", tx.exchange, tx.ticker].join("|");
     const available = round(inventory.get(key) ?? 0);
     if (tx.action === "BUY") {
       inventory.set(key, round(available + tx.quantity));

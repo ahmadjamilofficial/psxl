@@ -94,7 +94,7 @@ export function OperationsActionCenter() {
         <div className="space-y-3 p-5 sm:p-6">
           {[0, 1, 2].map((n) => <div key={n} className="h-16 animate-pulse rounded-xl" style={{ background: "var(--accent-4)" }} />)}
         </div>
-      ) : activeItems.length === 0 ? (
+      ) : activeItems.length === 0 && processingDocuments === 0 ? (
         <div className="flex flex-col items-start gap-3 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div className="flex items-start gap-3">
             <CheckCircle2 size={20} className="mt-0.5 shrink-0" style={{ color: "var(--ok)" }} />

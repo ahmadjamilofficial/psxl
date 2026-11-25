@@ -102,7 +102,7 @@ export const PLANS: Record<PlanId, PlanLimits> = {
       pdfExport: true,
       anomalyDetection: true,
       taxLossHarvesting: false,
-      multiAccount: false,
+      multiAccount: true,
       teamRoles: true,
       apiAccess: false,
       backgroundTasks: false,

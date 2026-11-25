@@ -50,6 +50,8 @@ export function useEcosystemSync(orgId: string | undefined) {
           ["overview", orgId],
           ["portfolio", orgId],
           ["financial_insights", orgId],
+          ["financial_events", orgId],
+          ["portfolio_summary", orgId],
         ];
         for (const queryKey of keys) {
           void queryClient.invalidateQueries({ queryKey });

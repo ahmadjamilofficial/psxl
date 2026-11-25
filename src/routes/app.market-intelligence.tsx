@@ -6,7 +6,6 @@ import { useAuth } from "@/lib/auth-context";
 import { useTransactions, useMarketQuotes } from "@/lib/data-hooks";
 
 export const Route = createFileRoute("/app/market-intelligence")({ component: MarketIntelligence });
-type Quote = { ticker:string; exchange:string; price:number; change:number; changePercent:number; currency:string; lastUpdated:string };
 
 function MarketIntelligence() {
   const { profile } = useAuth();
@@ -41,7 +40,8 @@ function MarketIntelligence() {
   }
 
   const quoteMap=new Map(quotes.map(q=>[q.ticker.toUpperCase(),q]));
-  const latestQuoteTime = quotes.map(q=>q.lastUpdated).sort().at(-1);
+  const quoteTimes = quotes.map(q=>q.lastUpdated).sort();
+  const latestQuoteTime = quoteTimes[quoteTimes.length - 1];
   return <div className="space-y-6 p-3 sm:p-6">
     <header className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[.16em]" style={{color:"var(--ink-3)"}}>Pakistan Stock Exchange</p><h1 className="mt-1 text-2xl font-semibold" style={{fontFamily:"var(--font-heading)"}}>Market Intelligence</h1><p className="mt-1 text-sm" style={{color:"var(--ink-2)"}}>A source-labelled PSX watchlist connected to your posted ledger holdings.</p></div><button onClick={()=>void refreshQuotes()} disabled={loading} className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60" style={{background:"var(--color-accent)"}}>{loading?<RefreshCw size={15} className="animate-spin"/>:<Activity size={15}/>} {loading?"Refreshing…":"Refresh quotes"}</button></header>
     <section className="rounded-2xl border p-5" style={{borderColor:"var(--hairline)",background:"var(--color-sheet)"}}>

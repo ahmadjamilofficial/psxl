@@ -11,6 +11,7 @@ import {
   TrendingDown,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Btn, Panel, reveal, StatusPill } from "@/components/kit";
@@ -38,7 +39,24 @@ function TaxCenter() {
   const [customLongTermDays, setCustomLongTermDays] = useState("365");
   const [taxResidenceCountry, setTaxResidenceCountry] = useState("");
   const [customTaxProfileId, setCustomTaxProfileId] = useState<string | null>(null);
-  const [customRatesLoading, setCustomRatesLoading] = useState(false);
+  const qc = useQueryClient();
+  const { data: savedCustomProfile, isLoading: customRatesLoading } = useQuery({
+    queryKey: ["tax_profiles", profile?.org_id],
+    enabled: !!profile?.org_id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tax_profiles")
+        .select("id, cgt_rules")
+        .eq("org_id", profile!.org_id)
+        .eq("jurisdiction", "CUSTOM")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      return data;
+    },
+    staleTime: 30_000,
+  });
   const [savingCustomRates, setSavingCustomRates] = useState(false);
   const [customRatesMessage, setCustomRatesMessage] = useState<string | null>(null);
   const [aiExplanation, setAiExplanation] = useState<string | null>(null);
@@ -47,34 +65,15 @@ function TaxCenter() {
   const { data: transactions = [] } = useTransactions(profile?.org_id);
 
   useEffect(() => {
-    if (!profile?.org_id) return;
-    let cancelled = false;
-    setCustomRatesLoading(true);
-    void (async () => {
-      const { data, error } = await supabase
-        .from("tax_profiles")
-        .select("id, cgt_rules")
-        .eq("org_id", profile.org_id)
-        .eq("jurisdiction", "CUSTOM")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (cancelled) return;
-      if (error) {
-        setCustomRatesMessage("Could not load saved custom tax rules.");
-      } else if (data) {
-        const rules = (data.cgt_rules ?? {}) as Record<string, unknown>;
-        setCustomTaxProfileId(data.id);
-        if (rules.short_term_rate_percent != null) setCustomShortTermRate(String(rules.short_term_rate_percent));
-        if (rules.long_term_rate_percent != null) setCustomLongTermRate(String(rules.long_term_rate_percent));
-        if (rules.long_term_days != null) setCustomLongTermDays(String(rules.long_term_days));
-        if (typeof rules.tax_residence_country === "string") setTaxResidenceCountry(rules.tax_residence_country);
-        setCustomRatesMessage("Saved custom tax rules loaded.");
-      }
-      setCustomRatesLoading(false);
-    })();
-    return () => { cancelled = true; };
-  }, [profile?.org_id]);
+    if (!savedCustomProfile) return;
+    const rules = (savedCustomProfile.cgt_rules ?? {}) as Record<string, unknown>;
+    setCustomTaxProfileId(savedCustomProfile.id);
+    if (rules.short_term_rate_percent != null) setCustomShortTermRate(String(rules.short_term_rate_percent));
+    if (rules.long_term_rate_percent != null) setCustomLongTermRate(String(rules.long_term_rate_percent));
+    if (rules.long_term_days != null) setCustomLongTermDays(String(rules.long_term_days));
+    if (typeof rules.tax_residence_country === "string") setTaxResidenceCountry(rules.tax_residence_country);
+    setCustomRatesMessage("Saved custom tax rules loaded.");
+  }, [savedCustomProfile]);
 
   async function saveCustomTaxRules() {
     if (!profile?.org_id) return;
@@ -124,6 +123,7 @@ function TaxCenter() {
         if (error) throw error;
         setCustomTaxProfileId(data.id);
       }
+      await qc.invalidateQueries({ queryKey: ["tax_profiles", profile.org_id] });
       setCustomRatesMessage("Custom tax rules saved to your organisation.");
     } catch (error) {
       setCustomRatesMessage(error instanceof Error ? error.message : "Could not save custom tax rules.");

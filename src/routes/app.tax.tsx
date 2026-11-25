@@ -56,6 +56,7 @@ function TaxCenter() {
       return data;
     },
     staleTime: 30_000,
+    refetchInterval: 60_000,
   });
   const [savingCustomRates, setSavingCustomRates] = useState(false);
   const [customRatesMessage, setCustomRatesMessage] = useState<string | null>(null);

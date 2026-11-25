@@ -63,7 +63,7 @@ function isSimpleGreeting(messages: unknown[]): boolean {
     (typeof last.text === "string" ? last.text : "")).trim();
   if (!value || value.length > 80) return false;
 
-  return /^(hi|hello|hey|helo|good morning|good afternoon|good evening|yo|salaam|assalamualaikum)(?:\\s+(there|bro|brother|psxl))?[!.?,\\s]*$/i.test(
+  return /^(hi|hello|hey|helo|good morning|good afternoon|good evening|yo|salaam|assalamualaikum)(?:\s+(there|bro|brother|psxl))?[!.?,\s]*$/i.test(
     value,
   );
 }

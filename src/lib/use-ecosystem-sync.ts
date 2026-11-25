@@ -13,6 +13,8 @@ const SYNC_TABLES = [
   "broker_accounts",
   "audit_log",
   "connected_sources",
+  "notifications",
+  "tax_profiles",
 ] as const;
 
 /**
@@ -48,6 +50,8 @@ export function useEcosystemSync(orgId: string | undefined) {
           ["broker_connections", orgId],
           ["audit_log", orgId],
           ["connected_sources", orgId],
+          ["notifications"],
+          ["tax_profiles", orgId],
           ["overview", orgId],
           ["portfolio", orgId],
           ["financial_insights", orgId],

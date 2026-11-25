@@ -39,6 +39,7 @@ export function useTransactions(orgId: string | undefined) {
         currency: row.currency ?? exchangeCurrency(row.exchange) ?? (row as unknown as { broker_accounts?: { currency?: string } | null }).broker_accounts?.currency ?? "USD",
       })) as Transaction[];
     },
+    refetchInterval: 30_000,
     staleTime: 0,
   });
 
@@ -217,7 +218,8 @@ export function useReconciliationFlags(orgId: string | undefined) {
         suggested_resolution: row.suggested_resolution,
       }));
     },
-    staleTime: 30_000,
+    refetchInterval: 30_000,
+    staleTime: 10_000,
   });
 }
 
@@ -352,6 +354,36 @@ export async function pushNotification(input: {
       () => undefined,
       () => undefined,
     );
+}
+
+// ── Statement documents ───────────────────────────────────────────────────────
+
+export interface StatementDocument {
+  id: string;
+  storage_path: string;
+  doc_type: string;
+  status: string;
+  confidence_score: number | null;
+  created_at: string;
+}
+
+export function useDocuments(orgId: string | undefined, limit = 30) {
+  return useQuery({
+    queryKey: ["documents", orgId, limit],
+    enabled: !!orgId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("documents")
+        .select("id,storage_path,doc_type,status,confidence_score,created_at")
+        .eq("org_id", orgId!)
+        .order("created_at", { ascending: false })
+        .limit(limit);
+      if (error) throw new Error(error.message);
+      return (data ?? []) as StatementDocument[];
+    },
+    refetchInterval: 30_000,
+    staleTime: 10_000,
+  });
 }
 
 // ── Broker accounts ───────────────────────────────────────────────────────────

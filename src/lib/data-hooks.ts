@@ -97,6 +97,10 @@ export function useCreateTransaction() {
     onSuccess: (_d, { orgId }) => {
       void qc.invalidateQueries({ queryKey: ["transactions", orgId] });
       void qc.invalidateQueries({ queryKey: ["transactions_month", orgId] });
+      void qc.invalidateQueries({ queryKey: ["reconciliation_flags", orgId] });
+      void qc.invalidateQueries({ queryKey: ["portfolio_summary", orgId] });
+      void qc.invalidateQueries({ queryKey: ["financial_events", orgId] });
+      void qc.invalidateQueries({ queryKey: ["financial_insights", orgId] });
     },
   });
 }
@@ -146,6 +150,10 @@ export function useUpdateTransaction() {
     onSuccess: (_d, { orgId }) => {
       void qc.invalidateQueries({ queryKey: ["transactions", orgId] });
       void qc.invalidateQueries({ queryKey: ["transactions_month", orgId] });
+      void qc.invalidateQueries({ queryKey: ["reconciliation_flags", orgId] });
+      void qc.invalidateQueries({ queryKey: ["portfolio_summary", orgId] });
+      void qc.invalidateQueries({ queryKey: ["financial_events", orgId] });
+      void qc.invalidateQueries({ queryKey: ["financial_insights", orgId] });
     },
   });
 }
@@ -164,6 +172,10 @@ export function useDeleteTransaction() {
     onSuccess: (_d, { orgId }) => {
       void qc.invalidateQueries({ queryKey: ["transactions", orgId] });
       void qc.invalidateQueries({ queryKey: ["transactions_month", orgId] });
+      void qc.invalidateQueries({ queryKey: ["reconciliation_flags", orgId] });
+      void qc.invalidateQueries({ queryKey: ["portfolio_summary", orgId] });
+      void qc.invalidateQueries({ queryKey: ["financial_events", orgId] });
+      void qc.invalidateQueries({ queryKey: ["financial_insights", orgId] });
     },
   });
 }

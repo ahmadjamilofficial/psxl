@@ -224,7 +224,7 @@ export function useMarketQuotes(orgId: string | undefined, instruments: MarketQu
     instruments.map((item) => [`${item.exchange.toUpperCase()}:${item.ticker.toUpperCase()}`, {
       ticker: item.ticker.toUpperCase(),
       exchange: item.exchange.toUpperCase(),
-    }]),
+    }] as const),
   ).values()].sort((a, b) => `${a.exchange}:${a.ticker}`.localeCompare(`${b.exchange}:${b.ticker}`));
 
   const results = useQueries({

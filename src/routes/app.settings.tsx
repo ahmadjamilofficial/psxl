@@ -269,7 +269,7 @@ function Settings() {
         </p>
       </div>
 
-      <div className="flex gap-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:gap-6">
         <nav
           className="hidden w-44 shrink-0 rounded-2xl bg-surface p-2 lg:block"
           style={{ border: "1px solid var(--hairline)", alignSelf: "start" }}
@@ -291,26 +291,28 @@ function Settings() {
           ))}
         </nav>
 
-        <div className="w-full overflow-x-auto lg:hidden">
-          <div className="flex gap-2 pb-2">
-            {TABS.map(({ id, label }) => (
+        <div className="w-full lg:hidden">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {TABS.map(({ id, label, icon: Ic }) => (
               <button
                 key={id}
                 type="button"
                 onClick={() => setTab(id)}
-                className="shrink-0 rounded-full px-3 py-1.5 text-xs font-medium"
+                className="flex min-h-12 min-w-0 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-center text-xs font-medium transition-colors"
                 style={{
                   background: tab === id ? "var(--color-accent)" : "var(--color-login-bg)",
                   color: tab === id ? "var(--accent-fg)" : "var(--ink-2)",
                 }}
+                aria-current={tab === id ? "page" : undefined}
               >
-                {label}
+                <Ic size={15} strokeWidth={1.8} />
+                <span>{label}</span>
               </button>
             ))}
           </div>
         </div>
 
-        <div className="flex-1 space-y-4">
+        <div className="min-w-0 w-full flex-1 space-y-4">
           {tab === "org" && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
               <Panel>
@@ -406,7 +408,7 @@ function Settings() {
           {tab === "usage" && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
               <Panel>
-                <div className="mb-5 flex items-start justify-between gap-4">
+                <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <p className="text-sm font-semibold">Usage</p>
                     <p className="mt-1 text-xs" style={{ color: "var(--ink-3)" }}>
@@ -497,7 +499,7 @@ function Settings() {
                     return (
                       <div
                         key={p.name}
-                        className="flex items-center justify-between rounded-xl px-4 py-3"
+                        className="flex flex-col items-start justify-between gap-3 rounded-xl px-4 py-3 sm:flex-row sm:items-center"
                         style={{
                           background: isActive ? "var(--accent-6)" : "var(--color-login-bg)",
                           border: `1px solid ${isActive ? "var(--accent-20)" : "transparent"}`,
@@ -528,7 +530,7 @@ function Settings() {
           {tab === "team" && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <Panel>
-                <div className="mb-4 flex items-center justify-between">
+                <div className="mb-4 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-sm font-semibold">Team Members</p>
                   <Btn variant="secondary" onClick={() => setInviteOpen((v) => !v)}>
                     <Plus size={15} strokeWidth={1.75} />
@@ -538,7 +540,7 @@ function Settings() {
 
                 {inviteOpen && (
                   <div
-                    className="mb-4 grid gap-3 rounded-xl p-4 sm:grid-cols-[1fr_140px_auto]"
+                    className="mb-4 grid min-w-0 gap-3 rounded-xl p-4 md:grid-cols-[minmax(0,1fr)_140px_auto]"
                     style={{ background: "var(--color-login-bg)" }}
                   >
                     <input
@@ -579,7 +581,7 @@ function Settings() {
                     return (
                       <div
                         key={member.id}
-                        className="flex items-center gap-3 rounded-xl px-4 py-3"
+                        className="flex min-w-0 flex-wrap items-center gap-3 rounded-xl px-4 py-3"
                         style={{ background: "var(--color-login-bg)" }}
                       >
                         <div
@@ -693,7 +695,7 @@ function Settings() {
                       desc: "Summary of your monthy performance",
                     },
                   ].map((n) => (
-                    <div key={n.key} className="flex items-center justify-between">
+                    <div key={n.key} className="flex items-start justify-between gap-4">
                       <div>
                         <p className="text-sm font-medium">{n.label}</p>
                         <p className="text-xs" style={{ color: "var(--ink-3)" }}>
@@ -733,7 +735,7 @@ function UsageMeter({
 }) {
   return (
     <div>
-      <div className="mb-2 flex items-baseline justify-between gap-3">
+      <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
         <div>
           <p className="text-sm font-medium">{label}</p>
           <p className="text-[11px]" style={{ color: "var(--ink-3)" }}>

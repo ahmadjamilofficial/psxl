@@ -153,9 +153,10 @@ export async function computePortfolioSummary(
     totalValue += costBasis;
     tickerBreakdown.push({ ticker: position.ticker + " · " + position.exchange, value: costBasis, pct: 0 });
   }
+  // Keep every open position in the summary so concentration metrics use the
+  // full portfolio, not just the first eight rows shown in the UI.
   const finalTickerBreakdown = tickerBreakdown
     .sort((a, b) => b.value - a.value)
-    .slice(0, 8)
     .map((item) => ({ ...item, pct: totalValue > 0 ? (item.value / totalValue) * 100 : 0 }));
 
   // Global/custom jurisdictions intentionally have no assumed tax rate.

@@ -1,39 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { FileUp, RefreshCw, CheckCircle2, AlertTriangle, FileText, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
-import { supabase } from "@/lib/supabase";
-import { useTransactions, useReconciliationFlags, useUpdateTransaction } from "@/lib/data-hooks";
+import { useTransactions, useReconciliationFlags, useUpdateTransaction, useDocuments } from "@/lib/data-hooks";
 
 export const Route = createFileRoute("/app/broker-desk")({ component: BrokerDesk });
-
-type DocumentRow = { id: string; storage_path: string; doc_type: string; status: string; confidence_score: number | null; created_at: string };
 
 function BrokerDesk() {
   const { profile, session } = useAuth();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [documents, setDocuments] = useState<DocumentRow[]>([]);
-  const [loadingDocs, setLoadingDocs] = useState(false);
+  const { data: documents = [], isLoading: loadingDocs, refetch: loadDocuments } = useDocuments(profile?.org_id);
   const [uploading, setUploading] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const { data: transactions = [] } = useTransactions(profile?.org_id);
   const { data: flags = [] } = useReconciliationFlags(profile?.org_id);
   const updateTransaction = useUpdateTransaction();
-
-  const loadDocuments = useCallback(async () => {
-    if (!profile?.org_id) return;
-    setLoadingDocs(true);
-    try {
-      const { data, error } = await supabase.from("documents").select("id,storage_path,doc_type,status,confidence_score,created_at").eq("org_id", profile.org_id).order("created_at", { ascending: false }).limit(30);
-      if (error) throw error;
-      setDocuments((data ?? []) as DocumentRow[]);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not load uploaded statements.");
-    } finally { setLoadingDocs(false); }
-  }, [profile?.org_id]);
-
-  useEffect(() => { void loadDocuments(); }, [loadDocuments]);
 
   const reviewQueue = useMemo(() => transactions.filter((tx) => tx.status === "needs_review"), [transactions]);
   const posted = transactions.filter((tx) => tx.status === "posted").length;

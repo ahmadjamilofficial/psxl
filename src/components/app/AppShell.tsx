@@ -8,6 +8,9 @@ import {
   BrainCircuit,
   ChevronDown,
   CreditCard,
+  Cloud,
+  CloudOff,
+  RefreshCw,
   GitFork,
   Inbox,
   LayoutDashboard,
@@ -36,6 +39,7 @@ import {
 } from "@/components/notifications/NotificationCenter";
 import { usePendingApprovals } from "@/lib/data-hooks";
 import { useAgentHeartbeat } from "@/lib/use-agent-heartbeat";
+import { useEcosystemSync } from "@/lib/use-ecosystem-sync";
 import { useTheme } from "@/lib/theme-context";
 import { brandText } from "@/lib/brand";
 
@@ -167,6 +171,7 @@ function InnerShell({ children }: { children: ReactNode }) {
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
   const { setTheme, actualTheme } = useTheme();
+  const syncStatus = useEcosystemSync(profile?.org_id);
 
   const [expanded, setExpanded] = useState(() => readSidebarPref());
   const [moreOpen, setMoreOpen] = useState(false);
@@ -466,6 +471,15 @@ function InnerShell({ children }: { children: ReactNode }) {
             <LogoMark size={22} />
           </div>
           <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
+            <div
+              className="inline-flex items-center gap-1.5 rounded-full px-2 py-1.5 text-[10px] font-semibold sm:px-2.5 sm:text-xs"
+              title={syncStatus === "live" ? "Live organisation sync is connected" : syncStatus === "connecting" ? "Connecting to live organisation sync" : "Live sync is unavailable; pages will refresh periodically"}
+              style={{ background: "var(--sidebar-accent)", color: syncStatus === "live" ? "var(--ok)" : "var(--ink-3)" }}
+              aria-live="polite"
+            >
+              {syncStatus === "live" ? <Cloud size={14} /> : syncStatus === "connecting" ? <RefreshCw size={13} className="animate-spin" /> : <CloudOff size={14} />}
+              <span className="hidden sm:inline">{syncStatus === "live" ? "Synced" : syncStatus === "connecting" ? "Syncing" : "Offline"}</span>
+            </div>
             <button
               type="button"
               onClick={() => setTheme(actualTheme === "dark" ? "light" : "dark")}

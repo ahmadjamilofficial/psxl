@@ -39,6 +39,7 @@ export function useTransactions(orgId: string | undefined) {
         currency: row.currency ?? exchangeCurrency(row.exchange) ?? (row as unknown as { broker_accounts?: { currency?: string } | null }).broker_accounts?.currency ?? "USD",
       })) as Transaction[];
     },
+    refetchInterval: 30_000,
     staleTime: 0,
   });
 
@@ -96,6 +97,10 @@ export function useCreateTransaction() {
     onSuccess: (_d, { orgId }) => {
       void qc.invalidateQueries({ queryKey: ["transactions", orgId] });
       void qc.invalidateQueries({ queryKey: ["transactions_month", orgId] });
+      void qc.invalidateQueries({ queryKey: ["reconciliation_flags", orgId] });
+      void qc.invalidateQueries({ queryKey: ["portfolio_summary", orgId] });
+      void qc.invalidateQueries({ queryKey: ["financial_events", orgId] });
+      void qc.invalidateQueries({ queryKey: ["financial_insights", orgId] });
     },
   });
 }
@@ -145,6 +150,10 @@ export function useUpdateTransaction() {
     onSuccess: (_d, { orgId }) => {
       void qc.invalidateQueries({ queryKey: ["transactions", orgId] });
       void qc.invalidateQueries({ queryKey: ["transactions_month", orgId] });
+      void qc.invalidateQueries({ queryKey: ["reconciliation_flags", orgId] });
+      void qc.invalidateQueries({ queryKey: ["portfolio_summary", orgId] });
+      void qc.invalidateQueries({ queryKey: ["financial_events", orgId] });
+      void qc.invalidateQueries({ queryKey: ["financial_insights", orgId] });
     },
   });
 }
@@ -163,6 +172,10 @@ export function useDeleteTransaction() {
     onSuccess: (_d, { orgId }) => {
       void qc.invalidateQueries({ queryKey: ["transactions", orgId] });
       void qc.invalidateQueries({ queryKey: ["transactions_month", orgId] });
+      void qc.invalidateQueries({ queryKey: ["reconciliation_flags", orgId] });
+      void qc.invalidateQueries({ queryKey: ["portfolio_summary", orgId] });
+      void qc.invalidateQueries({ queryKey: ["financial_events", orgId] });
+      void qc.invalidateQueries({ queryKey: ["financial_insights", orgId] });
     },
   });
 }
@@ -187,6 +200,86 @@ export function useMonthlyTransactionCount(orgId: string | undefined) {
     refetchInterval: 15_000,
     staleTime: 10_000,
   });
+}
+
+// ── Shared market quotes ──────────────────────────────────────────────────────
+
+export interface MarketQuoteInput {
+  ticker: string;
+  exchange: string;
+}
+
+export interface MarketQuote {
+  ticker: string;
+  exchange: string;
+  price: number;
+  change: number;
+  changePercent: number;
+  currency: string;
+  lastUpdated: string;
+}
+
+export function useMarketQuotes(orgId: string | undefined, instruments: MarketQuoteInput[]) {
+  const queryClient = useQueryClient();
+  const unique = [...new Map(
+    instruments.map((item) => [`${item.exchange.toUpperCase()}:${item.ticker.toUpperCase()}`, {
+      ticker: item.ticker.toUpperCase(),
+      exchange: item.exchange.toUpperCase(),
+    }] as const),
+  ).values()].sort((a, b) => `${a.exchange}:${a.ticker}`.localeCompare(`${b.exchange}:${b.ticker}`));
+
+  const query = useQuery({
+    queryKey: ["market_quotes", orgId, unique],
+    enabled: !!orgId && unique.length > 0,
+    queryFn: async () => {
+      const cacheKey = (instrument: MarketQuoteInput) => [
+        "market_quote", orgId, instrument.exchange, instrument.ticker,
+      ] as const;
+      const now = Date.now();
+      const stale = unique.filter((instrument) => {
+        const cached = queryClient.getQueryData<MarketQuote | null>(cacheKey(instrument));
+        return !cached || now - Date.parse(cached.lastUpdated) > 30_000;
+      });
+
+      if (stale.length > 0) {
+        const prices: MarketQuote[] = [];
+        for (let offset = 0; offset < stale.length; offset += 100) {
+          const batch = stale.slice(offset, offset + 100);
+          const response = await fetch("/api/market-data", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ tickers: batch }),
+          });
+          const body = await response.json().catch(() => null);
+          if (!response.ok) throw new Error(body?.error ?? "Market quote request failed.");
+          if (Array.isArray(body?.prices)) prices.push(...body.prices as MarketQuote[]);
+        }
+        for (const instrument of stale) {
+          const quote = prices.find((item) =>
+            item.ticker.toUpperCase() === instrument.ticker &&
+            item.exchange.toUpperCase() === instrument.exchange
+          ) ?? null;
+          queryClient.setQueryData(cacheKey(instrument), quote);
+        }
+      }
+
+      return unique.flatMap((instrument) => {
+        const quote = queryClient.getQueryData<MarketQuote | null>(cacheKey(instrument));
+        return quote ? [quote] : [];
+      });
+    },
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+    retry: 1,
+  });
+
+  return {
+    quotes: query.data ?? [],
+    isLoading: query.isLoading,
+    isFetching: query.isFetching,
+    error: query.error,
+    refetch: query.refetch,
+  };
 }
 
 // ── Reconciliation flags ──────────────────────────────────────────────────────
@@ -217,7 +310,8 @@ export function useReconciliationFlags(orgId: string | undefined) {
         suggested_resolution: row.suggested_resolution,
       }));
     },
-    staleTime: 30_000,
+    refetchInterval: 30_000,
+    staleTime: 10_000,
   });
 }
 
@@ -352,6 +446,36 @@ export async function pushNotification(input: {
       () => undefined,
       () => undefined,
     );
+}
+
+// ── Statement documents ───────────────────────────────────────────────────────
+
+export interface StatementDocument {
+  id: string;
+  storage_path: string;
+  doc_type: string;
+  status: string;
+  confidence_score: number | null;
+  created_at: string;
+}
+
+export function useDocuments(orgId: string | undefined, limit = 30) {
+  return useQuery({
+    queryKey: ["documents", orgId, limit],
+    enabled: !!orgId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("documents")
+        .select("id,storage_path,doc_type,status,confidence_score,created_at")
+        .eq("org_id", orgId!)
+        .order("created_at", { ascending: false })
+        .limit(limit);
+      if (error) throw new Error(error.message);
+      return (data ?? []) as StatementDocument[];
+    },
+    refetchInterval: 30_000,
+    staleTime: 10_000,
+  });
 }
 
 // ── Broker accounts ───────────────────────────────────────────────────────────

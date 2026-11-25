@@ -30,6 +30,7 @@ export function useEcosystemSync(orgId: string | undefined) {
       return;
     }
 
+    setStatus("connecting");
     let refreshTimer: ReturnType<typeof setTimeout> | undefined;
     const channel = supabase.channel(`psxl-ecosystem-${orgId}`);
 

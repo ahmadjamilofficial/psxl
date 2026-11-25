@@ -16,7 +16,9 @@ BEGIN
     'agent_approvals',
     'broker_accounts',
     'audit_log',
-    'connected_sources'
+    'connected_sources',
+    'notifications',
+    'tax_profiles'
   ] LOOP
     IF to_regclass(format('public.%I', target_table)) IS NOT NULL
       AND NOT EXISTS (

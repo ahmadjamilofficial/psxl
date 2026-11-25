@@ -1,11 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FileUp, RefreshCw, CheckCircle2, Clock3, AlertTriangle, FileText, ArrowRight } from "lucide-react";
+import { FileUp, RefreshCw, CheckCircle2, AlertTriangle, FileText, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useTransactions, useReconciliationFlags, useUpdateTransaction } from "@/lib/data-hooks";
-import { useQueryClient } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/app/broker-desk")({ component: BrokerDesk });
 
@@ -13,7 +12,6 @@ type DocumentRow = { id: string; storage_path: string; doc_type: string; status:
 
 function BrokerDesk() {
   const { profile, session } = useAuth();
-  const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const [documents, setDocuments] = useState<DocumentRow[]>([]);
   const [loadingDocs, setLoadingDocs] = useState(false);

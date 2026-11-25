@@ -11,6 +11,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useState, useMemo } from "react";
+import { runReconciliation as reconcileTransactions, type ReconciliationFinding } from "@/lib/reconciliation-engine";
 import { toast } from "sonner";
 import { Btn, Panel, StatusPill } from "@/components/kit";
 import { useAuth } from "@/lib/auth-context";
@@ -18,7 +19,6 @@ import {
   useReconciliationFlags,
   useResolveFlag,
   useTransactions,
-  useBrokerConnections,
 } from "@/lib/data-hooks";
 import { supabase } from "@/lib/supabase";
 import { useQueryClient } from "@tanstack/react-query";
@@ -27,157 +27,7 @@ export const Route = createFileRoute("/app/reconciliation")({
   component: Reconciliation,
 });
 
-type FlagSeverity = "ok" | "warn" | "bad";
-
-// ── Deterministic reconciliation engine (no LLM) ─────────────────────────────
-type TxRow = {
-  ticker: string;
-  action: string;
-  quantity: number;
-  price: number;
-  trade_date: string;
-  ref_id: string;
-  broker: string;
-  exchange: string;
-};
-
-type LocalFlag = {
-  id: string;
-  flag_type: string;
-  severity: "warn" | "bad";
-  ticker: string;
-  ref_id: string;
-  expected: number;
-  actual: number;
-  description: string;
-  suggested_resolution: string;
-  status: "open";
-};
-
-function runLocalReconciliation(
-  transactions: TxRow[],
-  brokerFilter: string,
-  dateFrom: string,
-  dateTo: string,
-): LocalFlag[] {
-  const findings: LocalFlag[] = [];
-  if (!transactions.length) return findings;
-
-  const filtered = transactions.filter((t) => {
-    const inBroker = !brokerFilter || brokerFilter === "All" || t.broker === brokerFilter;
-    const inDate = (!dateFrom || t.trade_date >= dateFrom) && (!dateTo || t.trade_date <= dateTo);
-    return inBroker && inDate;
-  });
-
-  let idx = 0;
-  const id = () => `local-${idx++}`;
-
-  // 1. Exact duplicates
-  const seen = new Map<string, TxRow>();
-  for (const tx of filtered) {
-    const key = `${tx.ticker}|${tx.action}|${tx.quantity}|${tx.price}|${tx.trade_date}`;
-    if (seen.has(key)) {
-      findings.push({
-        id: id(),
-        flag_type: "Duplicate Entry",
-        severity: "warn",
-        ticker: tx.ticker,
-        ref_id: tx.ref_id,
-        expected: 1,
-        actual: 2,
-        description: `Duplicate: ${tx.ticker} ${tx.action} ${tx.quantity} @ ${tx.price} on ${tx.trade_date} appears twice.`,
-        suggested_resolution: "Remove one of the duplicate rows from the ledger.",
-        status: "open",
-      });
-    } else {
-      seen.set(key, tx);
-    }
-  }
-
-  // 2. Zero/negative quantity
-  for (const tx of filtered) {
-    if (Number(tx.quantity) <= 0) {
-      findings.push({
-        id: id(),
-        flag_type: "Invalid Quantity",
-        severity: "bad",
-        ticker: tx.ticker,
-        ref_id: tx.ref_id,
-        expected: 1,
-        actual: Number(tx.quantity),
-        description: `${tx.ref_id}: quantity ${tx.quantity} ≤ 0.`,
-        suggested_resolution: "Correct or delete the transaction.",
-        status: "open",
-      });
-    }
-  }
-
-  // 3. Zero price
-  for (const tx of filtered) {
-    if (Number(tx.price) <= 0) {
-      findings.push({
-        id: id(),
-        flag_type: "Missing Price",
-        severity: "bad",
-        ticker: tx.ticker,
-        ref_id: tx.ref_id,
-        expected: 1,
-        actual: 0,
-        description: `${tx.ref_id}: price is 0 — likely extraction failure.`,
-        suggested_resolution: "Update price from original broker document.",
-        status: "open",
-      });
-    }
-  }
-
-  // 4. Missing reference ID
-  for (const tx of filtered) {
-    const ref = tx.ref_id ?? "";
-    if (!ref || ref.startsWith("AUTO-") || ref.startsWith("AI-") || ref.startsWith("INGESTED-")) {
-      findings.push({
-        id: id(),
-        flag_type: "Missing Reference",
-        severity: "warn",
-        ticker: tx.ticker,
-        ref_id: ref || "—",
-        expected: 1,
-        actual: 0,
-        description: `${tx.ticker} on ${tx.trade_date} has no broker reference ID.`,
-        suggested_resolution: "Add the ref ID from your broker contract note.",
-        status: "open",
-      });
-    }
-  }
-
-  // 5. Oversell
-  const inv: Record<string, number> = {};
-  for (const tx of [...filtered].sort((a, b) => a.trade_date.localeCompare(b.trade_date))) {
-    inv[tx.ticker] = inv[tx.ticker] ?? 0;
-    if (tx.action === "BUY") {
-      inv[tx.ticker] += Number(tx.quantity);
-    }
-    if (tx.action === "SELL") {
-      const available = inv[tx.ticker];
-      inv[tx.ticker] -= Number(tx.quantity);
-      if (inv[tx.ticker] < -0.001) {
-        findings.push({
-          id: id(),
-          flag_type: "Oversell",
-          severity: "bad",
-          ticker: tx.ticker,
-          ref_id: tx.ref_id,
-          expected: available,
-          actual: Number(tx.quantity),
-          description: `SELL of ${tx.quantity} ${tx.ticker} on ${tx.trade_date} exceeds available inventory (${available}).`,
-          suggested_resolution: "Check that all BUY records exist before this date.",
-          status: "open",
-        });
-      }
-    }
-  }
-
-  return findings;
-}
+type LocalFlag = ReconciliationFinding;
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -198,7 +48,6 @@ function Reconciliation() {
 
   const { data: allDbFlags = [] } = useReconciliationFlags(profile?.org_id);
   const { data: transactions = [] } = useTransactions(profile?.org_id);
-  const { data: brokers = [] } = useBrokerConnections(profile?.org_id);
   const resolveMutation = useResolveFlag();
 
   const brokerOptions = useMemo(() => {
@@ -233,31 +82,32 @@ function Reconciliation() {
         ref_id: t.ref_id,
         broker: t.broker,
         exchange: t.exchange,
+        status: t.status,
       }));
 
-      const findings = runLocalReconciliation(castTx, brokerFilter, dateFrom, dateTo);
+      const findings = reconcileTransactions(castTx, { broker: brokerFilter, dateFrom, dateTo });
       setLocalFlags(findings);
 
-      // Persist critical flags to DB
-      for (const f of findings.filter((x) => x.severity === "bad")) {
-        await supabase
-          .from("reconciliation_flags")
-          .insert({
+      // Persist every finding, not only critical ones. Existing open findings are
+      // reused by description so repeated runs do not flood the review queue.
+      const existingDescriptions = new Set(allDbFlags.map((flag) => flag.description));
+      const toPersist = findings.filter((finding) => !existingDescriptions.has(finding.description));
+      if (toPersist.length > 0) {
+        const { error } = await supabase.from("reconciliation_flags").insert(
+          toPersist.map((finding) => ({
             org_id: profile.org_id,
-            flag_type: f.flag_type,
-            severity: f.severity,
-            ticker: f.ticker,
-            ref_id: f.ref_id,
-            expected: f.expected as never,
-            actual: f.actual as never,
-            description: f.description,
-            suggested_resolution: f.suggested_resolution,
+            flag_type: finding.flag_type,
+            severity: finding.severity,
+            ticker: finding.ticker,
+            ref_id: finding.ref_id,
+            expected: finding.expected as never,
+            actual: finding.actual as never,
+            description: finding.description,
+            suggested_resolution: finding.suggested_resolution,
             status: "open",
-          } as never)
-          .then(
-            () => undefined,
-            () => undefined,
-          );
+          })) as never,
+        );
+        if (error) throw new Error(`Could not save reconciliation findings: ${error.message}`);
       }
 
       await qc.invalidateQueries({ queryKey: ["reconciliation_flags", profile.org_id] });

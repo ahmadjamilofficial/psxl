@@ -31,7 +31,7 @@ function MarketIntelligence() {
       if (tx.status !== "posted" || tx.action === "DIV") continue;
       const ticker = tx.ticker?.trim().toUpperCase();
       const exchange = tx.exchange?.trim().toUpperCase();
-      if (!ticker || !exchange || !/^(?:\\^)?[A-Z0-9][A-Z0-9.&_=-]{0,19}$/.test(ticker)) continue;
+      if (!ticker || !exchange || !/^[A-Z0-9][A-Z0-9.&_=-]{0,19}$/.test(ticker)) continue;
       const key = exchange + ":" + ticker;
       if (!map.has(key)) {
         map.set(key, {

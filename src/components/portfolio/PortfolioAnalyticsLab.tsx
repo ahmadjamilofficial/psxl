@@ -206,24 +206,24 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
         : "Cumulative net cash flow";
   const mainUnit = tab === "activity" ? "transactions" : activeCurrency;
 
-  return <section className="space-y-6 rounded-[28px] p-4 sm:p-7" style={{...card, boxShadow:"0 18px 55px rgba(15,23,42,.055)"}}>
+  return <section className="space-y-6 rounded-lg p-4 sm:p-7" style={{...card, boxShadow:"0 18px 55px rgba(15,23,42,.055)"}}>
     <header className="flex flex-wrap items-start justify-between gap-4">
       <div><p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.2em]" style={{color:"var(--color-accent)"}}><CandlestickChart size={14}/> PSXL MARKETS · ANALYTICS</p><h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-[28px]">Portfolio performance</h2><p className="mt-1 max-w-2xl text-xs leading-5" style={{color:"var(--ink-3)"}}>A precise view of your ledger activity, cash movements and symbol-level exposure.</p></div>
       <div className="flex flex-wrap gap-2">
-        <select aria-label="Currency filter" value={activeCurrency} onChange={e=>setSelectedCurrency(e.target.value)} className="rounded-xl px-3 py-2 text-xs" style={card}><option value="">Choose currency</option>{currencies.map(code=><option key={code} value={code}>{code}</option>)}</select>
-        <select aria-label="Ticker filter" value={ticker} onChange={e=>setTicker(e.target.value)} className="rounded-xl px-3 py-2 text-xs" style={card}><option value="ALL">All tickers</option>{tickers.map(t=><option key={t.key} value={t.key}>{t.label}</option>)}</select>
+        <select aria-label="Currency filter" value={activeCurrency} onChange={e=>setSelectedCurrency(e.target.value)} className="rounded-md px-3 py-2 text-xs" style={card}><option value="">Choose currency</option>{currencies.map(code=><option key={code} value={code}>{code}</option>)}</select>
+        <select aria-label="Ticker filter" value={ticker} onChange={e=>setTicker(e.target.value)} className="rounded-md px-3 py-2 text-xs" style={card}><option value="ALL">All tickers</option>{tickers.map(t=><option key={t.key} value={t.key}>{t.label}</option>)}</select>
         
       </div>
     </header>
-    <div className="flex gap-1 overflow-x-auto rounded-xl p-1" style={{background:"var(--color-login-bg)"}}>{tabs.map(t=>{const Icon=t.icon;return <button key={t.id} onClick={()=>setTab(t.id)} className="flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition-all" style={{background:tab===t.id?"var(--color-sheet)":"transparent",color:tab===t.id?"var(--color-text)":"var(--ink-3)",boxShadow:tab===t.id?"0 1px 5px #00000012":"none"}}><Icon size={14}/>{t.label}</button>})}</div>
-    <div className="space-y-4 rounded-2xl p-3 sm:p-5" style={{background:"var(--color-login-bg)",border:"1px solid var(--hairline)"}}>
+    <div className="flex gap-1 overflow-x-auto rounded-md p-1" style={{background:"var(--color-login-bg)"}}>{tabs.map(t=>{const Icon=t.icon;return <button key={t.id} onClick={()=>setTab(t.id)} className="flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition-all" style={{background:tab===t.id?"var(--color-sheet)":"transparent",color:tab===t.id?"var(--color-text)":"var(--ink-3)",boxShadow:tab===t.id?"0 1px 5px #00000012":"none"}}><Icon size={14}/>{t.label}</button>})}</div>
+    <div className="space-y-4 rounded-lg p-3 sm:p-5" style={{background:"var(--color-login-bg)",border:"1px solid var(--hairline)"}}>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-1 rounded-xl p-1" style={{background:"var(--color-login-bg)"}}>
+        <div className="flex flex-wrap items-center gap-1 rounded-md p-1" style={{background:"var(--color-login-bg)"}}>
           {["1D","1W","1M","3M","6M","1Y","ALL"].map(range => (
             <button key={range} type="button" onClick={() => setPeriod(range)} className="rounded-lg px-2.5 py-1.5 text-[11px] font-semibold transition-colors" style={{background:period===range?"var(--color-sheet)":"transparent",color:period===range?"var(--color-text)":"var(--ink-3)",boxShadow:period===range?"0 1px 4px rgba(0,0,0,.12)":"none"}}>{range}</button>
           ))}
         </div>
-        <div className="flex items-center gap-1 rounded-xl p-1" style={{background:"var(--color-login-bg)"}}>
+        <div className="flex items-center gap-1 rounded-md p-1" style={{background:"var(--color-login-bg)"}}>
           {(["area","line","bars"] as const).map(style => (
             <button key={style} type="button" onClick={() => setChartStyle(style)} className="rounded-lg px-3 py-1.5 text-[11px] font-semibold capitalize" style={{background:chartStyle===style?"var(--color-sheet)":"transparent",color:chartStyle===style?"var(--color-text)":"var(--ink-3)"}}>{style}</button>
           ))}
@@ -231,21 +231,21 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
       </div>
       {mainData.length > 0 ? <>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          <div className="rounded-xl px-3 py-2" style={{background:"var(--color-login-bg)"}}>
+          <div className="rounded-md px-3 py-2" style={{background:"var(--color-login-bg)"}}>
             <p className="text-[10px] font-medium uppercase tracking-wide" style={{color:"var(--ink-3)"}}>Net cash flow</p>
             <p className="tnum mt-1 text-sm font-semibold" style={{color:(data.equity.at(-1)?.cumulative ?? 0)>=0?"var(--ok)":"var(--bad)"}}>{activeCurrency} {fmt(data.equity.at(-1)?.cumulative ?? 0)}</p>
           </div>
-          <div className="rounded-xl px-3 py-2" style={{background:"var(--color-login-bg)"}}>
+          <div className="rounded-md px-3 py-2" style={{background:"var(--color-login-bg)"}}>
             <p className="text-[10px] font-medium uppercase tracking-wide" style={{color:"var(--ink-3)"}}>Transactions plotted</p>
             <p className="tnum mt-1 text-sm font-semibold">{filtered.length.toLocaleString()} posted</p>
             {reviewCount > 0 && <p className="mt-0.5 text-[10px]" style={{color:"var(--warn)"}}>{reviewCount} awaiting review · excluded</p>}
           </div>
-          <div className="col-span-2 rounded-xl px-3 py-2 sm:col-span-1" style={{background:"var(--color-login-bg)"}}>
+          <div className="col-span-2 rounded-md px-3 py-2 sm:col-span-1" style={{background:"var(--color-login-bg)"}}>
             <p className="text-[10px] font-medium uppercase tracking-wide" style={{color:"var(--ink-3)"}}>Chart data</p>
             <p className="mt-1 text-[11px]" style={{color:"var(--ink-2)"}}>Posted ledger events · {activeCurrency}</p>
           </div>
         </div>
-        <div className="rounded-2xl border p-3 sm:p-4" style={{background:"var(--color-sheet)",borderColor:"var(--hairline)"}}>
+        <div className="rounded-lg border p-3 sm:p-4" style={{background:"var(--color-sheet)",borderColor:"var(--hairline)"}}>
           <div className="mb-3 flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-sm font-semibold">{mainTitle}</p>
@@ -288,10 +288,10 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
           </div>
         </div>
         <p className="text-[10px] leading-4" style={{color:"var(--ink-3)"}}>Only posted ledger records affect financial totals. Records awaiting review are counted separately and excluded until approved. Cash flow is not the same as realized FIFO profit or market-valued equity.</p>
-      </> : <div className="flex h-[300px] items-center justify-center rounded-2xl border border-dashed px-6 text-center text-sm" style={{borderColor:"var(--hairline)",color:"var(--ink-3)"}}>No posted transactions in this currency and time range. Choose another currency or timeframe.</div>}
+      </> : <div className="flex h-[300px] items-center justify-center rounded-lg border border-dashed px-6 text-center text-sm" style={{borderColor:"var(--hairline)",color:"var(--ink-3)"}}>No posted transactions in this currency and time range. Choose another currency or timeframe.</div>}
     </div>
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-      <div className="rounded-2xl p-4" style={card}>
+      <div className="rounded-lg p-4" style={card}>
         <div className="mb-2"><h3 className="text-sm font-semibold">Monthly cash-flow trend</h3><p className="text-[11px]" style={{color:"var(--ink-3)"}}>{monthlyChartDescription}</p></div>
         <ResponsiveContainer
           key={`monthly-chart-${monthlyChartData.length}-${filtered.length}`}
@@ -302,13 +302,13 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
           <ComposedChart data={monthlyChartData} margin={{top:8,right:8,left:2,bottom:4}}><CartesianGrid vertical={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis dataKey="month" tickFormatter={(value, index) => monthlyChartData.length > 1 && data.monthly.length <= 1 && index > 0 && monthlyChartData[index - 1]?.month === value ? "" : String(value).slice(0, 7) === String(value) && String(value).length === 7 ? String(value) : String(value).slice(5)} interval="preserveStartEnd" minTickGap={24} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis tickFormatter={fmt} width={64} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><Tooltip labelFormatter={value => String(value)} formatter={(v:number,name:string)=>[(activeCurrency||"—")+" "+fmt(v),name]} contentStyle={tooltipContentStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle}/><ReferenceLine y={0} stroke="var(--ink-3)" strokeOpacity={.45}/><Bar dataKey="netFlow" name={data.monthly.length > 1 ? "Monthly net flow" : "Transaction net flow"} fill="var(--color-accent)" radius={[4,4,0,0]} maxBarSize={34} isAnimationActive animationDuration={850} animationEasing="ease-out"/><Line dataKey="cumulative" name="Cumulative ledger flow" type="monotone" stroke="#2563EB" strokeWidth={2.6} dot={{r:3,fill:"#2563EB",strokeWidth:0}} activeDot={{r:6}} connectNulls isAnimationActive animationDuration={1000} animationEasing="ease-out"/></ComposedChart>
         </ResponsiveContainer>
       </div>
-      <div className="rounded-2xl p-4" style={card}>
+      <div className="rounded-lg p-4" style={card}>
         <div className="mb-2"><h3 className="text-sm font-semibold">Ticker cash-flow ranking</h3><p className="text-[11px]" style={{color:"var(--ink-3)"}}>Sell proceeds + dividends − purchases</p></div>
         <ResponsiveContainer key={`ticker-ranking-${data.tickerRows.length}-${filtered.length}`} width="100%" height={250} debounce={80}>
           <BarChart data={data.tickerRows.slice(0,8)} layout="vertical" margin={{left:8,right:12}}><CartesianGrid horizontal={false} stroke="var(--hairline)" strokeDasharray="3 4"/><XAxis type="number" tickFormatter={fmt} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><YAxis type="category" dataKey="ticker" width={118} tick={{fontSize:10,fill:"var(--ink-3)"}} axisLine={false} tickLine={false}/><ReferenceLine x={0} stroke="var(--ink-3)" strokeOpacity={0.4}/><Tooltip formatter={(v:number)=>[(activeCurrency||"—")+" "+fmt(v)]} contentStyle={tooltipContentStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle}/><Bar dataKey="netCash" name="Net cash flow" radius={[0,4,4,0]} isAnimationActive animationDuration={850} animationEasing="ease-out">{data.tickerRows.slice(0,8).map((item,i)=><Cell key={item.ticker} fill={item.netCash>=0?"#059669":"#DC2626"}/>)}</Bar></BarChart>
         </ResponsiveContainer>
       </div>
-      <div className="rounded-2xl p-4" style={card}>
+      <div className="rounded-lg p-4" style={card}>
         <div className="mb-2"><h3 className="text-sm font-semibold">Transaction mix</h3><p className="text-[11px]" style={{color:"var(--ink-3)"}}>Posted buy, sell and dividend records</p></div>
         <ResponsiveContainer key={`transaction-mix-${data.actionCounts.length}-${filtered.length}`} width="100%" height={250} debounce={80}>
           <PieChart><Pie data={data.actionCounts} dataKey="count" nameKey="action" innerRadius={54} outerRadius={86} paddingAngle={3}>{data.actionCounts.map((item,i)=><Cell key={item.action} fill={["#2563EB","#059669","#A78BFA"][i%3]}/>)}</Pie><Tooltip formatter={(v:number)=>[v,"Records"]} contentStyle={tooltipContentStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle}/><Legend wrapperStyle={{fontSize:10,color:"var(--ink-3)"}}/></PieChart>
@@ -316,11 +316,11 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
       </div>
     </div>
     <div className="grid gap-3 sm:grid-cols-3">
-      <div className="rounded-xl p-4" style={{...card,background:"var(--color-login-bg)"}}><p className="text-xs" style={{color:"var(--ink-3)"}}>Recorded trades</p><p className="tnum mt-1 text-xl font-semibold">{filtered.filter(t=>t.action!=="DIV").length}</p><p className="mt-1 text-[10px]" style={{color:"var(--ink-3)"}}>Filtered posted BUY / SELL events</p></div>
-      <div className="rounded-xl p-4" style={{...card,background:"var(--color-login-bg)"}}><p className="text-xs" style={{color:"var(--ink-3)"}}>Net cash flow</p><p className="tnum mt-1 text-xl font-semibold" style={{color:data.equity.at(-1)?.cumulative>=0?"var(--ok)":"var(--bad)"}}>{activeCurrency || "—"} {fmt(data.equity.at(-1)?.cumulative||0)}</p><p className="mt-1 text-[10px]" style={{color:"var(--ink-3)"}}>Sell proceeds + dividends − buys and recorded fees</p></div>
-      <div className="rounded-xl p-4" style={{...card,background:"var(--color-login-bg)"}}><p className="text-xs" style={{color:"var(--ink-3)"}}>Dividend receipts</p><p className="tnum mt-1 text-xl font-semibold">{activeCurrency || "—"} {fmt(data.divs.reduce((s,d)=>s+d.dividends,0))}</p><p className="mt-1 text-[10px]" style={{color:"var(--ink-3)"}}>Recorded dividends after WHT</p></div>
+      <div className="rounded-md p-4" style={{...card,background:"var(--color-login-bg)"}}><p className="text-xs" style={{color:"var(--ink-3)"}}>Recorded trades</p><p className="tnum mt-1 text-xl font-semibold">{filtered.filter(t=>t.action!=="DIV").length}</p><p className="mt-1 text-[10px]" style={{color:"var(--ink-3)"}}>Filtered posted BUY / SELL events</p></div>
+      <div className="rounded-md p-4" style={{...card,background:"var(--color-login-bg)"}}><p className="text-xs" style={{color:"var(--ink-3)"}}>Net cash flow</p><p className="tnum mt-1 text-xl font-semibold" style={{color:data.equity.at(-1)?.cumulative>=0?"var(--ok)":"var(--bad)"}}>{activeCurrency || "—"} {fmt(data.equity.at(-1)?.cumulative||0)}</p><p className="mt-1 text-[10px]" style={{color:"var(--ink-3)"}}>Sell proceeds + dividends − buys and recorded fees</p></div>
+      <div className="rounded-md p-4" style={{...card,background:"var(--color-login-bg)"}}><p className="text-xs" style={{color:"var(--ink-3)"}}>Dividend receipts</p><p className="tnum mt-1 text-xl font-semibold">{activeCurrency || "—"} {fmt(data.divs.reduce((s,d)=>s+d.dividends,0))}</p><p className="mt-1 text-[10px]" style={{color:"var(--ink-3)"}}>Recorded dividends after WHT</p></div>
     </div>
-    <div className="rounded-2xl p-4 sm:p-5" style={{...card,background:"linear-gradient(145deg,color-mix(in oklch,var(--color-accent) 5%,var(--color-sheet)),var(--color-sheet))"}}>
+    <div className="rounded-lg p-4 sm:p-5" style={{...card,background:"linear-gradient(145deg,color-mix(in oklch,var(--color-accent) 5%,var(--color-sheet)),var(--color-sheet))"}}>
       <div className="mb-3 flex items-center gap-2"><Calculator size={15} style={{color:"var(--color-accent)"}}/><h3 className="text-sm font-semibold">Position sizing & risk calculator</h3><span className="ml-auto text-[10px]" style={{color:"var(--ink-3)"}}>Interactive · illustrative</span></div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <label className="text-xs" style={{color:"var(--ink-3)"}}>Capital ({activeCurrency || "—"})<input type="number" value={capital} onChange={e=>setCapital(e.target.value)} className="mt-1 w-full rounded-lg px-3 py-2 text-sm" style={card}/></label>

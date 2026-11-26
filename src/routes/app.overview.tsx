@@ -420,13 +420,13 @@ function MissionControl() {
               color: "var(--color-text)",
             }}
           >
-            Portfolio overview
+            {profile?.workspace_type === "individual" ? "Portfolio overview" : "Financial operations overview"}
           </h1>
           <p
             className="mt-1 text-sm"
             style={{ color: "var(--ink-2)" }}
           >
-            Portfolio health and ledger-based intelligence
+            {profile?.workspace_type === "individual" ? "Your holdings, trading activity and financial records" : "Organisation activity, ledger health and financial intelligence"}
           </p>
         </div>
         <Link
@@ -435,11 +435,11 @@ function MissionControl() {
           style={{ background: "var(--color-accent)", color: "var(--accent-fg)" }}
         >
           <Upload size={16} />
-          Upload Data
+          {profile?.workspace_type === "individual" ? "Import statement" : "Upload Data"}
         </Link>
       </div>
 
-      <OperationsActionCenter />
+      {profile?.workspace_type !== "individual" && <OperationsActionCenter />}
 
       {/* Key Metrics Grid */}
       <div

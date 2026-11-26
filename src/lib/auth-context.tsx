@@ -21,6 +21,7 @@ interface OrgProfile {
   profile_id: string;
   org_id: string;
   org_name: string;
+  workspace_type: "business" | "individual";
   full_name: string;
   role: string;
   jurisdiction: string;
@@ -106,7 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const [orgRes, subRes] = await Promise.all([
         supabase
           .from("organizations")
-          .select("name, jurisdiction_default")
+          .select("name, jurisdiction_default, workspace_type")
           .eq("id", row.org_id)
           .maybeSingle(),
         supabase
@@ -140,6 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile_id: row.id,
         org_id: row.org_id,
         org_name: orgRes.data?.name ?? "My Organisation",
+        workspace_type: orgRes.data?.workspace_type === "individual" ? "individual" : "business",
         full_name: row.full_name || ((u.user_metadata?.["full_name"] as string | undefined) ?? ""),
         role: row.role,
         jurisdiction: orgRes.data?.jurisdiction_default ?? "PSX",
@@ -204,6 +206,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error("Workspace setup did not return an organisation. Please contact support.");
     }
     const p = data as { id: string; org_id: string; full_name: string; role: string };
+    const pendingType = typeof window !== "undefined" ? window.localStorage.getItem("psxl.workspace_type.pending") : null;
+    const metadataType = meta["workspace_type"];
+    const requestedType = metadataType === "individual" || metadataType === "business"
+      ? metadataType
+      : pendingType === "individual" ? "individual" : "business";
+    const { data: typeUpdated, error: typeError } = await supabase.rpc("set_current_workspace_type", { _workspace_type: requestedType });
+    if (typeError) throw new Error(`Workspace type setup failed: ${typeError.message}. Run the latest PSXL workspace migration and retry.`);
+    if (typeUpdated !== true) throw new Error("Workspace type could not be assigned to the new workspace.");
+    if (typeof window !== "undefined") window.localStorage.removeItem("psxl.workspace_type.pending");
     return { id: p.id, org_id: p.org_id, full_name: p.full_name, role: p.role };
   }
 

@@ -80,7 +80,7 @@ function MarketIntelligence() {
           type="button"
           onClick={() => void refetch()}
           disabled={isFetching || isLoading}
-          className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+          className="inline-flex items-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
           style={{ background: "var(--color-accent)" }}
         >
           <RefreshCw size={15} className={isFetching ? "animate-spin" : ""} />
@@ -89,7 +89,7 @@ function MarketIntelligence() {
       </header>
 
       {isError && (
-        <section className="rounded-2xl border p-4" style={{ borderColor: "var(--bad)", background: "color-mix(in srgb, var(--bad) 7%, transparent)" }}>
+        <section className="rounded-lg border p-4" style={{ borderColor: "var(--bad)", background: "color-mix(in srgb, var(--bad) 7%, transparent)" }}>
           <p className="text-sm font-semibold">Could not load your ledger</p>
           <p className="mt-1 text-xs" style={{ color: "var(--ink-2)" }}>
             {error instanceof Error ? error.message : "The transaction service is temporarily unavailable."}
@@ -99,17 +99,17 @@ function MarketIntelligence() {
       )}
 
       <section className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-2xl border p-4" style={{ borderColor: "var(--hairline)", background: "var(--color-sheet)" }}>
+        <div className="rounded-lg border p-4" style={{ borderColor: "var(--hairline)", background: "var(--color-sheet)" }}>
           <p className="text-xs" style={{ color: "var(--ink-3)" }}>Ledger instruments</p>
           <p className="tnum mt-1 text-2xl font-semibold">{isLoading ? "—" : instruments.length}</p>
           <p className="mt-1 text-xs" style={{ color: "var(--ink-3)" }}>Unique ticker + exchange pairs</p>
         </div>
-        <div className="rounded-2xl border p-4" style={{ borderColor: "var(--hairline)", background: "var(--color-sheet)" }}>
+        <div className="rounded-lg border p-4" style={{ borderColor: "var(--hairline)", background: "var(--color-sheet)" }}>
           <p className="text-xs" style={{ color: "var(--ink-3)" }}>Exchanges represented</p>
           <p className="tnum mt-1 text-2xl font-semibold">{isLoading ? "—" : exchanges.length}</p>
           <p className="mt-1 text-xs" style={{ color: "var(--ink-3)" }}>{exchanges.length ? exchanges.join(" · ") : "No posted exchange data"}</p>
         </div>
-        <div className="rounded-2xl border p-4" style={{ borderColor: "var(--hairline)", background: "var(--color-sheet)" }}>
+        <div className="rounded-lg border p-4" style={{ borderColor: "var(--hairline)", background: "var(--color-sheet)" }}>
           <p className="text-xs" style={{ color: "var(--ink-3)" }}>Posted ledger trades</p>
           <p className="tnum mt-1 text-2xl font-semibold">{isLoading ? "—" : postedCount.toLocaleString()}</p>
           <p className="mt-1 text-xs" style={{ color: "var(--ink-3)" }}>Only approved/posted records are analysed</p>
@@ -117,28 +117,28 @@ function MarketIntelligence() {
       </section>
 
       {isLoading ? (
-        <section className="flex min-h-56 items-center justify-center rounded-2xl border" style={{ borderColor: "var(--hairline)", color: "var(--ink-3)" }}>
+        <section className="flex min-h-56 items-center justify-center rounded-lg border" style={{ borderColor: "var(--hairline)", color: "var(--ink-3)" }}>
           <div className="text-center"><RefreshCw size={20} className="mx-auto animate-spin" /><p className="mt-3 text-sm">Reading your organisation ledger…</p></div>
         </section>
       ) : instruments.length === 0 ? (
-        <section className="rounded-2xl border p-8 text-center" style={{ borderColor: "var(--hairline)", background: "var(--color-sheet)" }}>
+        <section className="rounded-lg border p-8 text-center" style={{ borderColor: "var(--hairline)", background: "var(--color-sheet)" }}>
           <Layers3 size={28} className="mx-auto" style={{ color: "var(--ink-3)" }} />
           <h2 className="mt-3 text-base font-semibold">No posted instruments to analyse yet</h2>
           <p className="mx-auto mt-2 max-w-lg text-sm" style={{ color: "var(--ink-2)" }}>
             Market Intelligence automatically discovers symbols from posted BUY and SELL transactions. Import a broker statement or post a ledger transaction to populate this workspace.
           </p>
           <div className="mt-5 flex flex-wrap justify-center gap-3">
-            <Link to="/app/broker-desk" className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white" style={{ background: "var(--color-accent)" }}>
+            <Link to="/app/broker-desk" className="inline-flex items-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold text-white" style={{ background: "var(--color-accent)" }}>
               Open Broker Desk <ArrowRight size={14} />
             </Link>
-            <Link to="/app/ledger" className="inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold" style={{ borderColor: "var(--hairline)" }}>
+            <Link to="/app/ledger" className="inline-flex items-center gap-2 rounded-md border px-4 py-2.5 text-sm font-semibold" style={{ borderColor: "var(--hairline)" }}>
               Open Ledger
             </Link>
           </div>
         </section>
       ) : (
         <>
-          <section className="rounded-2xl border p-4 sm:p-5" style={{ borderColor: "var(--hairline)", background: "var(--color-sheet)" }}>
+          <section className="rounded-lg border p-4 sm:p-5" style={{ borderColor: "var(--hairline)", background: "var(--color-sheet)" }}>
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
                 <h2 className="text-sm font-semibold">Automatically discovered instruments</h2>
@@ -148,7 +148,7 @@ function MarketIntelligence() {
             </div>
             <div className="flex flex-wrap gap-2">
               {instruments.map((item) => (
-                <span key={item.exchange + ":" + item.ticker} className="rounded-full px-3 py-1.5 text-xs font-semibold" style={{ background: "var(--accent-8)", color: "var(--color-accent)" }}>
+                <span key={item.exchange + ":" + item.ticker} className="rounded-md px-3 py-1.5 text-xs font-semibold" style={{ background: "var(--accent-8)", color: "var(--color-accent)" }}>
                   {item.ticker}<span className="ml-1.5 opacity-70">{item.exchange}</span>
                 </span>
               ))}

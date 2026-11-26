@@ -208,6 +208,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const p = data as { id: string; org_id: string; full_name: string; role: string };
     const pendingType = typeof window !== "undefined" ? window.localStorage.getItem("psxl.workspace_type.pending") : null;
     const metadataType = meta["workspace_type"];
+    const hasExplicitChoice = metadataType === "individual" || metadataType === "business" ||
+      pendingType === "individual" || pendingType === "business";
+    if (typeof window !== "undefined" && !hasExplicitChoice) {
+      window.localStorage.setItem("psxl.workspace_setup.required", "true");
+    }
     const requestedType = metadataType === "individual" || metadataType === "business"
       ? metadataType
       : pendingType === "individual" ? "individual" : "business";

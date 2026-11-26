@@ -84,7 +84,7 @@ export function PlanCards({
             </p>
             {period === "yearly" && t.yearlyPrice > 0 && (
               <p className="mt-1 text-xs" style={{ color: "var(--ink-3)" }}>
-                ${t.monthlyPrice}/mo billed yearly
+                ${(t.yearlyPrice / 12).toFixed(2)}/mo effective · billed annually at ${t.yearlyPrice}
               </p>
             )}
             <p className="mt-1 text-xs" style={{ color: "var(--ink-3)" }}>

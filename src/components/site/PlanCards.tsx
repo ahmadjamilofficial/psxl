@@ -1,11 +1,13 @@
 import { BadgeCheck } from "lucide-react";
 import { useState } from "react";
+import { supabase } from "@/lib/supabase";
 import { Btn, Panel, StatusPill } from "@/components/kit";
 import {
   type ChargePeriod,
   type PlanId,
   PLAN_ORDER,
   PLANS,
+  createKelviqCheckoutSession,
   periodSuffix,
   priceLabel,
 } from "@/lib/plans";
@@ -125,12 +127,11 @@ export function useCheckout() {
 
   async function openCheckout(plan: PlanId) {
     if (plan === "free") return;
-    const { data } = await import("@/lib/supabase").then(({ supabase }) => supabase.auth.getSession());
+    const { data } = await supabase.auth.getSession();
     if (!data.session?.access_token) {
       window.location.assign("/signin");
       return;
     }
-    const { createKelviqCheckoutSession } = await import("@/lib/plans");
     const checkoutUrl = await createKelviqCheckoutSession({ plan, period, accessToken: data.session.access_token });
     window.location.assign(checkoutUrl);
   }

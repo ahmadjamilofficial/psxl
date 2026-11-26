@@ -123,6 +123,7 @@ function Billing() {
         const checkoutUrl = await createKelviqCheckoutSession({
           plan,
           period,
+          accessToken: data.session.access_token,
           orgId,
         });
         window.location.assign(checkoutUrl);
@@ -147,6 +148,7 @@ function Billing() {
       const checkoutUrl = await createKelviqCheckoutSession({
         plan: "standard",
         period: "monthly",
+        accessToken: data.session.access_token,
         orgId,
         trialDays: TRIAL_DAYS,
       });

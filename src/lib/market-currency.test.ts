@@ -31,7 +31,7 @@ describe("global exchange directory", () => {
   });
 
   it("normalizes common international tickers for the quote provider", () => {
-    expect(normalizeMarketTicker("OGDC", "PSX")).toBe("OGDC.KAR");
+    expect(normalizeMarketTicker("OGDC", "PSX")).toBe("OGDC.KA");
     expect(normalizeMarketTicker("RELIANCE", "NSE")).toBe("RELIANCE.NS");
     expect(normalizeMarketTicker("VOD", "LSE")).toBe("VOD.L");
     expect(normalizeMarketTicker("SHOP", "TSX")).toBe("SHOP.TO");

@@ -207,7 +207,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     const p = data as { id: string; org_id: string; full_name: string; role: string };
     const pendingType = typeof window !== "undefined" ? window.localStorage.getItem("psxl.workspace_type.pending") : null;
-    const requestedType = meta["workspace_type"] === "individual" || pendingType === "individual" ? "individual" : "business";
+    const metadataType = meta["workspace_type"];
+    const requestedType = metadataType === "individual" || metadataType === "business"
+      ? metadataType
+      : pendingType === "individual" ? "individual" : "business";
     const { data: typeUpdated, error: typeError } = await supabase.rpc("set_current_workspace_type", { _workspace_type: requestedType });
     if (typeError) throw new Error(`Workspace type setup failed: ${typeError.message}. Run the latest PSXL workspace migration and retry.`);
     if (typeUpdated !== true) throw new Error("Workspace type could not be assigned to the new workspace.");

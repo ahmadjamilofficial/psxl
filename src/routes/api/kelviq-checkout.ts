@@ -81,6 +81,7 @@ export const Route = createFileRoute("/api/kelviq-checkout")({
           checkoutUrl.searchParams.set("charge_period", body.chargePeriod);
           checkoutUrl.searchParams.set("metadata[checkout_intent_id]", intentId);
           checkoutUrl.searchParams.set("metadata[source]", "psxl_app");
+          checkoutUrl.searchParams.set("metadata[product_area]", "individual");
           return Response.json({ checkoutUrl: checkoutUrl.toString() });
         } catch (error) {
           console.error("[Kelviq] Checkout intent creation failed:", error);

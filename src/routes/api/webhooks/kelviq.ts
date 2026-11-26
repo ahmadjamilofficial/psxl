@@ -209,9 +209,12 @@ async function processKelviqEvent(
     case "subscription.cancelled":
     case "subscription.paused": {
       if (!subscriptionId) break;
+      const paused = event.type === "subscription.paused";
       const { error } = await supabase
         .from("subscriptions")
-        .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
+        .update(paused
+          ? { status: "paused" }
+          : { status: "cancelled", cancelled_at: new Date().toISOString() })
         .eq("kelviq_subscription_id", subscriptionId);
       if (error) throw error;
       if (existing?.org_id) await updateProfilePlan(existing.org_id, "free");

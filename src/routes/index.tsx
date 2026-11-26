@@ -21,7 +21,8 @@ import { useAuth } from "@/lib/auth-context";
 import { useState, useEffect } from "react";
 import type { AgentAttachment } from "@/lib/agent-service";
 import { setPendingFiles, setPendingPrompt } from "@/lib/chat-session";
-import { type ChargePeriod, kelviqCheckoutUrl } from "@/lib/plans";
+import { type ChargePeriod, createKelviqCheckoutSession } from "@/lib/plans";
+import { supabase } from "@/lib/supabase";
 import {
   Accordion,
   AccordionContent,
@@ -143,7 +144,7 @@ const tiers = [
     popular: false,
     trialDays: 0,
     items: [
-      "30 transactions / month",
+      "500 ledger transactions / month",
       "Limited AI quality",
       "Core ledger tools",
       "CSV export",
@@ -154,13 +155,13 @@ const tiers = [
   {
     id: "standard" as const,
     name: "Standard",
-    price: "$9",
-    yearly: "$45",
+    price: "$5",
+    yearly: "$50",
     note: "For individual traders",
     popular: false,
     trialDays: 7,
     items: [
-      "500 transactions / month",
+      "10,000 ledger transactions / month",
       "Standard AI quality",
       "Document and transaction analysis",
       "PDF tax reports",
@@ -171,13 +172,13 @@ const tiers = [
   {
     id: "pro" as const,
     name: "Pro",
-    price: "$25",
-    yearly: "$90",
+    price: "$12",
+    yearly: "$120",
     note: "For active traders and professionals",
     popular: true,
     trialDays: 0,
     items: [
-      "Unlimited transactions",
+      "Up to 100,000 ledger transactions / month",
       "Highest AI quality and variety",
       "Everything in Standard",
       "Tax-loss harvesting",
@@ -821,8 +822,7 @@ function Home() {
               Simple, transparent pricing
             </h2>
             <p className="mt-3 text-sm" style={{ color: "var(--ink-2)" }}>
-              Basic is $0. Standard is $9/mo or $45/yr. Pro is $25/mo or $90/yr. A 7-day trial is
-              only on Standard, from the trial card.
+              Basic is free. Standard is $5/mo or $50/yr. Pro is $12/mo or $120/yr. Annual plans include two months free; Standard includes a 7-day trial.
             </p>
           </div>
           <div
@@ -902,16 +902,29 @@ function Home() {
                   </ul>
                   <button
                     type="button"
-                    onClick={() => {
-                      if (!session) {
-                        navigate({ to: "/signup", search: { plan: t.id } });
+                    onClick={async () => {
+                      if (t.id === "free") {
+                        if (session) navigate({ to: "/app/overview" });
+                        else navigate({ to: "/signup" });
                         return;
                       }
-                      window.location.href = kelviqCheckoutUrl({
-                        plan: t.id,
-                        period: billingPeriod,
-                        orgId: profile?.org_id ?? null,
-                      });
+                      if (!session) {
+                        window.location.href = `/signup?plan=${t.id}&period=${billingPeriod}`;
+                        return;
+                      }
+                      try {
+                        const { data } = await supabase.auth.getSession();
+                        if (!data.session?.access_token) throw new Error("Please sign in again.");
+                        const checkoutUrl = await createKelviqCheckoutSession({
+                          plan: t.id,
+                          period: billingPeriod,
+                          accessToken: data.session.access_token,
+                          ...(t.id === "standard" && t.trialDays ? { trialDays: t.trialDays } : {}),
+                        });
+                        window.location.assign(checkoutUrl);
+                      } catch (error) {
+                        window.alert(error instanceof Error ? error.message : "Unable to open secure checkout.");
+                      }
                     }}
                     className="flex w-full items-center justify-center gap-2 rounded-full py-2.5 text-sm font-semibold transition-all hover:shadow-md"
                     style={

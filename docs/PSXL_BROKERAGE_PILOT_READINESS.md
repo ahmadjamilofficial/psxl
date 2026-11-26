@@ -86,10 +86,10 @@ Price business plans primarily by monthly records processed, source integrations
 
 ### Implementation and pilot fees
 
-- Starter onboarding: proposed $1,000–$2,500.
-- Growth onboarding: proposed $3,000–$7,500.
+- Starter onboarding: proposed scope-based one-time onboarding.
+- Growth onboarding: proposed scope-based one-time onboarding.
 - Enterprise implementation: scoped after technical discovery.
-- First brokerage pilot: proposed $2,500–$7,500 for a 4–6 week, tightly scoped evaluation.
+- First brokerage pilot: proposed a scope-based one-time pilot fee for a 4–6 week, tightly scoped evaluation.
 
 A pilot should define one brokerage entity, one team, one or two source formats, anonymised historical samples, a limited live shadow period, agreed exception categories, weekly operations reviews, and a written acceptance report. Consider crediting part of the pilot fee toward an annual contract if the customer converts.
 
@@ -126,3 +126,13 @@ Never use real client PII or live account credentials in a sales demo.
 - What data may be processed in a vendor-hosted cloud and what must remain on-premise?
 - What security questionnaire, DPA, retention, audit, and incident requirements must a vendor satisfy?
 - What measurable result would justify a paid production contract?
+
+
+## Kelviq commercial architecture (November 2026)
+
+- Keep Individual Basic, Standard and Pro in the existing Individual Kelviq product. Their existing plan identifiers remain `free-plan`, `standard-plan` and `pro-plan`; do not repurpose these identifiers for brokerage customers.
+- Keep the current Individual public prices aligned with the published Kelviq plan prices. The application must display the annual effective monthly equivalent correctly and must not claim market data is real-time where the provider may delay or omit an exchange.
+- Create a separate Kelviq product for Brokerage Operations. Use a one-time Pilot plan for a scoped 4–6 week engagement, a recurring Business plan for contracted operations, and a sales-led Enterprise plan for bespoke deployment. Configure each plan's feature entitlements and usage limits in Kelviq.
+- Do not expose a Business checkout until its own published product and plan identifiers are explicitly mapped in the application. An unknown Kelviq plan identifier must never fall through to Individual Standard.
+- Kelviq's current webhook contract uses `webhook-id`, `webhook-timestamp`, and `webhook-signature`; signatures cover `id.timestamp.rawBody`. Events carry the resource in `data.object`, and plan identifiers are in `data.object.plan.identifier`. Test this against a signed sandbox event before accepting live payments.
+- For enterprise sales, quote implementation separately from recurring software fees. Define included entities, source adapters, monthly processed rows, storage, support hours, response targets, security requirements and change requests in the order form.

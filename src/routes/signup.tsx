@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { ArrowLeft, ArrowRightCircle, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, ArrowRightCircle, Building2, Eye, EyeOff, UserRound } from "lucide-react";
 import { persistInviteToken } from "@/lib/team";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -358,18 +358,44 @@ function SignUp() {
             </div>
 
             {/* Workspace type */}
-            <div>
-              <label className="mb-1.5 block text-sm font-medium">Workspace type</label>
-              <select
-                {...register("workspace_type")}
-                className="w-full rounded-[10px] border bg-surface px-4 py-3 text-sm outline-none focus:ring-2"
-                style={{ borderColor: "var(--hairline)", ["--tw-ring-color" as string]: "var(--color-accent)" }}
-              >
-                <option value="business">Business — brokerage or financial operations team</option>
-                <option value="individual">Individual — personal investing and trading</option>
-              </select>
-              <p className="mt-1 text-xs" style={{ color: "var(--ink-3)" }}>
-                PSXL will configure the workspace and navigation for your needs.
+            <div className="space-y-2">
+              <label className="block text-sm font-medium">Choose your workspace</label>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <label
+                  className="cursor-pointer rounded-md border p-3 transition-colors"
+                  style={{
+                    borderColor: watch("workspace_type") === "business" ? "var(--color-accent)" : "var(--hairline)",
+                    background: watch("workspace_type") === "business" ? "var(--sidebar-accent)" : "var(--color-surface)",
+                  }}
+                >
+                  <input type="radio" value="business" {...register("workspace_type")} className="sr-only" />
+                  <div className="flex items-center gap-2">
+                    <Building2 size={17} strokeWidth={1.7} />
+                    <span className="text-sm font-semibold">Business</span>
+                  </div>
+                  <p className="mt-2 text-xs leading-relaxed" style={{ color: "var(--ink-3)" }}>
+                    Brokerages and financial operations teams.
+                  </p>
+                </label>
+                <label
+                  className="cursor-pointer rounded-md border p-3 transition-colors"
+                  style={{
+                    borderColor: watch("workspace_type") === "individual" ? "var(--color-accent)" : "var(--hairline)",
+                    background: watch("workspace_type") === "individual" ? "var(--sidebar-accent)" : "var(--color-surface)",
+                  }}
+                >
+                  <input type="radio" value="individual" {...register("workspace_type")} className="sr-only" />
+                  <div className="flex items-center gap-2">
+                    <UserRound size={17} strokeWidth={1.7} />
+                    <span className="text-sm font-semibold">Individual</span>
+                  </div>
+                  <p className="mt-2 text-xs leading-relaxed" style={{ color: "var(--ink-3)" }}>
+                    Personal investors and traders.
+                  </p>
+                </label>
+              </div>
+              <p className="text-xs" style={{ color: "var(--ink-3)" }}>
+                This selects your default PSXL workspace. You can use the same account for additional workspaces later.
               </p>
             </div>
 

@@ -146,7 +146,7 @@ function NavItem({
       to={to}
       onClick={onClick}
       title={label}
-      className={`relative flex items-center rounded-xl text-sm font-medium transition-all ${
+      className={`relative flex items-center rounded-md text-sm font-medium transition-colors ${
         collapsed ? "size-10 justify-center" : "gap-3 px-3 py-2.5"
       }`}
       style={{
@@ -259,7 +259,7 @@ function InnerShell({ children }: { children: ReactNode }) {
                 type="button"
                 aria-label="Expand navigation"
                 onClick={() => (onClose ? onClose() : setExpanded(true))}
-                className="flex size-9 items-center justify-center rounded-xl transition-colors hover:bg-surface-hover"
+                className="flex size-9 items-center justify-center rounded-md transition-colors hover:bg-surface-hover"
                 style={{ background: "var(--sidebar)", border: "1px solid var(--sidebar-border)" }}
               >
                 <LogoMark size={20} />
@@ -284,7 +284,7 @@ function InnerShell({ children }: { children: ReactNode }) {
 
           {!collapsed && (
             <div
-              className="mt-4 flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-xs"
+              className="mt-4 flex w-full items-center justify-between rounded-md px-3 py-2.5 text-xs"
               style={{
                 background: "var(--sidebar-accent)",
                 border: "1px solid var(--sidebar-border)",
@@ -556,7 +556,7 @@ function InnerShell({ children }: { children: ReactNode }) {
         style={{ paddingBottom: "max(10px, env(safe-area-inset-bottom))" }}
       >
         <div
-          className="mx-auto flex max-w-lg items-stretch justify-between rounded-[22px] px-1.5 py-1.5"
+          className="mx-auto flex max-w-lg items-stretch justify-between rounded-lg px-1.5 py-1.5"
           style={{
             background: "color-mix(in oklch, var(--sidebar) 88%, transparent)",
             border: "1px solid var(--sidebar-border)",
@@ -572,7 +572,7 @@ function InnerShell({ children }: { children: ReactNode }) {
                 key={tab.to}
                 to={tab.to}
                 onClick={() => setMoreOpen(false)}
-                className="relative flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl px-1 py-1 text-[9px] font-semibold"
+                className="relative flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-md px-1 py-1 text-[9px] font-semibold"
                 style={{
                   color: active ? "var(--sidebar-primary)" : "var(--ink-3)",
                   background: active ? "var(--sidebar-accent)" : "transparent",

@@ -174,7 +174,9 @@ async function processKelviqEvent(
     case "subscription.updated":
     case "subscription.plan_changed":
     case "subscription.resumed": {
-      if (!subscriptionId || !orgId || !plan || plan === "free") break;
+      if (!subscriptionId) throw new Error("Kelviq subscription event is missing its subscription ID.");
+      if (!plan || plan === "free") break; // Unmapped Business/Enterprise plans do not receive Individual entitlements.
+      if (!orgId) throw new Error("Could not correlate Kelviq subscription to a PSXL workspace; retry after checkout.completed is processed.");
       const rawStatus = (data.status ?? "active").toLowerCase();
       const hasUnexpiredTrial = Boolean(data.trial_end && new Date(data.trial_end).getTime() > Date.now());
       const status =

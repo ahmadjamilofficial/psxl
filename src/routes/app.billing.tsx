@@ -123,7 +123,6 @@ function Billing() {
         const checkoutUrl = await createKelviqCheckoutSession({
           plan,
           period,
-          accessToken: data.session.access_token,
           orgId,
         });
         window.location.assign(checkoutUrl);

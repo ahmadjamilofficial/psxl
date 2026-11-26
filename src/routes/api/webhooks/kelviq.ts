@@ -176,8 +176,9 @@ async function processKelviqEvent(
     case "subscription.resumed": {
       if (!subscriptionId || !orgId || !plan || plan === "free") break;
       const rawStatus = (data.status ?? "active").toLowerCase();
+      const hasUnexpiredTrial = Boolean(data.trial_end && new Date(data.trial_end).getTime() > Date.now());
       const status =
-        rawStatus === "trialing" ? "trialing" :
+        rawStatus === "trialing" || (rawStatus === "active" && hasUnexpiredTrial) ? "trialing" :
         rawStatus === "active" ? "active" :
         rawStatus === "cancelled" || rawStatus === "canceled" ? "cancelled" :
         rawStatus === "expired" ? "expired" : "past_due";

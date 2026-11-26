@@ -2,9 +2,18 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 
 const PLANS = {
-  "brokerage-pilot": { chargePeriod: "ONE_TIME", priceIdentifier: "brokerage-pilot" },
-  "brokerage-operations": { chargePeriod: "MONTHLY", priceIdentifier: "brokerage-operations" },
-  "brokerage-enterprise": { chargePeriod: "MONTHLY", priceIdentifier: "brokerage-enterprise" },
+  "brokerage-pilot": {
+    chargePeriod: "ONE_TIME",
+    checkoutUrl: "https://www.kelviq.com/buy/9eee9bc3-92d5-46c9-9f6b-a2fe97f7181c/?enabled=brokerage-pilot&plan_identifier=brokerage-pilot&charge_period=ONE_TIME",
+  },
+  "brokerage-operations": {
+    chargePeriod: "MONTHLY",
+    checkoutUrl: "https://www.kelviq.com/buy/9eee9bc3-92d5-46c9-9f6b-a2fe97f7181c/?enabled=brokerage-operations&plan_identifier=brokerage-operations&charge_period=MONTHLY",
+  },
+  "brokerage-enterprise": {
+    chargePeriod: "MONTHLY",
+    checkoutUrl: "https://www.kelviq.com/buy/9eee9bc3-92d5-46c9-9f6b-a2fe97f7181c/?enabled=brokerage-enterprise&plan_identifier=brokerage-enterprise&charge_period=MONTHLY",
+  },
 } as const;
 
 type BusinessPlan = keyof typeof PLANS;
@@ -28,8 +37,7 @@ export const Route = createFileRoute("/api/kelviq-business-checkout")({
             (import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] as string | undefined) ??
             (import.meta.env["VITE_SUPABASE_ANON_KEY"] as string | undefined);
           const serviceRoleKey = process.env["SUPABASE_SERVICE_ROLE_KEY"] ?? "";
-          const kelviqKey = process.env["KELVIQ_SERVER_API_KEY"] ?? "";
-          if (!supabaseUrl || !publishableKey || !serviceRoleKey || !kelviqKey) {
+          if (!supabaseUrl || !publishableKey || !serviceRoleKey) {
             return Response.json({ error: "Business billing is not fully configured on the server." }, { status: 503 });
           }
 
@@ -71,54 +79,13 @@ export const Route = createFileRoute("/api/kelviq-business-checkout")({
           });
           if (intentError) throw intentError;
 
-          const environment = (process.env["KELVIQ_ENVIRONMENT"] ?? "production").toLowerCase();
-          const apiRoot = environment === "sandbox"
-            ? "https://sandboxapi.kelviq.com/api/v1"
-            : "https://api.kelviq.com/api/v1";
-          const origin = new URL(request.url).origin;
-          const response = await fetch(`${apiRoot}/checkout/`, {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${kelviqKey}`,
-              "Content-Type": "application/json",
-              Accept: "application/json",
-            },
-            body: JSON.stringify({
-              planIdentifier: PLANS[plan].priceIdentifier,
-              chargePeriod: period,
-              customerId: profile.org_id,
-              ...(authData.user.email ? { email: authData.user.email, lockEmail: true } : {}),
-              successUrl: `${origin}/app/overview?business_checkout=success`,
-              cancelUrl: `${origin}/pricing?business_checkout=cancelled`,
-              metadata: {
-                checkout_intent_id: intentId,
-                org_id: profile.org_id,
-                product_area: "business",
-                plan,
-              },
-            }),
-            signal: AbortSignal.timeout(12000),
-          });
-          const payload = await response.json().catch(() => ({})) as {
-            checkoutUrl?: string;
-            checkoutSessionId?: string;
-            data?: { checkoutUrl?: string; checkoutSessionId?: string };
-          };
-          const checkoutUrl = payload.checkoutUrl ?? payload.data?.checkoutUrl;
-          const checkoutSessionId = payload.checkoutSessionId ?? payload.data?.checkoutSessionId;
-          if (!response.ok || !checkoutUrl || !checkoutSessionId) {
-            await (admin as any).from("business_checkout_intents")
-              .update({ status: "failed" }).eq("intent_id", intentId);
-            console.error("[Kelviq Business] Checkout session creation failed:", response.status);
-            return Response.json({ error: "Kelviq could not create a Business checkout session. Please retry." }, { status: 502 });
-          }
+          // Dedicated static Kelviq product link per Brokerage tier.
+          // Attach the verified PSXL organisation as customer_id for webhook correlation.
+          const checkoutUrl = new URL(PLANS[plan].checkoutUrl);
+          checkoutUrl.searchParams.set("customer_id", profile.org_id);
+          checkoutUrl.searchParams.set("success_url", `${new URL(request.url).origin}/app/overview?business_checkout=success`);
 
-          const { error: sessionError } = await (admin as any).from("business_checkout_intents")
-            .update({ kelviq_checkout_session_id: checkoutSessionId })
-            .eq("intent_id", intentId);
-          if (sessionError) throw sessionError;
-
-          return Response.json({ checkoutUrl });
+          return Response.json({ checkoutUrl: checkoutUrl.toString() });
         } catch (error) {
           console.error("[Kelviq Business] Checkout failed:", error);
           return Response.json({ error: "Secure Business checkout is temporarily unavailable." }, { status: 503 });

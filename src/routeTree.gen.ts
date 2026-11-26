@@ -52,6 +52,7 @@ import { Route as ApiIntegrationsActionRouteImport } from './routes/api/integrat
 import { Route as ApiTeamInviteEmailRouteImport } from './routes/api/team/invite-email'
 import { Route as ApiWebhooksEmailRouteImport } from './routes/api/webhooks/email'
 import { Route as ApiWebhooksKelviqRouteImport } from './routes/api/webhooks/kelviq'
+import { Route as ApiKelviqBusinessCheckoutRouteImport } from './routes/api/kelviq-business-checkout'
 import { Route as AppParserIndexRouteImport } from './routes/app.parser.index'
 import { Route as AppParserThreadIdRouteImport } from './routes/app.parser.$threadId'
 import { Route as ApiAuthGoogleCallbackRouteImport } from './routes/api/auth/google/callback'
@@ -274,6 +275,11 @@ const ApiWebhooksKelviqRoute = ApiWebhooksKelviqRouteImport.update({
   path: '/api/webhooks/kelviq',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiKelviqBusinessCheckoutRoute = ApiKelviqBusinessCheckoutRouteImport.update({
+  id: '/api/kelviq-business-checkout',
+  path: '/api/kelviq-business-checkout',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppParserIndexRoute = AppParserIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -349,6 +355,7 @@ export interface FileRoutesByFullPath {
   '/api/team/invite-email': typeof ApiTeamInviteEmailRoute
   '/api/webhooks/email': typeof ApiWebhooksEmailRoute
   '/api/webhooks/kelviq': typeof ApiWebhooksKelviqRoute
+  '/api/kelviq-business-checkout': typeof ApiKelviqBusinessCheckoutRoute
   '/app/parser/$threadId': typeof AppParserThreadIdRoute
   '/app/parser/': typeof AppParserIndexRoute
   '/api/auth/google/callback': typeof ApiAuthGoogleCallbackRoute
@@ -398,6 +405,7 @@ export interface FileRoutesByTo {
   '/api/team/invite-email': typeof ApiTeamInviteEmailRoute
   '/api/webhooks/email': typeof ApiWebhooksEmailRoute
   '/api/webhooks/kelviq': typeof ApiWebhooksKelviqRoute
+  '/api/kelviq-business-checkout': typeof ApiKelviqBusinessCheckoutRoute
   '/app/parser/$threadId': typeof AppParserThreadIdRoute
   '/app/parser': typeof AppParserIndexRoute
   '/api/auth/google/callback': typeof ApiAuthGoogleCallbackRoute
@@ -450,6 +458,7 @@ export interface FileRoutesById {
   '/api/team/invite-email': typeof ApiTeamInviteEmailRoute
   '/api/webhooks/email': typeof ApiWebhooksEmailRoute
   '/api/webhooks/kelviq': typeof ApiWebhooksKelviqRoute
+  '/api/kelviq-business-checkout': typeof ApiKelviqBusinessCheckoutRoute
   '/app/parser/$threadId': typeof AppParserThreadIdRoute
   '/app/parser/': typeof AppParserIndexRoute
   '/api/auth/google/callback': typeof ApiAuthGoogleCallbackRoute
@@ -503,6 +512,7 @@ export interface FileRouteTypes {
     | '/api/team/invite-email'
     | '/api/webhooks/email'
     | '/api/webhooks/kelviq'
+    | '/api/kelviq-business-checkout'
     | '/app/parser/$threadId'
     | '/app/parser/'
     | '/api/auth/google/callback'
@@ -552,6 +562,7 @@ export interface FileRouteTypes {
     | '/api/team/invite-email'
     | '/api/webhooks/email'
     | '/api/webhooks/kelviq'
+    | '/api/kelviq-business-checkout'
     | '/app/parser/$threadId'
     | '/app/parser'
     | '/api/auth/google/callback'
@@ -603,6 +614,7 @@ export interface FileRouteTypes {
     | '/api/team/invite-email'
     | '/api/webhooks/email'
     | '/api/webhooks/kelviq'
+    | '/api/kelviq-business-checkout'
     | '/app/parser/$threadId'
     | '/app/parser/'
     | '/api/auth/google/callback'
@@ -637,6 +649,7 @@ export interface RootRouteChildren {
   ApiTeamInviteEmailRoute: typeof ApiTeamInviteEmailRoute
   ApiWebhooksEmailRoute: typeof ApiWebhooksEmailRoute
   ApiWebhooksKelviqRoute: typeof ApiWebhooksKelviqRoute
+  ApiKelviqBusinessCheckoutRoute: typeof ApiKelviqBusinessCheckoutRoute
   ApiAuthGoogleCallbackRoute: typeof ApiAuthGoogleCallbackRoute
   ApiAuthGoogleStartRoute: typeof ApiAuthGoogleStartRoute
   ApiAuthOnedriveCallbackRoute: typeof ApiAuthOnedriveCallbackRoute
@@ -946,6 +959,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiWebhooksKelviqRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/kelviq-business-checkout': {
+      id: '/api/kelviq-business-checkout'
+      path: '/api/kelviq-business-checkout'
+      fullPath: '/api/kelviq-business-checkout'
+      preLoaderRoute: typeof ApiKelviqBusinessCheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app/parser/': {
       id: '/app/parser/'
       path: '/'
@@ -1075,6 +1095,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiTeamInviteEmailRoute: ApiTeamInviteEmailRoute,
   ApiWebhooksEmailRoute: ApiWebhooksEmailRoute,
   ApiWebhooksKelviqRoute: ApiWebhooksKelviqRoute,
+  ApiKelviqBusinessCheckoutRoute: ApiKelviqBusinessCheckoutRoute,
   ApiAuthGoogleCallbackRoute: ApiAuthGoogleCallbackRoute,
   ApiAuthGoogleStartRoute: ApiAuthGoogleStartRoute,
   ApiAuthOnedriveCallbackRoute: ApiAuthOnedriveCallbackRoute,

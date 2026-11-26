@@ -209,7 +209,7 @@ const faqs = [
   ],
   [
     "What's the difference between Basic, Standard and Pro?",
-    "Basic is $0 with limited AI quality, 30 transactions/month and core tools. Standard is $9/month or $45/year with stronger AI and more tools. Pro is $25/month or $90/year with the full tool set and highest AI quality.",
+    "Basic is free with core tools. Standard is $5/month or $50/year with stronger AI and more tools. Pro is $12/month or $120/year with the full tool set and highest AI quality. Annual plans include two months free.",
   ],
   [
     "How does the 7-day free trial work?",

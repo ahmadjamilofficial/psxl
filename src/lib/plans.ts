@@ -169,7 +169,7 @@ export type FeatureKey = keyof PlanLimits["features"];
 
 export function normalizePlanId(plan: string | null | undefined): PlanId {
   const id = (plan ?? "free").toLowerCase();
-  if (id === "pro" || id === "enterprise") return "pro";
+  if (id === "pro") return "pro";
   if (id === "standard") return "standard";
   return "free";
 }
@@ -264,6 +264,7 @@ export async function createKelviqCheckoutSession(opts: {
   plan: "standard" | "pro";
   period: ChargePeriod;
   accessToken: string;
+  trialDays?: number;
 }): Promise<string> {
   const response = await fetch("/api/kelviq-checkout", {
     method: "POST",
@@ -271,7 +272,7 @@ export async function createKelviqCheckoutSession(opts: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${opts.accessToken}`,
     },
-    body: JSON.stringify({ plan: opts.plan, chargePeriod: opts.period === "yearly" ? "YEARLY" : "MONTHLY" }),
+    body: JSON.stringify({ plan: opts.plan, chargePeriod: opts.period === "yearly" ? "YEARLY" : "MONTHLY", ...(opts.trialDays ? { trialPeriod: opts.trialDays } : {}) }),
   });
   const payload = await response.json().catch(() => ({})) as { checkoutUrl?: string; error?: string };
   if (!response.ok || !payload.checkoutUrl) {

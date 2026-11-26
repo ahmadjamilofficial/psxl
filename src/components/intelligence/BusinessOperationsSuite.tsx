@@ -48,10 +48,12 @@ export function BusinessOperationsSuite() {
 
   if (profile?.workspace_type === "individual") return null;
 
+  const accessEndDates = [subscription?.current_period_end, subscription?.end_date]
+    .filter((value): value is string => Boolean(value))
+    .map((value) => new Date(value).getTime())
+    .filter((value) => Number.isFinite(value));
   const paid = subscription?.status === "active" &&
-    (subscription.plan === "brokerage-pilot" ||
-      !subscription.current_period_end ||
-      new Date(subscription.current_period_end).getTime() > Date.now());
+    (accessEndDates.length === 0 || Math.min(...accessEndDates) > Date.now());
   const plan = subscription?.plan;
   const features = [
     { icon: FileCheck2, title: "Broker statement intake", detail: "Import source files and review extracted records before posting.", href: "/app/parser", included: paid },

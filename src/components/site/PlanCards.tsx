@@ -87,6 +87,11 @@ export function PlanCards({
                 ${(t.yearlyPrice / 12).toFixed(2)}/mo effective · billed annually at ${t.yearlyPrice}
               </p>
             )}
+            {t.monthlyPrice > 0 && (
+              <p className="mt-1 text-[11px]" style={{ color: "var(--ink-3)" }}>
+                Pakistan reference: ≈ PKR {Math.round((period === "yearly" ? t.yearlyPrice : t.monthlyPrice) * 277).toLocaleString("en-PK")}/{period === "yearly" ? "year" : "month"}
+              </p>
+            )}
             <p className="mt-1 text-xs" style={{ color: "var(--ink-3)" }}>
               {t.note}
             </p>

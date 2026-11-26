@@ -5,7 +5,7 @@ import { Btn, Panel } from "@/components/kit";
 import { PeriodToggle, PlanCards, useCheckout } from "@/components/site/PlanCards";
 import { PageShell } from "@/components/site/PageShell";
 import { useAuth } from "@/lib/auth-context";
-import { type PlanId, PLANS, TRIAL_DAYS, BROKERAGE_CHECKOUT_URLS, createKelviqCheckoutSession } from "@/lib/plans";
+import { type PlanId, PLANS, TRIAL_DAYS, createKelviqCheckoutSession } from "@/lib/plans";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/pricing")({
@@ -75,6 +75,28 @@ function Pricing() {
       window.location.assign(checkoutUrl);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Unable to open secure checkout.");
+    }
+  }
+
+  async function startBusinessCheckout(plan: "brokerage-pilot" | "brokerage-operations" | "brokerage-enterprise") {
+    if (!session) {
+      navigate({ to: "/signup" });
+      return;
+    }
+    try {
+      const response = await fetch("/api/kelviq-business-checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ plan, orgId: profile?.org_id ?? "" }),
+      });
+      const result = await response.json() as { checkoutUrl?: string; error?: string };
+      if (!response.ok || !result.checkoutUrl) throw new Error(result.error ?? "Unable to create Business checkout.");
+      window.location.assign(result.checkoutUrl);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to open Business checkout.");
     }
   }
 
@@ -151,7 +173,7 @@ function Pricing() {
               <li>• 4–6 week delivery window, subject to discovery</li>
             </ul>
             <p className="mt-5 border-t pt-4 text-xs" style={{ borderColor: "var(--hairline)", color: "var(--ink-3)" }}>One-time pilot fee, quoted after discovery</p>
-            <Btn className="mt-5 w-full" variant="primary" onClick={() => window.location.assign(BROKERAGE_CHECKOUT_URLS.pilot)}>Start brokerage pilot</Btn>
+            <Btn className="mt-5 w-full" variant="primary" onClick={() => void startBusinessCheckout("brokerage-pilot")}>Start brokerage pilot</Btn>
           </Panel>
           <Panel className="h-full" style={{ border: "1px solid var(--color-accent)" }}>
             <p className="text-sm font-semibold">Business operations</p>
@@ -165,7 +187,7 @@ function Pricing() {
               <li>• Defined service hours and response targets</li>
             </ul>
             <p className="mt-5 border-t pt-4 text-xs" style={{ borderColor: "var(--hairline)", color: "var(--ink-3)" }}>Recurring fee quoted against measured scope</p>
-            <Btn className="mt-5 w-full" variant="secondary" onClick={() => window.location.assign(BROKERAGE_CHECKOUT_URLS.operations)}>Choose operations</Btn>
+            <Btn className="mt-5 w-full" variant="secondary" onClick={() => void startBusinessCheckout("brokerage-operations")}>Choose operations</Btn>
           </Panel>
           <Panel className="h-full">
             <p className="text-sm font-semibold">Enterprise</p>
@@ -179,7 +201,7 @@ function Pricing() {
               <li>• Annual commercial agreement</li>
             </ul>
             <p className="mt-5 border-t pt-4 text-xs" style={{ borderColor: "var(--hairline)", color: "var(--ink-3)" }}>Implementation and recurring fees quoted separately</p>
-            <Btn className="mt-5 w-full" variant="secondary" onClick={() => window.location.assign(BROKERAGE_CHECKOUT_URLS.enterprise)}>Choose enterprise</Btn>
+            <Btn className="mt-5 w-full" variant="secondary" onClick={() => void startBusinessCheckout("brokerage-enterprise")}>Choose enterprise</Btn>
           </Panel>
         </div>
         <div className="mt-5 flex items-start gap-2 rounded-lg px-4 py-3 text-xs" style={{ background: "var(--accent-4)", color: "var(--ink-2)" }}>
@@ -187,7 +209,7 @@ function Pricing() {
           <p>Indicative Pakistan-market starting ranges, not binding offers. Final brokerage pricing depends on transaction volume, entities, integrations, deployment and support. Pilot and recurring Business checkout remain separate from Individual subscriptions. No 24/7 SLA, certification or integration is implied unless agreed and delivered.</p>
         </div>
         <div className="mt-3 text-xs" style={{ color: "var(--ink-3)" }}>
-          Individual Standard and Pro checkouts use the shared Individual Kelviq product link. Brokerage Pilot, Operations and Enterprise use their separate published Brokerage checkout links. Brokerage payment-to-workspace activation must be confirmed through the signed webhook; a checkout redirect alone never activates access.
+          Individual Standard and Pro checkouts use the shared Individual Kelviq product link. Brokerage Pilot, Operations and Enterprise use workspace-bound Kelviq checkout sessions created server-side. A signed webhook, not the redirect, activates Business access.
         </div>
       </section>
 

@@ -1600,6 +1600,7 @@ export type Database = {
           logo_url?: string | null
           name?: string
           updated_at?: string
+          workspace_type?: string
         }
         Relationships: []
       }

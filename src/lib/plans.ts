@@ -255,3 +255,27 @@ export function pickCascadeForPlan<
   }
   return cascade.find((c) => premium(c.modelId)) ?? fallback;
 }
+
+
+/** Create a signed-in customer's checkout session on the server.
+ * The server attaches tenant metadata; never put the Kelviq server key in the browser.
+ */
+export async function createKelviqCheckoutSession(opts: {
+  plan: "standard" | "pro";
+  period: ChargePeriod;
+  accessToken: string;
+}): Promise<string> {
+  const response = await fetch("/api/kelviq-checkout", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${opts.accessToken}`,
+    },
+    body: JSON.stringify({ plan: opts.plan, chargePeriod: opts.period === "yearly" ? "YEARLY" : "MONTHLY" }),
+  });
+  const payload = await response.json().catch(() => ({})) as { checkoutUrl?: string; error?: string };
+  if (!response.ok || !payload.checkoutUrl) {
+    throw new Error(payload.error || "Kelviq checkout could not be created. Please try again.");
+  }
+  return payload.checkoutUrl;
+}

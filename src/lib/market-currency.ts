@@ -158,7 +158,7 @@ const ALIASES: Record<string, string> = {
 export const SUPPORTED_EXCHANGES = EXCHANGES;
 
 const YAHOO_SUFFIX: Record<string, string> = {
-  PSX: ".KAR", NSE: ".NS", BSE: ".BO",
+  PSX: ".KA", NSE: ".NS", BSE: ".BO",
   LSE: ".L", AIM: ".L", TSX: ".TO", TSXV: ".V", CNSX: ".CN",
   ASX: ".AX", NZX: ".NZ", HKEX: ".HK",
   TSE: ".T", JPX: ".T", OSE: ".OS",

@@ -147,3 +147,17 @@ Never use real client PII or live account credentials in a sales demo.
 - Do not expose a Business checkout until its own published product and plan identifiers are explicitly mapped in the application. An unknown Kelviq plan identifier must never fall through to Individual Standard.
 - Kelviq's current webhook contract uses `webhook-id`, `webhook-timestamp`, and `webhook-signature`; signatures cover `id.timestamp.rawBody`. Events carry the resource in `data.object`, and plan identifiers are in `data.object.plan.identifier`. Test this against a signed sandbox event before accepting live payments.
 - For enterprise sales, quote implementation separately from recurring software fees. Define included entities, source adapters, monthly processed rows, storage, support hours, response targets, security requirements and change requests in the order form.
+
+
+### Recommended Kelviq catalogue identifiers (not yet created)
+
+Use a separate Kelviq product with the following proposed identity:
+
+- Product name: `PSXL Brokerage Operations`
+- Product identifier: `psxl-brokerage-operations`
+- Tax code: `saas_business`
+- Pilot plan identifier: `brokerage-pilot` (one-time purchase)
+- Business plan identifier: `brokerage-operations` (recurring annual agreement)
+- Enterprise plan identifier: `brokerage-enterprise` (recurring annual, custom scope)
+
+These are reserved recommendations, not live Kelviq IDs. The Kelviq API generates the product UUID when the product is created. Do not wire these plan identifiers into checkout or publish them until the plans, prices, feature entitlements and webhook mappings have been created and verified in the correct Kelviq environment. Keep the existing Individual product and its published plan identifiers unchanged.

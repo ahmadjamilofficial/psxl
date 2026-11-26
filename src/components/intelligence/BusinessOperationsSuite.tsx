@@ -58,8 +58,8 @@ export function BusinessOperationsSuite() {
   const features = [
     { icon: FileCheck2, title: "Broker statement intake", detail: "Import source files and review extracted records before posting.", href: "/app/parser", included: paid },
     { icon: Workflow, title: "Reconciliation workbench", detail: "Investigate mismatched fees, quantities, duplicates and ledger exceptions.", href: "/app/reconciliation", included: paid },
-    { icon: ShieldCheck, title: "Approval and evidence trail", detail: "Keep material review decisions and source evidence traceable.", href: "/app/agent", included: paid },
-    { icon: Users, title: "Team operations", detail: "Coordinate review and approval work across workspace members.", href: "/app/agent", included: paid && (plan === "brokerage-operations" || plan === "brokerage-enterprise") },
+    { icon: ShieldCheck, title: "Approval and evidence trail", detail: "Trace material review decisions, approvals and audit events.", href: "/app/audit-trail", included: paid },
+    { icon: Users, title: "Team operations", detail: "Manage workspace members and coordinate role-aware review workflows.", href: "/app/settings", included: paid && (plan === "brokerage-operations" || plan === "brokerage-enterprise") },
     { icon: Activity, title: "Operational intelligence", detail: "Monitor exception queues, document processing and ledger health.", href: "/app/overview", included: paid && (plan === "brokerage-operations" || plan === "brokerage-enterprise") },
     { icon: Network, title: "Enterprise integration scope", detail: "Enterprise onboarding for multi-entity and custom integration requirements.", href: "/app/integrations", included: paid && plan === "brokerage-enterprise" },
   ];

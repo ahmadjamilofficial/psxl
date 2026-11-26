@@ -28,15 +28,15 @@ export const Route = createFileRoute("/pricing")({
 });
 
 const rows: [string, string | boolean, string | boolean, string | boolean][] = [
-  ["Parsed transactions / month", "30", "500", "Unlimited"],
+  ["Ledger transactions / month", "500", "10,000", "100,000"],
   ["AI quality", "Limited", "Standard", "Highest"],
   ["AI variety / tools", "Core only", "Standard set", "Full set"],
-  ["Real-time market data", true, true, true],
+  ["Market data access (provider coverage applies)", true, true, true],
   ["Unrealized P&L tracking", true, true, true],
   ["Tax profiles", "1", "2", "Unlimited"],
   ["CSV export", true, true, true],
   ["PDF tax reports", false, true, true],
-  ["Anomaly detection", false, true, true],
+  ["Anomaly detection", true, true, true],
   ["Tax-loss harvesting", false, false, true],
   ["Background task execution", false, false, true],
   ["Advanced integrations", false, false, true],

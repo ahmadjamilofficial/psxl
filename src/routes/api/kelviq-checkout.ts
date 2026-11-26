@@ -27,9 +27,8 @@ export const Route = createFileRoute("/api/kelviq-checkout")({
           if (!body || !["standard", "pro"].includes(body.plan ?? "") ||
               !["MONTHLY", "YEARLY"].includes(body.chargePeriod ?? "") ||
               !body.orgId ||
-              (body.trialPeriod !== undefined &&
-                (!Number.isInteger(body.trialPeriod) || body.trialPeriod < 1 || body.trialPeriod > 30 || body.plan !== "standard"))) {
-            return Response.json({ error: "Choose a valid plan, billing period and workspace." }, { status: 400 });
+              body.trialPeriod !== undefined) {
+            return Response.json({ error: "Choose a valid plan and billing period. Trial periods are not supported by the plan-specific hosted checkout links." }, { status: 400 });
           }
 
           const supabaseUrl = process.env["SUPABASE_URL"] ?? (import.meta.env["VITE_SUPABASE_URL"] as string | undefined);
@@ -99,12 +98,6 @@ export const Route = createFileRoute("/api/kelviq-checkout")({
           checkoutUrl.searchParams.set("charge_period", body.chargePeriod);
           checkoutUrl.searchParams.set("customer_id", profile.org_id);
           checkoutUrl.searchParams.set("success_url", `${new URL(request.url).origin}/app/billing?checkout=success`);
-          if (body.trialPeriod) {
-            // Static checkout URLs do not support arbitrary trial configuration.
-            // Reject rather than silently dropping a requested trial.
-            return Response.json({ error: "Trial checkout is not available on this hosted plan link. Please choose the standard checkout without a trial." }, { status: 400 });
-          }
-
           return Response.json({ checkoutUrl: checkoutUrl.toString() });
         } catch (error) {
           console.error("[Kelviq] Individual checkout intent creation failed:", error);

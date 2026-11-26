@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { marketListingHint, normalizeMarketTicker } from "@/lib/market-currency";
+import { correctKnownMarketListing, marketListingHint, normalizeMarketTicker } from "@/lib/market-currency";
 
 export const Route = createFileRoute("/api/market-data")({
   server: {
@@ -12,9 +12,12 @@ export const Route = createFileRoute("/api/market-data")({
           const range = url.searchParams.get("range") || "1mo";
           const interval = url.searchParams.get("interval") || "1d";
           if (!/^(?:\^)?[A-Z0-9][A-Z0-9.&_-]{0,19}$/.test(symbol) || !/^[A-Z0-9 _.-]{2,40}$/.test(exchange) || !["1d", "5d", "1mo", "3mo", "1y"].includes(range) || !["5m", "30m", "1d"].includes(interval)) return Response.json({ points: [], error: "Invalid ticker, exchange, range, or interval. Ticker must be a symbol, not a company name." }, { status: 400 });
-          const listingHint = marketListingHint(symbol, exchange);
+          const correction = correctKnownMarketListing(symbol, exchange);
+          const resolvedSymbol = correction?.symbol ?? symbol;
+          const resolvedExchange = correction?.exchange ?? exchange;
+          const listingHint = marketListingHint(resolvedSymbol, resolvedExchange);
           if (listingHint) return Response.json({ points: [], code: "EXCHANGE_SYMBOL_MISMATCH", error: listingHint, requestedSymbol: symbol, exchange }, { status: 422 });
-          const ticker = normalizeMarketTicker(symbol, exchange);
+          const ticker = normalizeMarketTicker(resolvedSymbol, resolvedExchange);
           if (!ticker) return Response.json({ points: [], error: "This exchange is recognized for ledger and currency tracking, but its quote-provider symbol mapping is not available yet. Choose the exact local exchange or enter a provider-ready symbol such as ABC.L." }, { status: 422 });
           const response = await fetch("https://query1.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(ticker) + "?interval=" + interval + "&range=" + range, {
             headers: { "User-Agent": "Mozilla/5.0" },
@@ -39,7 +42,7 @@ export const Route = createFileRoute("/api/market-data")({
           const timestamps = result?.timestamp || [];
           const closes = result?.indicators?.quote?.[0]?.close || [];
           const points = timestamps.map((time: number, i: number) => ({ time: time * 1000, price: closes[i] })).filter((p: { time: number; price: number | null }) => typeof p.price === "number" && Number.isFinite(p.price));
-          return Response.json({ points, meta: { symbol: result?.meta?.symbol, currency: result?.meta?.currency, source: "Yahoo Finance", fetchedAt: new Date().toISOString() } });
+          return Response.json({ points, meta: { symbol: result?.meta?.symbol, currency: result?.meta?.currency, source: "Yahoo Finance", fetchedAt: new Date().toISOString(), requestedSymbol: symbol, requestedExchange: exchange, resolvedSymbol, resolvedExchange, ...(correction ? { warning: correction.note } : {}) } });
         } catch (error) {
           const timedOut = error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError");
           return Response.json(
@@ -156,7 +159,10 @@ async function fetchYahooPrices(
   for (let i = 0; i < unique.length; i += batchSize) {
     const batch = unique.slice(i, i + batchSize);
     const results = await Promise.all(batch.map(async ({ ticker, exchange }) => {
-      const providerSymbol = normalizeMarketTicker(ticker, exchange);
+      const correction = correctKnownMarketListing(ticker, exchange);
+      const resolvedTicker = correction?.symbol ?? ticker;
+      const resolvedExchange = correction?.exchange ?? exchange;
+      const providerSymbol = normalizeMarketTicker(resolvedTicker, resolvedExchange);
       if (!providerSymbol) return null;
       const quote = await fetchYahooPrice(providerSymbol);
       if (!quote) return null;

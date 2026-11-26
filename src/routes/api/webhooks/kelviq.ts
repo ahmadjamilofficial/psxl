@@ -164,7 +164,7 @@ async function processBusinessKelviqEvent(
   let plan = mapBusinessPlan(planIdentifier);
   const subscriptionIdHint = data.subscription_id ?? (event.type.startsWith("subscription.") ? data.id : undefined);
   let matchedBusinessSubscription: { org_id: string; plan: string } | null = null;
-  if (!metadata["product_area"] && !plan && subscriptionIdHint) {
+  if (!plan && subscriptionIdHint) {
     const { data: existingBusiness, error: lookupError } = await db.from("business_subscriptions")
       .select("org_id,plan").eq("kelviq_subscription_id", subscriptionIdHint).maybeSingle();
     if (lookupError) throw lookupError;

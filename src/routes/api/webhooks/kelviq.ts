@@ -160,8 +160,17 @@ async function processBusinessKelviqEvent(
   };
   const metadata = (data.metadata ?? {}) as Record<string, unknown>;
   const planIdentifier = data.plan?.identifier ?? data.plan_identifier;
-  const plan = mapBusinessPlan(planIdentifier);
-  const isBusiness = metadata["product_area"] === "business" || Boolean(plan);
+  let plan = mapBusinessPlan(planIdentifier);
+  const subscriptionIdHint = data.subscription_id ?? (event.type.startsWith("subscription.") ? data.id : undefined);
+  let matchedBusinessSubscription: { org_id: string; plan: string } | null = null;
+  if (!metadata["product_area"] && !plan && subscriptionIdHint) {
+    const { data: existingBusiness, error: lookupError } = await db.from("business_subscriptions")
+      .select("org_id,plan").eq("kelviq_subscription_id", subscriptionIdHint).maybeSingle();
+    if (lookupError) throw lookupError;
+    matchedBusinessSubscription = existingBusiness;
+    plan = mapBusinessPlan(existingBusiness?.plan);
+  }
+  const isBusiness = metadata["product_area"] === "business" || Boolean(plan) || Boolean(matchedBusinessSubscription);
   if (!isBusiness) return false;
   if (!plan) throw new Error("Business webhook has no recognised Brokerage plan identifier.");
 

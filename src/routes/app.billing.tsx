@@ -5,9 +5,7 @@ import { toast } from "sonner";
 import { Btn, Panel, StatusPill } from "@/components/kit";
 import { PeriodToggle, PlanCards } from "@/components/site/PlanCards";
 import { useAuth } from "@/lib/auth-context";
-import {
-  resolveEntitlement,
-} from "@/lib/entitlement";
+import { MONTHLY_DAYS, YEARLY_DAYS, pausePaidClock, resolveEntitlement } from "@/lib/entitlement";
 import {
   type ChargePeriod,
   type PlanId,
@@ -291,13 +289,9 @@ function Billing() {
         period={period}
         {...(trialExpired ? {} : { currentPlan })}
         onSelect={openPlan}
-        ctaFor={(id) => {
-          if (id === "free") return currentPlan === "free" ? "Current plan" : "Revert to Basic $0";
-          if (entitlement.canRestore && entitlement.paidPlan === id) {
-            return `Restore ${PLANS[id].name} free · ${entitlement.daysLeft}d left`;
-          }
-          return `Subscribe to ${PLANS[id].name}`;
-        }}
+        ctaFor={(id) => id === "free"
+          ? currentPlan === "free" ? "Current plan" : "Revert to Basic $0"
+          : "Continue to checkout"}
       />
 
 

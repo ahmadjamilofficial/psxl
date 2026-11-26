@@ -41,7 +41,7 @@ type FormData = z.infer<typeof schema>;
 
 function SignUp() {
   const nav = useNavigate();
-  const { session, loading } = useAuth();
+  const { session, loading, refreshProfile } = useAuth();
   const [showPw, setShowPw] = useState(false);
   const [serverErr, setServerErr] = useState("");
   const [emailSent, setEmailSent] = useState(false);
@@ -160,6 +160,7 @@ function SignUp() {
         _workspace_type: setupWorkspaceType,
       });
       if (error) throw new Error(error.message);
+      await refreshProfile();
       window.localStorage.removeItem("psxl.workspace_setup.required");
       window.localStorage.removeItem("psxl.workspace_type.pending");
       nav({ to: "/app/overview", replace: true });

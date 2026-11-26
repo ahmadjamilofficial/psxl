@@ -183,7 +183,7 @@ function Pricing() {
         </div>
         <div className="mt-5 flex items-start gap-2 rounded-lg px-4 py-3 text-xs" style={{ background: "var(--accent-4)", color: "var(--ink-2)" }}>
           <ArrowUpRight size={14} className="mt-0.5 shrink-0" />
-          <p>All brokerage prices are proposed starting points. Usage bands, supported formats, integrations, hosting, security controls and support commitments are written into each pilot order. No 24/7 SLA, certification or integration is implied unless agreed and delivered.</p>
+          <p>Brokerage fees are quoted against agreed usage, source formats, hosting, security controls and support requirements. Pilot and recurring Business checkout remain separate from Individual subscriptions. No 24/7 SLA, certification or integration is implied unless agreed and delivered.</p>
         </div>
         <div className="mt-3 text-xs" style={{ color: "var(--ink-3)" }}>
           Pilot fees are quoted as a one-time Kelviq purchase only after scope and acceptance criteria are agreed. Recurring business subscriptions must use a separate published Kelviq business product; they must not reuse the Individual plan identifiers.

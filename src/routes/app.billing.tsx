@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Loader2, PackageCheck } from "lucide-react";
 import { CreditCard, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -7,11 +6,7 @@ import { Btn, Panel, StatusPill } from "@/components/kit";
 import { PeriodToggle, PlanCards } from "@/components/site/PlanCards";
 import { useAuth } from "@/lib/auth-context";
 import {
-  MONTHLY_DAYS,
-  YEARLY_DAYS,
-  pausePaidClock,
   resolveEntitlement,
-  resumePaidClock,
 } from "@/lib/entitlement";
 import {
   type ChargePeriod,
@@ -113,25 +108,6 @@ function Billing() {
     );
   }
 
-  async function restorePaid(plan: PlanId) {
-    if (!orgId || !userId) return;
-    if (plan !== "standard" && plan !== "pro") return;
-    if (!entitlement.canRestore || entitlement.paidPlan !== plan) return;
-    resumePaidClock(orgId, userId);
-    try {
-      await supabase
-        .from("subscriptions")
-        .update({ cancel_at_period_end: false, status: "active", plan } as never)
-        .eq("org_id", orgId);
-    } catch {
-      /* local resume still applies */
-    }
-    setClockTick((n) => n + 1);
-    await refreshProfile();
-    toast.success(
-      `Restored ${PLANS[plan].name} at no extra charge. ${entitlement.daysLeft} day(s) left in this cycle.`,
-    );
-  }
 
   function openPlan(plan: PlanId) {
     if (plan === "free") {
@@ -164,7 +140,7 @@ function Billing() {
       return;
     }
     // Checkout is only intent. Never write a paid/trialing entitlement here:
-    // Kelviq's payment webhook is the source of truth and activates the plan.
+    // The payment webhook is the source of truth and activates the plan.
     clearTrialClock(orgId, userId);
     setClockTick((n) => n + 1);
     try {

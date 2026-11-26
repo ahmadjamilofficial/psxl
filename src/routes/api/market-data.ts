@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { normalizeMarketTicker } from "@/lib/market-currency";
+import { marketListingHint, normalizeMarketTicker } from "@/lib/market-currency";
 
 export const Route = createFileRoute("/api/market-data")({
   server: {
@@ -12,6 +12,8 @@ export const Route = createFileRoute("/api/market-data")({
           const range = url.searchParams.get("range") || "1mo";
           const interval = url.searchParams.get("interval") || "1d";
           if (!/^(?:\^)?[A-Z0-9][A-Z0-9.&_-]{0,19}$/.test(symbol) || !/^[A-Z0-9 _.-]{2,40}$/.test(exchange) || !["1d", "5d", "1mo", "3mo", "1y"].includes(range) || !["5m", "30m", "1d"].includes(interval)) return Response.json({ points: [], error: "Invalid ticker, exchange, range, or interval. Ticker must be a symbol, not a company name." }, { status: 400 });
+          const listingHint = marketListingHint(symbol, exchange);
+          if (listingHint) return Response.json({ points: [], code: "EXCHANGE_SYMBOL_MISMATCH", error: listingHint, requestedSymbol: symbol, exchange }, { status: 422 });
           const ticker = normalizeMarketTicker(symbol, exchange);
           if (!ticker) return Response.json({ points: [], error: "This exchange is recognized for ledger and currency tracking, but its quote-provider symbol mapping is not available yet. Choose the exact local exchange or enter a provider-ready symbol such as ABC.L." }, { status: 422 });
           const response = await fetch("https://query1.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(ticker) + "?interval=" + interval + "&range=" + range, {
@@ -19,7 +21,7 @@ export const Route = createFileRoute("/api/market-data")({
             signal: AbortSignal.timeout(8000),
           });
           if (response.status === 404) {
-            return Response.json({ points: [], code: "SYMBOL_NOT_FOUND", error: `No quote-provider listing was found for ${symbol} on ${exchange}. Check the symbol and exchange; PSX Systems Limited is SYS, not SYST.`, requestedSymbol: symbol, exchange, providerSymbol: ticker }, { status: 404 });
+            return Response.json({ points: [], code: "SYMBOL_NOT_FOUND", error: `No quote-provider listing was found for ${symbol} on ${exchange}. Check that the symbol belongs to the selected exchange.`, requestedSymbol: symbol, exchange, providerSymbol: ticker }, { status: 404 });
           }
           if (response.status === 429) {
             return Response.json({ points: [], code: "PROVIDER_RATE_LIMITED", error: "The market-data provider is rate-limiting requests. Retry shortly.", provider: "Yahoo Finance", requestedSymbol: symbol, providerSymbol: ticker }, { status: 503, headers: { "Retry-After": response.headers.get("Retry-After") || "60" } });

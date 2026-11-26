@@ -22,10 +22,15 @@ const schema = z
   .object({
     full_name: z.string().min(2, "Name is required"),
     email: z.string().email("Enter a valid email"),
-    org: z.string().min(2, "Organisation name is required"),
+    workspace_type: z.enum(["business", "individual"]),
+    org: z.string().optional(),
     jurisdiction: z.enum(["PSX", "NSE"]),
     password: z.string().min(8, "Password must be at least 8 characters"),
     confirm: z.string(),
+  })
+  .refine((d) => d.workspace_type !== "business" || Boolean(d.org?.trim() && d.org.trim().length >= 2), {
+    message: "Organisation name is required",
+    path: ["org"],
   })
   .refine((d) => d.password === d.confirm, {
     message: "Passwords don't match",
@@ -83,11 +88,12 @@ function SignUp() {
 
   const {
     register,
+    watch,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { jurisdiction: "PSX" },
+    defaultValues: { jurisdiction: "PSX", workspace_type: "business" },
   });
 
   async function onSubmit(data: FormData) {
@@ -95,8 +101,9 @@ function SignUp() {
     try {
       await signUpWithEmail(data.email, data.password, {
         full_name: data.full_name,
-        org_name: data.org,
+        org_name: data.workspace_type === "business" ? (data.org?.trim() ?? "") : data.full_name + "'s Personal Workspace",
         jurisdiction: data.jurisdiction,
+        workspace_type: data.workspace_type,
       });
       // Supabase sends a confirmation email by default.
       // If email confirmation is disabled in Supabase, redirect directly.
@@ -109,6 +116,7 @@ function SignUp() {
   async function handleGoogleSignUp() {
     setGoogleLoading(true);
     try {
+      window.localStorage.setItem("psxl.workspace_type.pending", watch("workspace_type") === "individual" ? "individual" : "business");
       await signInWithGoogle();
     } catch (e) {
       setServerErr((e as Error).message);
@@ -190,7 +198,7 @@ function SignUp() {
               color: "var(--brand-panel-fg)",
             }}
           >
-            Start your audit-ready ledger in minutes.
+            A clearer way to manage financial records and operations.
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 16 }}
@@ -199,7 +207,7 @@ function SignUp() {
             className="mt-4 text-sm leading-relaxed"
             style={{ color: "rgba(255,255,255,0.6)" }}
           >
-            Free for your first 50 transactions. No credit card required.
+            Choose a workspace for your organisation or personal portfolio.
           </motion.p>
         </div>
 
@@ -349,25 +357,42 @@ function SignUp() {
               )}
             </div>
 
-            {/* Organisation */}
+            {/* Workspace type */}
             <div>
-              <label className="mb-1.5 block text-sm font-medium">Organisation name</label>
-              <input
-                type="text"
-                placeholder="My Trading Firm"
-                {...register("org")}
+              <label className="mb-1.5 block text-sm font-medium">Workspace type</label>
+              <select
+                {...register("workspace_type")}
                 className="w-full rounded-[10px] border bg-surface px-4 py-3 text-sm outline-none focus:ring-2"
-                style={{
-                  borderColor: errors.org ? "var(--bad)" : "var(--hairline)",
-                  ["--tw-ring-color" as string]: "var(--color-accent)",
-                }}
-              />
-              {errors.org && (
-                <p className="mt-1 text-xs" style={{ color: "var(--bad)" }}>
-                  {errors.org.message}
-                </p>
-              )}
+                style={{ borderColor: "var(--hairline)", ["--tw-ring-color" as string]: "var(--color-accent)" }}
+              >
+                <option value="business">Business — brokerage or financial operations team</option>
+                <option value="individual">Individual — personal investing and trading</option>
+              </select>
+              <p className="mt-1 text-xs" style={{ color: "var(--ink-3)" }}>
+                PSXL will configure the workspace and navigation for your needs.
+              </p>
             </div>
+
+            {watch("workspace_type") === "business" && (
+              <div>
+                <label className="mb-1.5 block text-sm font-medium">Organisation name</label>
+                <input
+                  type="text"
+                  placeholder="My Trading Firm"
+                  {...register("org")}
+                  className="w-full rounded-[10px] border bg-surface px-4 py-3 text-sm outline-none focus:ring-2"
+                  style={{
+                    borderColor: errors.org ? "var(--bad)" : "var(--hairline)",
+                    ["--tw-ring-color" as string]: "var(--color-accent)",
+                  }}
+                />
+                {errors.org && (
+                  <p className="mt-1 text-xs" style={{ color: "var(--bad)" }}>
+                    {errors.org.message}
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Jurisdiction */}
             <div>

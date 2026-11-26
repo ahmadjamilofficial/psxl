@@ -252,7 +252,7 @@ async function processBusinessKelviqEvent(
     if (existingError) throw existingError;
     const orgId = existing?.org_id ?? intent?.org_id ??
       (customerReference && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(customerReference) ? customerReference : null);
-    if (!orgId || !intent || intent.status !== "completed" || intent.plan !== plan) {
+    if (!orgId || (!existing && (!intent || intent.status !== "completed" || intent.plan !== plan))) {
       throw new Error("Could not securely match this Brokerage subscription to a completed PSXL checkout.");
     }
     const status = businessStatus(data.status);

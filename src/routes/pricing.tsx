@@ -1,6 +1,6 @@
 import { brandText } from "@/lib/brand";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { BadgeCheck, Minus, Sparkles } from "lucide-react";
+import { BadgeCheck, Minus, Sparkles, Building2, ArrowUpRight } from "lucide-react";
 import { Btn, Panel } from "@/components/kit";
 import { PeriodToggle, PlanCards, useCheckout } from "@/components/site/PlanCards";
 import { PageShell } from "@/components/site/PageShell";
@@ -75,7 +75,7 @@ function Pricing() {
     <PageShell
       eyebrow="Pricing"
       title="Simple, transparent pricing"
-      sub="Basic is completely free with limited features and AI quality. Standard is $9/month or $45/year. Pro is $25/month or $90/year. A 7-day free trial is only available for Standard, from the trial card."
+      sub="Individual plans for traders, plus separately scoped brokerage operations packages. Brokerage pricing depends on transaction volume, source integrations, entities and support requirements."
     >
       <div
         className="mt-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl px-5 py-4"
@@ -112,6 +112,72 @@ function Pricing() {
           }
         />
       </div>
+
+      <section className="mt-16 border-t pt-12" style={{ borderColor: "var(--hairline)" }}>
+        <div className="max-w-2xl">
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--color-accent)" }}>
+            <Building2 size={15} /> Brokerage operations
+          </div>
+          <h2 className="mt-3 text-2xl font-semibold">Pricing built around your operation</h2>
+          <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--ink-2)" }}>
+            For brokerages that need statement intake, reconciliation and exception workflows. These are proposed pilot starting prices, not instant self-serve subscriptions. Final scope and fees are confirmed after a technical discovery call.
+          </p>
+        </div>
+        <div className="mt-7 grid gap-4 md:grid-cols-3">
+          <Panel className="h-full">
+            <p className="text-sm font-semibold">Business Starter</p>
+            <p className="tnum mt-4 text-3xl font-semibold">$499<span className="text-sm font-normal" style={{ color: "var(--ink-3)" }}>/month</span></p>
+            <p className="mt-2 text-xs" style={{ color: "var(--ink-3)" }}>For a small brokerage operations team</p>
+            <ul className="mt-5 space-y-2 text-sm" style={{ color: "var(--ink-2)" }}>
+              <li>• One legal entity and one team</li>
+              <li>• One agreed reconciliation workflow</li>
+              <li>• Limited source formats, scoped at onboarding</li>
+              <li>• Exception review and standard exports</li>
+              <li>• Email support during business hours</li>
+            </ul>
+            <p className="mt-5 border-t pt-4 text-xs" style={{ borderColor: "var(--hairline)", color: "var(--ink-3)" }}>Indicative onboarding: $1,000–$2,500</p>
+            <Btn className="mt-5 w-full" variant="secondary" onClick={() => navigate({ to: "/contact" })}>Discuss a pilot</Btn>
+          </Panel>
+          <Panel className="h-full" style={{ border: "1px solid var(--color-accent)" }}>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-semibold">Business Growth</p>
+              <span className="rounded-md px-2 py-1 text-[10px] font-semibold" style={{ background: "var(--accent-8)", color: "var(--color-accent)" }}>Pilot focus</span>
+            </div>
+            <p className="tnum mt-4 text-3xl font-semibold">$1,500<span className="text-sm font-normal" style={{ color: "var(--ink-3)" }}>/month</span></p>
+            <p className="mt-2 text-xs" style={{ color: "var(--ink-3)" }}>For growing teams with multiple data sources</p>
+            <ul className="mt-5 space-y-2 text-sm" style={{ color: "var(--ink-2)" }}>
+              <li>• Multiple agreed source formats</li>
+              <li>• Expanded transaction allowance</li>
+              <li>• Reviewer workflow and exception ownership</li>
+              <li>• Operational exports and reporting</li>
+              <li>• Priority support during agreed hours</li>
+            </ul>
+            <p className="mt-5 border-t pt-4 text-xs" style={{ borderColor: "var(--hairline)", color: "var(--ink-3)" }}>Indicative onboarding: $3,000–$7,500</p>
+            <Btn className="mt-5 w-full" variant="primary" onClick={() => navigate({ to: "/contact" })}>Scope a brokerage pilot</Btn>
+          </Panel>
+          <Panel className="h-full">
+            <p className="text-sm font-semibold">Enterprise</p>
+            <p className="mt-4 text-3xl font-semibold">Custom</p>
+            <p className="mt-2 text-xs" style={{ color: "var(--ink-3)" }}>For multi-team and multi-entity operations</p>
+            <ul className="mt-5 space-y-2 text-sm" style={{ color: "var(--ink-2)" }}>
+              <li>• Multiple entities and teams</li>
+              <li>• Custom integration and deployment scope</li>
+              <li>• Security and access-control discovery</li>
+              <li>• Agreed support and service requirements</li>
+              <li>• Annual commercial agreement</li>
+            </ul>
+            <p className="mt-5 border-t pt-4 text-xs" style={{ borderColor: "var(--hairline)", color: "var(--ink-3)" }}>Implementation quoted after discovery</p>
+            <Btn className="mt-5 w-full" variant="secondary" onClick={() => navigate({ to: "/contact" })}>Contact enterprise sales</Btn>
+          </Panel>
+        </div>
+        <div className="mt-5 flex items-start gap-2 rounded-lg px-4 py-3 text-xs" style={{ background: "var(--accent-4)", color: "var(--ink-2)" }}>
+          <ArrowUpRight size={14} className="mt-0.5 shrink-0" />
+          <p>All brokerage prices are proposed starting points. Usage bands, supported formats, integrations, hosting, security controls and support commitments are written into each pilot order. No 24/7 SLA, certification or integration is implied unless agreed and delivered.</p>
+        </div>
+        <div className="mt-3 text-xs" style={{ color: "var(--ink-3)" }}>
+          First brokerage pilot: proposed $2,500–$7,500 for 4–6 weeks, scoped to one team and one or two source formats. The pilot fee may be credited toward an annual contract by agreement.
+        </div>
+      </section>
 
       <div className="mt-16 overflow-x-auto">
         <table className="w-full min-w-[720px] border-collapse text-left">

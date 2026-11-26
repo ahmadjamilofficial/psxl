@@ -213,8 +213,22 @@ async function processKelviqEvent(
       const { error } = await supabase
         .from("subscriptions")
         .update(paused
-          ? { status: "paused" }
-          : { status: "cancelled", cancelled_at: new Date().toISOString() })
+          ? {
+              status: "cancelled",
+              metadata: {
+                ...((existing?.metadata ?? {}) as Record<string, unknown>),
+                kelviq_paused: true,
+                paused_at: new Date().toISOString(),
+              } as never,
+            }
+          : {
+              status: "cancelled",
+              cancelled_at: new Date().toISOString(),
+              metadata: {
+                ...((existing?.metadata ?? {}) as Record<string, unknown>),
+                kelviq_paused: false,
+              } as never,
+            })
         .eq("kelviq_subscription_id", subscriptionId);
       if (error) throw error;
       if (existing?.org_id) await updateProfilePlan(existing.org_id, "free");

@@ -6,7 +6,6 @@ import {
   type PlanId,
   PLAN_ORDER,
   PLANS,
-  kelviqCheckoutUrl,
   periodSuffix,
   priceLabel,
 } from "@/lib/plans";
@@ -110,10 +109,9 @@ export function PlanCards({
             <Btn
               className="mt-6 w-full"
               variant={t.popular ? "primary" : "secondary"}
-              disabled={current && id !== "free"}
               onClick={() => onSelect(id)}
             >
-              {current && id !== "free" ? "Current plan" : ctaFor(id)}
+              {current && id !== "free" ? "Change / renew plan" : ctaFor(id)}
             </Btn>
           </Panel>
         );
@@ -125,8 +123,16 @@ export function PlanCards({
 export function useCheckout() {
   const [period, setPeriod] = useState<ChargePeriod>("monthly");
 
-  function openCheckout(plan: PlanId, orgId?: string | null | undefined) {
-    window.location.href = kelviqCheckoutUrl({ plan, period, orgId });
+  async function openCheckout(plan: PlanId) {
+    if (plan === "free") return;
+    const { data } = await import("@/lib/supabase").then(({ supabase }) => supabase.auth.getSession());
+    if (!data.session?.access_token) {
+      window.location.assign("/signin");
+      return;
+    }
+    const { createKelviqCheckoutSession } = await import("@/lib/plans");
+    const checkoutUrl = await createKelviqCheckoutSession({ plan, period, accessToken: data.session.access_token });
+    window.location.assign(checkoutUrl);
   }
 
   return { period, setPeriod, openCheckout };

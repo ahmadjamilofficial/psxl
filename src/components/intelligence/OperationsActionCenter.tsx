@@ -76,7 +76,7 @@ export function OperationsActionCenter() {
   const total = activeItems.reduce((sum, item) => sum + item.count, 0);
 
   return (
-    <section className="overflow-hidden rounded-2xl border" style={{ borderColor: "var(--hairline)", background: "var(--color-sheet)" }}>
+    <section className="overflow-hidden rounded-lg border" style={{ borderColor: "var(--hairline)", background: "var(--color-sheet)" }}>
       <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4 sm:px-6" style={{ borderColor: "var(--hairline)" }}>
         <div>
           <div className="flex items-center gap-2">
@@ -85,14 +85,14 @@ export function OperationsActionCenter() {
           </div>
           <p className="mt-1 text-xs" style={{ color: "var(--ink-3)" }}>A live work queue built from your organisation's actual records — not sample metrics.</p>
         </div>
-        <div className="rounded-full px-3 py-1.5 text-xs font-semibold tabular-nums" style={{ background: total > 0 ? "color-mix(in srgb, var(--warn) 12%, transparent)" : "color-mix(in srgb, var(--ok) 12%, transparent)", color: total > 0 ? "var(--warn)" : "var(--ok)" }}>
+        <div className="rounded-md px-3 py-1.5 text-xs font-semibold tabular-nums" style={{ background: total > 0 ? "color-mix(in srgb, var(--warn) 12%, transparent)" : "color-mix(in srgb, var(--ok) 12%, transparent)", color: total > 0 ? "var(--warn)" : "var(--ok)" }}>
           {loading ? "Checking…" : total > 0 ? `${total} items need attention` : "No open actions"}
         </div>
       </div>
 
       {loading ? (
         <div className="space-y-3 p-5 sm:p-6">
-          {[0, 1, 2].map((n) => <div key={n} className="h-16 animate-pulse rounded-xl" style={{ background: "var(--accent-4)" }} />)}
+          {[0, 1, 2].map((n) => <div key={n} className="h-16 animate-pulse rounded-md" style={{ background: "var(--accent-4)" }} />)}
         </div>
       ) : activeItems.length === 0 && processingDocuments === 0 ? (
         <div className="flex flex-col items-start gap-3 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
@@ -121,7 +121,7 @@ export function OperationsActionCenter() {
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="text-sm font-semibold">{item.title}</p>
-                      <span className="rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums" style={{ background: `color-mix(in srgb, ${color} 12%, transparent)`, color }}>{item.count}</span>
+                      <span className="rounded-md px-2 py-0.5 text-[11px] font-bold tabular-nums" style={{ background: `color-mix(in srgb, ${color} 12%, transparent)`, color }}>{item.count}</span>
                     </div>
                     <p className="mt-1 text-xs leading-relaxed" style={{ color: "var(--ink-3)" }}>{item.detail}</p>
                   </div>

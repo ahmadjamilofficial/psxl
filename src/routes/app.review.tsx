@@ -60,17 +60,15 @@ function ApprovalCard({
     setDeciding(decision);
     try {
       await decideMutation.mutateAsync({ approvalId: approval.id, decision, userId, orgId });
-      // Learn from repeated decisions (fire-and-forget)
-      learnFromDecision(
-        orgId,
-        approval.action_type,
-        decision === "approved" ? "approved" : "rejected",
-      ).catch(() => undefined);
+      // A skipped item is neutral and must not train policy preferences.
+      if (decision !== "skipped") {
+        learnFromDecision(orgId, approval.action_type, decision).catch(() => undefined);
+      }
       toast.success(
         decision === "approved"
-          ? "Change applied"
+          ? "Approval decision recorded"
           : decision === "rejected"
-            ? "Change rejected"
+            ? "Rejection recorded"
             : "Skipped for now",
       );
       onDecision();

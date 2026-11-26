@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, Link as LinkIcon, Search, Shield, ShieldCheck } from "lucide-react";
+import { motion } from "framer-motion";
+import { Link as LinkIcon, Search } from "lucide-react";
 import { useState } from "react";
-import { Btn, Panel, StatusPill } from "@/components/kit";
+import { Panel, StatusPill } from "@/components/kit";
 import { useAuth } from "@/lib/auth-context";
 import { useAuditLog } from "@/lib/data-hooks";
 
@@ -14,17 +14,6 @@ function AuditTrail() {
   const { profile } = useAuth();
   const { data: auditLog = [], isLoading } = useAuditLog(profile?.org_id);
   const [search, setSearch] = useState("");
-  const [verifying, setVerifying] = useState(false);
-  const [verified, setVerified] = useState(false);
-
-  async function verifyChain() {
-    setVerifying(true);
-    setVerified(false);
-    await new Promise((r) => setTimeout(r, 1200));
-    setVerifying(false);
-    setVerified(true);
-  }
-
   const filtered = auditLog.filter((row) => {
     const q = search.toLowerCase();
     return (
@@ -60,60 +49,13 @@ function AuditTrail() {
         <div>
           <h1 style={{ fontFamily: "var(--font-heading)", fontSize: "1.5rem" }}>Audit Trail</h1>
           <p className="mt-0.5 text-sm" style={{ color: "var(--ink-2)" }}>
-            Immutable sha256-chained log of every mutation in your book.
+            Recorded operational events and stored hash references for traceability.
           </p>
         </div>
-        <Btn
-          onClick={verifyChain}
-          disabled={verifying}
-          variant={verified ? "secondary" : "primary"}
-        >
-          {verifying ? (
-            <>
-              <Shield size={15} strokeWidth={1.75} className="animate-pulse" />
-              Verifying…
-            </>
-          ) : verified ? (
-            <>
-              <ShieldCheck size={15} strokeWidth={1.75} style={{ color: "var(--ok)" }} />
-              Chain verified
-            </>
-          ) : (
-            <>
-              <Shield size={15} strokeWidth={1.75} />
-              Verify chain
-            </>
-          )}
-        </Btn>
+        <span className="rounded-md border px-3 py-2 text-xs font-medium" style={{ borderColor: "var(--hairline)", color: "var(--ink-2)" }}>
+          Integrity check not available
+        </span>
       </div>
-
-      <AnimatePresence>
-        {verified && (
-          <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-          >
-            <div
-              className="flex items-center gap-3 rounded-2xl px-5 py-4"
-              style={{
-                background: "color-mix(in srgb, var(--ok) 8%, transparent)",
-                border: "1px solid color-mix(in srgb, var(--ok) 20%, transparent)",
-              }}
-            >
-              <CheckCircle2 size={18} strokeWidth={1.75} style={{ color: "var(--ok)" }} />
-              <div>
-                <p className="text-sm font-semibold" style={{ color: "var(--ok)" }}>
-                  Hash chain is intact
-                </p>
-                <p className="text-xs" style={{ color: "var(--ink-2)" }}>
-                  All {auditLog.length} entries verified client-side. No tampering detected.
-                </p>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Search */}
       <div
@@ -228,32 +170,11 @@ function AuditTrail() {
         )}
       </div>
 
-      {/* How the chain works */}
       <Panel>
-        <p className="mb-4 text-sm font-semibold">How the hash chain works</p>
-        <div className="space-y-2 text-sm" style={{ color: "var(--ink-2)" }}>
-          <p>
-            Every mutation (parse, post, reconcile, compute-tax) appends a new row with{" "}
-            <code
-              className="rounded px-1.5 py-0.5 text-xs"
-              style={{ background: "var(--accent-8)", color: "var(--color-accent)" }}
-            >
-              hash = sha256(prev_hash + payload)
-            </code>
-            .
-          </p>
-          <p>
-            Clicking "Verify chain" recomputes each hash and checks that every{" "}
-            <code
-              className="rounded px-1.5 py-0.5 text-xs"
-              style={{ background: "var(--accent-8)", color: "var(--color-accent)" }}
-            >
-              prev_hash
-            </code>{" "}
-            matches the previous row's hash. Any tampering with historical records breaks the chain
-            and triggers an alert.
-          </p>
-        </div>
+        <p className="mb-2 text-sm font-semibold">Audit integrity status</p>
+        <p className="text-sm leading-relaxed" style={{ color: "var(--ink-2)" }}>
+          This view displays stored event hashes and previous-hash references. It does not independently recompute or verify the complete chain. Treat these records as operational trace data, not as a tamper-proof audit certificate. Server-side verification and exportable evidence are required before regulated production use.
+        </p>
       </Panel>
     </div>
   );

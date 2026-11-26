@@ -6,6 +6,9 @@ const INDIVIDUAL_PLAN_IDENTIFIERS = {
   pro: "pro-plan",
 } as const;
 
+const INDIVIDUAL_CHECKOUT_PRODUCT =
+  "https://www.kelviq.com/buy/ac42e10b-db2e-44ca-b212-6d4f0429b6e3/";
+
 export const Route = createFileRoute("/api/kelviq-checkout")({
   server: {
     handlers: {
@@ -34,8 +37,7 @@ export const Route = createFileRoute("/api/kelviq-checkout")({
             (import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] as string | undefined) ??
             (import.meta.env["VITE_SUPABASE_ANON_KEY"] as string | undefined);
           const serviceRoleKey = process.env["SUPABASE_SERVICE_ROLE_KEY"] ?? "";
-          const kelviqKey = process.env["KELVIQ_SERVER_API_KEY"] ?? "";
-          if (!supabaseUrl || !publishableKey || !serviceRoleKey || !kelviqKey) {
+          if (!supabaseUrl || !publishableKey || !serviceRoleKey) {
             return Response.json({ error: "Workspace billing is not fully configured on the server." }, { status: 503 });
           }
 
@@ -88,58 +90,22 @@ export const Route = createFileRoute("/api/kelviq-checkout")({
           });
           if (insertError) throw insertError;
 
-          const environment = (process.env["KELVIQ_ENVIRONMENT"] ?? "production").toLowerCase();
-          const apiRoot = environment === "sandbox"
-            ? "https://sandboxapi.kelviq.com/api/v1"
-            : "https://api.kelviq.com/api/v1";
-          const origin = new URL(request.url).origin;
-          const response = await fetch(`${apiRoot}/checkout/`, {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${kelviqKey}`,
-              "Content-Type": "application/json",
-              Accept: "application/json",
-            },
-            body: JSON.stringify({
-              planIdentifier: INDIVIDUAL_PLAN_IDENTIFIERS[body.plan as "standard" | "pro"],
-              chargePeriod: body.chargePeriod,
-              plansEnabled: "free-plan,pro-plan,standard-plan",
-              customerId: profile.org_id,
-              ...(authData.user.email ? { email: authData.user.email, lockEmail: true } : {}),
-              ...(body.trialPeriod ? { trialPeriod: body.trialPeriod } : {}),
-              successUrl: `${origin}/app/billing?checkout=success`,
-              cancelUrl: `${origin}/pricing?checkout=cancelled`,
-              metadata: {
-                checkout_intent_id: intentId,
-                org_id: profile.org_id,
-                product_area: "individual",
-                source: "psxl_app",
-                plan: body.plan,
-              },
-            }),
-            signal: AbortSignal.timeout(12000),
-          });
-          const payload = await response.json().catch(() => ({})) as {
-            checkoutUrl?: string;
-            checkoutSessionId?: string;
-            data?: { checkoutUrl?: string; checkoutSessionId?: string };
-          };
-          const checkoutUrl = payload.checkoutUrl ?? payload.data?.checkoutUrl;
-          const checkoutSessionId = payload.checkoutSessionId ?? payload.data?.checkoutSessionId;
-          if (!response.ok || !checkoutUrl || !checkoutSessionId) {
-            await admin.from("subscription_events")
-              .update({ processed: true, error_message: "Kelviq checkout session creation failed." })
-              .eq("kelviq_event_id", intentEventId);
-            console.error("[Kelviq] Individual checkout session creation failed:", response.status);
-            return Response.json({ error: "Kelviq could not create your checkout session. Please retry." }, { status: 502 });
+          // Use the dedicated static hosted link for this exact plan and billing period.
+          // The org UUID is passed as Kelviq's customer_id so the shared signed
+          // webhook can correlate the payment without requiring checkout metadata.
+          const checkoutUrl = new URL(INDIVIDUAL_CHECKOUT_PRODUCT);
+          checkoutUrl.searchParams.set("enabled", "free-plan,pro-plan,standard-plan");
+          checkoutUrl.searchParams.set("plan_identifier", INDIVIDUAL_PLAN_IDENTIFIERS[body.plan as "standard" | "pro"]);
+          checkoutUrl.searchParams.set("charge_period", body.chargePeriod);
+          checkoutUrl.searchParams.set("customer_id", profile.org_id);
+          checkoutUrl.searchParams.set("success_url", `${new URL(request.url).origin}/app/billing?checkout=success`);
+          if (body.trialPeriod) {
+            // Static checkout URLs do not support arbitrary trial configuration.
+            // Reject rather than silently dropping a requested trial.
+            return Response.json({ error: "Trial checkout is not available on this hosted plan link. Please choose the standard checkout without a trial." }, { status: 400 });
           }
 
-          const { error: updateIntentError } = await admin.from("subscription_events")
-            .update({ event_data: { ...intent, checkout_session_id: checkoutSessionId } as never })
-            .eq("kelviq_event_id", intentEventId);
-          if (updateIntentError) throw updateIntentError;
-
-          return Response.json({ checkoutUrl });
+          return Response.json({ checkoutUrl: checkoutUrl.toString() });
         } catch (error) {
           console.error("[Kelviq] Individual checkout intent creation failed:", error);
           return Response.json({ error: "Secure checkout is temporarily unavailable. Please retry." }, { status: 503 });

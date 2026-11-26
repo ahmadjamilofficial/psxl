@@ -1582,6 +1582,7 @@ export type Database = {
           logo_url: string | null
           name: string
           updated_at: string
+          workspace_type: string
         }
         Insert: {
           created_at?: string
@@ -1590,6 +1591,7 @@ export type Database = {
           logo_url?: string | null
           name: string
           updated_at?: string
+          workspace_type?: string
         }
         Update: {
           created_at?: string
@@ -2949,6 +2951,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      set_current_workspace_type: {
+        Args: { _workspace_type: string }
+        Returns: boolean
       }
       retry_agent_job: {
         Args: { p_error?: string; p_job_id: string }

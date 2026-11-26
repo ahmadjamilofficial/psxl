@@ -96,6 +96,25 @@ const navGroups = [
   },
 ] as const;
 
+const individualNavGroups = [
+  {
+    title: "Personal",
+    items: [
+      { label: "Portfolio", icon: LayoutDashboard, to: "/app/overview" },
+      { label: "Market Intelligence", icon: TrendingUp, to: "/app/market-intelligence" },
+      { label: "Ledger", icon: BookOpen, to: "/app/ledger" },
+      { label: "Tax Center", icon: BarChart3, to: "/app/tax" },
+    ],
+  },
+  {
+    title: "Account",
+    items: [
+      { label: "Settings", icon: Settings, to: "/app/settings" },
+      { label: "Billing", icon: CreditCard, to: "/app/billing" },
+    ],
+  },
+] as const;
+
 const mobileTabs = [
   { label: brandText("Ask {{brand}}"), icon: Sparkles, to: "/app/parser" },
   { label: "Portfolio", icon: LayoutDashboard, to: "/app/overview" },
@@ -207,6 +226,16 @@ function InnerShell({ children }: { children: ReactNode }) {
   const displayName = profile?.full_name || user?.email?.split("@")[0] || "User";
   const orgName = profile?.org_name || "My Organisation";
   const plan = profile?.plan || "free";
+  const workspaceType = profile?.workspace_type ?? "business";
+  const visibleNavGroups = workspaceType === "individual" ? individualNavGroups : navGroups;
+  const visibleMobileTabs = workspaceType === "individual"
+    ? [
+        { label: "Portfolio", icon: LayoutDashboard, to: "/app/overview" },
+        { label: "Ledger", icon: BookOpen, to: "/app/ledger" },
+        { label: "Markets", icon: TrendingUp, to: "/app/market-intelligence" },
+        { label: "Tax", icon: BarChart3, to: "/app/tax" },
+      ]
+    : mobileTabs;
   const isAskPage = currentPath.startsWith("/app/parser");
   const initials = displayName.charAt(0).toUpperCase();
   const avatarUrl = (profile?.avatar_url || user?.user_metadata?.["avatar_url"]) as
@@ -218,7 +247,7 @@ function InnerShell({ children }: { children: ReactNode }) {
         typeof window !== "undefined" &&
         new URLSearchParams(window.location.search).get("tab") === "usage"
       : currentPath === to || currentPath.startsWith(to + "/");
-  const tabActive = mobileTabs.some((tab) => isActive(tab.to));
+  const tabActive = visibleMobileTabs.some((tab) => isActive(tab.to));
 
   function SidebarContent({ collapsed, onClose }: { collapsed: boolean; onClose?: () => void }) {
     return (
@@ -275,7 +304,7 @@ function InnerShell({ children }: { children: ReactNode }) {
             collapsed ? "flex flex-col items-center gap-1 px-3" : "space-y-4 px-4"
           }`}
         >
-          <NavItem
+          {workspaceType === "business" && <NavItem
             label={primaryItem.label}
             icon={primaryItem.icon}
             to={primaryItem.to}
@@ -283,9 +312,9 @@ function InnerShell({ children }: { children: ReactNode }) {
             accent
             active={isActive(primaryItem.to)}
             onClick={onClose}
-          />
+          />}
 
-          {navGroups.map((group) => (
+          {visibleNavGroups.map((group) => (
             <div
               key={group.title}
               className={collapsed ? "flex flex-col items-center gap-1" : "space-y-0.5"}
@@ -535,7 +564,7 @@ function InnerShell({ children }: { children: ReactNode }) {
             backdropFilter: "blur(22px) saturate(1.4)",
           }}
         >
-          {mobileTabs.map((tab) => {
+          {visibleMobileTabs.map((tab) => {
             const active = isActive(tab.to);
             const Icon = tab.icon;
             return (
@@ -644,7 +673,7 @@ function InnerShell({ children }: { children: ReactNode }) {
                     </p>
                   </div>
                 </div>
-                {navGroups.map((group) => (
+                {visibleNavGroups.map((group) => (
                   <div key={group.title} className="mb-4">
                     <p
                       className="px-1 pb-2 text-[10px] font-semibold uppercase tracking-wider"

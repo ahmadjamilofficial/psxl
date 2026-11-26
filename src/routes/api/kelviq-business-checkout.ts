@@ -19,7 +19,7 @@ export const Route = createFileRoute("/api/kelviq-business-checkout")({
           if (!accessToken) return Response.json({ error: "Authentication required." }, { status: 401 });
 
           const body = await request.json().catch(() => null) as { plan?: string; orgId?: string } | null;
-          if (!body || !Object.hasOwn(PLANS, body.plan ?? "") || !body.orgId) {
+          if (!body || !Object.prototype.hasOwnProperty.call(PLANS, body.plan ?? "") || !body.orgId) {
             return Response.json({ error: "Choose a valid Business plan and workspace." }, { status: 400 });
           }
           const plan = body.plan as BusinessPlan;

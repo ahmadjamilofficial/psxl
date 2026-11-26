@@ -210,3 +210,21 @@ export function exchangeInfo(exchange: string | null | undefined): ExchangeInfo 
 export function currencyForExchange(exchange: string | null | undefined): string {
   return exchangeInfo(exchange)?.currency ?? "USD";
 }
+
+/** Explicit corrections for well-known symbols entered against the wrong venue.
+ * Never silently rewrite a customer's ledger instrument or exchange.
+ */
+export function marketListingHint(symbol: string, exchange: string): string | null {
+  const ticker = symbol.trim().toUpperCase();
+  const venue = exchange.trim().toUpperCase();
+  if (ticker === "INFY" && venue === "PSX") {
+    return "INFY is not a PSX listing. It trades on India's NSE as INFY.NS and on the NYSE as INFY; select the venue matching your holding.";
+  }
+  if (ticker === "OGDC" && ["NYSE ARCA", "AMEX", "NYSE", "NASDAQ"].includes(venue)) {
+    return "OGDC is listed on the Pakistan Stock Exchange (PSX) under OGDC. Correct the exchange to PSX if this is your Pakistani holding.";
+  }
+  if (ticker === "SYST" && ["NASDAQ", "NYSE", "NYSE ARCA", "AMEX"].includes(venue)) {
+    return "Systems Limited is listed on PSX as SYS, not SYST. Correct the holding to symbol SYS and exchange PSX if this is the intended company.";
+  }
+  return null;
+}

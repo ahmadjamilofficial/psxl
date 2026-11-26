@@ -257,23 +257,32 @@ export function pickCascadeForPlan<
 }
 
 
-/** Build a hosted Kelviq checkout URL from the published product link.
- * No Kelviq server API key is required in PSXL: payment confirmation remains webhook-only.
+/** Ask PSXL's server to create a one-time workspace-bound checkout intent.
+ * The server returns a hosted Kelviq link; payment is still confirmed only by webhook.
  */
-export function createKelviqCheckoutSession(opts: {
+export async function createKelviqCheckoutSession(opts: {
   plan: "standard" | "pro";
   period: ChargePeriod;
+  accessToken: string;
   orgId: string;
   trialDays?: number;
-}): string {
-  if (!opts.orgId) throw new Error("Your PSXL workspace could not be found. Complete workspace setup first.");
-  const url = new URL(KELVIQ_CHECKOUT_URL);
-  const limits = PLANS[opts.plan];
-  url.searchParams.set("plan_identifier", limits.kelviqPlan);
-  url.searchParams.set("charge_period", opts.period === "yearly" ? "YEARLY" : "MONTHLY");
-  // Correlation metadata lets the signed Kelviq webhook map the purchase to this workspace.
-  url.searchParams.set("metadata[org_id]", opts.orgId);
-  url.searchParams.set("metadata[source]", "psxl_app");
-  url.searchParams.set("metadata[workspace]", "individual");
-  return url.toString();
+}): Promise<string> {
+  const response = await fetch("/api/kelviq-checkout", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${opts.accessToken}`,
+    },
+    body: JSON.stringify({
+      plan: opts.plan,
+      orgId: opts.orgId,
+      chargePeriod: opts.period === "yearly" ? "YEARLY" : "MONTHLY",
+      ...(opts.trialDays ? { trialPeriod: opts.trialDays } : {}),
+    }),
+  });
+  const payload = await response.json().catch(() => ({})) as { checkoutUrl?: string; error?: string };
+  if (!response.ok || !payload.checkoutUrl) {
+    throw new Error(payload.error || "Secure checkout could not be created. Please try again.");
+  }
+  return payload.checkoutUrl;
 }

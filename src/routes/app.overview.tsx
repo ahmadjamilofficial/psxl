@@ -439,7 +439,7 @@ function MissionControl() {
         </Link>
       </div>
 
-      <OperationsActionCenter />
+      {profile?.workspace_type !== "individual" && <OperationsActionCenter />}
 
       {/* Key Metrics Grid */}
       <div

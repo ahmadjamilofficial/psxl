@@ -189,7 +189,8 @@ async function processBusinessKelviqEvent(
   if (event.type === "checkout.completed") {
     if (!intentId) throw new Error("Business checkout completion is missing its checkout intent metadata.");
     const intent = await loadIntent(intentId);
-    if (!intent || intent.status !== "pending" || new Date(intent.expires_at).getTime() < Date.now()) {
+    const replayOfSameEvent = intent?.status === "completed" && intent.kelviq_event_id === event.id;
+    if (!intent || (!replayOfSameEvent && (intent.status !== "pending" || new Date(intent.expires_at).getTime() < Date.now()))) {
       throw new Error("Business checkout intent is missing, expired or already consumed.");
     }
     if (intent.plan !== plan || intent.charge_period !== (plan === "brokerage-pilot" ? "ONE_TIME" : "MONTHLY")) {
@@ -198,15 +199,17 @@ async function processBusinessKelviqEvent(
     if (data.status && !["success", "complete", "completed"].includes(data.status.toLowerCase())) {
       throw new Error("Kelviq checkout event does not report a successful payment.");
     }
-    const { error: intentError } = await db.from("business_checkout_intents").update({
-      status: "completed",
-      kelviq_customer_id: customerId,
-      kelviq_event_id: event.id,
-      amount: data.amount ? Number(data.amount) : null,
-      currency: data.currency ?? null,
-      completed_at: new Date().toISOString(),
-    }).eq("intent_id", intentId);
-    if (intentError) throw intentError;
+    if (!replayOfSameEvent) {
+      const { error: intentError } = await db.from("business_checkout_intents").update({
+        status: "completed",
+        kelviq_customer_id: customerId,
+        kelviq_event_id: event.id,
+        amount: data.amount ? Number(data.amount) : null,
+        currency: data.currency ?? null,
+        completed_at: new Date().toISOString(),
+      }).eq("intent_id", intentId);
+      if (intentError) throw intentError;
+    }
 
     if (plan === "brokerage-pilot") {
       const { error } = await db.from("business_subscriptions").upsert({

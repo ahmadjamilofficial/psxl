@@ -17,7 +17,7 @@ export async function signInWithEmail(email: string, password: string) {
 export async function signUpWithEmail(
   email: string,
   password: string,
-  meta: { full_name: string; org_name: string; jurisdiction: string },
+  meta: { full_name: string; org_name: string; jurisdiction: string; workspace_type: "business" | "individual" },
 ) {
   const { data, error } = await supabase.auth.signUp({
     email,

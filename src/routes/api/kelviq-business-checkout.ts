@@ -59,7 +59,7 @@ export const Route = createFileRoute("/api/kelviq-business-checkout")({
           }
 
           const intentId = crypto.randomUUID();
-          const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+          const expiresAt = new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString();
           const period = PLANS[plan].chargePeriod;
           const { error: intentError } = await (admin as any).from("business_checkout_intents").insert({
             intent_id: intentId,

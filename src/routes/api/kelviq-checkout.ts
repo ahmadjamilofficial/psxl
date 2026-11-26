@@ -13,8 +13,9 @@ export const Route = createFileRoute("/api/kelviq-checkout")({
           const body = await request.json().catch(() => null) as {
             plan?: string;
             chargePeriod?: string;
+            trialPeriod?: number;
           } | null;
-          if (!body || !["standard", "pro"].includes(body.plan ?? "") || !["MONTHLY", "YEARLY"].includes(body.chargePeriod ?? "")) {
+          if (!body || !["standard", "pro"].includes(body.plan ?? "") || !["MONTHLY", "YEARLY"].includes(body.chargePeriod ?? "") || (body.trialPeriod !== undefined && (!Number.isInteger(body.trialPeriod) || body.trialPeriod < 1 || body.trialPeriod > 30 || body.plan !== "standard"))) {
             return Response.json({ error: "Choose a valid Individual plan and billing period." }, { status: 400 });
           }
 
@@ -60,6 +61,8 @@ export const Route = createFileRoute("/api/kelviq-checkout")({
               planIdentifier,
               chargePeriod: body.chargePeriod,
               successUrl,
+              customerId: profile.org_id,
+              ...(body.trialPeriod ? { trialPeriod: body.trialPeriod } : {}),
               metadata: { org_id: profile.org_id, source: "psxl_app", workspace: "individual" },
             }),
             signal: AbortSignal.timeout(10000),

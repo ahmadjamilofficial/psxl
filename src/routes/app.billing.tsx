@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Loader2, PackageCheck } from "lucide-react";
-import { ArrowUpRight, CreditCard, Sparkles } from "lucide-react";
+import { CreditCard, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Btn, Panel, StatusPill } from "@/components/kit";
@@ -42,37 +42,7 @@ function Billing() {
   const [sub, setSub] = useState<SubRow | null>(null);
   const [period, setPeriod] = useState<ChargePeriod>("monthly");
   const [clockTick, setClockTick] = useState(0);
-  const [catalogBusy, setCatalogBusy] = useState(false);
-  const [catalogResult, setCatalogResult] = useState<string | null>(null);
 
-  async function runCatalogAction(action: "audit" | "provision") {
-    if (action === "provision" && !window.confirm("Create the missing PSXL Brokerage product and three unpublished draft plans in your Kelviq production catalog? This will not publish or charge customers.")) return;
-    setCatalogBusy(true);
-    setCatalogResult(null);
-    try {
-      const { data } = await supabase.auth.getSession();
-      const accessToken = data.session?.access_token;
-      if (!accessToken) throw new Error("Please sign in again.");
-      const response = await fetch("/api/kelviq-catalog", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action,
-          ...(action === "provision" ? { confirmation: "CREATE_PSXL_BROKERAGE_CATALOG" } : {}),
-        }),
-      });
-      const payload = await response.json().catch(() => ({})) as { error?: string };
-      if (!response.ok) throw new Error(payload.error ?? "Kelviq catalog request failed.");
-      setCatalogResult(JSON.stringify(payload, null, 2));
-      toast.success(action === "audit" ? "Kelviq catalog audit complete" : "Brokerage draft catalog created");
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Catalog request failed.";
-      setCatalogResult(message);
-      toast.error(message);
-    } finally {
-      setCatalogBusy(false);
-    }
-  }
 
   useEffect(() => {
     let alive = true;
@@ -170,10 +140,6 @@ function Billing() {
         return;
       }
       void revertToFree();
-      return;
-    }
-    if (entitlement.canRestore && entitlement.paidPlan === plan && !entitlement.expired) {
-      void restorePaid(plan);
       return;
     }
     void (async () => {
@@ -358,52 +324,10 @@ function Billing() {
         }}
       />
 
-      {["owner", "admin"].includes(profile?.role ?? "") && (
-        <Panel>
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="flex items-start gap-3">
-              <PackageCheck size={18} style={{ color: "var(--color-accent)", marginTop: 2 }} />
-              <div>
-                <p className="text-sm font-semibold">Kelviq Brokerage Catalog</p>
-                <p className="mt-1 max-w-2xl text-xs" style={{ color: "var(--ink-2)" }}>
-                  Uses the existing production server key on the server. Audit first, then create the separate Brokerage product and unpublished plan drafts. Individual subscriptions are not changed.
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Btn variant="secondary" disabled={catalogBusy} onClick={() => void runCatalogAction("audit")}>
-                {catalogBusy ? <Loader2 size={14} className="animate-spin" /> : null}
-                Audit catalog
-              </Btn>
-              <Btn variant="primary" disabled={catalogBusy} onClick={() => void runCatalogAction("provision")}>
-                {catalogBusy ? <Loader2 size={14} className="animate-spin" /> : null}
-                Create draft catalog
-              </Btn>
-            </div>
-          </div>
-          {catalogResult && (
-            <pre className="mt-4 max-h-72 overflow-auto rounded-xl p-3 text-xs" style={{ background: "var(--surface-2)", color: "var(--ink-2)" }}>{catalogResult}</pre>
-          )}
-        </Panel>
-      )}
 
-      <div
-        className="flex items-start gap-2.5 rounded-2xl px-5 py-4 text-sm"
-        style={{ background: "var(--accent-6)", border: "1px solid var(--accent-15)" }}
-      >
-        <ArrowUpRight
-          size={15}
-          strokeWidth={1.75}
-          style={{ color: "var(--color-accent)", marginTop: 2, flexShrink: 0 }}
-        />
-        <p style={{ color: "var(--ink-2)" }}>
-          <strong>Plans:</strong> Basic is $0. Switching to Basic from a paid plan happens in the
-          app — no Kelviq checkout. If your paid cycle is still active ({MONTHLY_DAYS} days monthly
-          / {YEARLY_DAYS} days yearly, counted strictly), you can restore that paid plan at no extra
-          charge. New paid cycles still go through Kelviq. A {TRIAL_DAYS}-day trial applies only to
-          Standard from the trial card above.
-        </p>
-      </div>
+      <p className="text-xs" style={{ color: "var(--ink-3)" }}>
+        Secure payment is handled through our checkout provider. Existing subscriptions remain unchanged until a new checkout is completed.
+      </p>
     </div>
   );
 }

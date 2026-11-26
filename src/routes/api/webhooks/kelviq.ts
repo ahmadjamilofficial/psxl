@@ -249,7 +249,7 @@ async function processBusinessKelviqEvent(
       intent = found;
     }
     const { data: existing, error: existingError } = await db.from("business_subscriptions")
-      .select("org_id, plan, metadata")
+      .select("org_id, plan, metadata, kelviq_checkout_session_id")
       .eq("kelviq_subscription_id", subscriptionId)
       .maybeSingle();
     if (existingError) throw existingError;
@@ -266,12 +266,12 @@ async function processBusinessKelviqEvent(
       charge_period: "MONTHLY",
       kelviq_customer_id: customerId,
       kelviq_subscription_id: subscriptionId,
-      kelviq_checkout_session_id: intent.kelviq_checkout_session_id,
+      kelviq_checkout_session_id: intent?.kelviq_checkout_session_id ?? existing?.kelviq_checkout_session_id ?? null,
       kelviq_plan_identifier: planIdentifier,
       current_period_end: data.billing_period_end_time ?? null,
       end_date: data.end_date ?? null,
       activated_at: status === "active" ? new Date().toISOString() : null,
-      metadata: { product_area: "business", checkout_intent_id: intent.intent_id, kelviq_event_id: event.id, recurrence: data.recurrence ?? null },
+      metadata: { ...((existing?.metadata ?? {}) as Record<string, unknown>), product_area: "business", checkout_intent_id: intent?.intent_id ?? ((existing?.metadata as Record<string, unknown> | undefined)?.["checkout_intent_id"] ?? null), kelviq_event_id: event.id, recurrence: data.recurrence ?? null },
     }, { onConflict: "org_id" });
     if (error) throw error;
     return true;

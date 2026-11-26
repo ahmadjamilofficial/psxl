@@ -193,22 +193,25 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
     ? data.monthly.map(item => ({ ...item, month: item.month }))
     : (() => {
         let cumulativeFlow = 0;
-        return filtered.map(trade => {
-          const netFlow = trade.action === "BUY"
-            ? -(trade.quantity * trade.price + trade.fees)
-            : trade.action === "SELL"
-              ? trade.quantity * trade.price - trade.fees
-              : trade.quantity * trade.price - trade.wht;
-          cumulativeFlow += netFlow;
-          return {
-            month: trade.trade_date,
-            netFlow,
-            cumulative: cumulativeFlow,
-            buys: trade.action === "BUY" ? trade.quantity * trade.price : 0,
-            sells: trade.action === "SELL" ? trade.quantity * trade.price : 0,
-            dividends: trade.action === "DIV" ? trade.quantity * trade.price - trade.wht : 0,
-          };
-        });
+        return [
+          { month: "Start", netFlow: 0, cumulative: 0, buys: 0, sells: 0, dividends: 0 },
+          ...filtered.map(trade => {
+            const netFlow = trade.action === "BUY"
+              ? -(trade.quantity * trade.price + trade.fees)
+              : trade.action === "SELL"
+                ? trade.quantity * trade.price - trade.fees
+                : trade.quantity * trade.price - trade.wht;
+            cumulativeFlow += netFlow;
+            return {
+              month: trade.trade_date,
+              netFlow,
+              cumulative: cumulativeFlow,
+              buys: trade.action === "BUY" ? trade.quantity * trade.price : 0,
+              sells: trade.action === "SELL" ? trade.quantity * trade.price : 0,
+              dividends: trade.action === "DIV" ? trade.quantity * trade.price - trade.wht : 0,
+            };
+          }),
+        ];
       })();
   const monthlyChartDescription = data.monthly.length > 1
     ? "Cumulative net ledger flow by month"

@@ -150,27 +150,34 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
   const activityRows = useMemo(() => {
     const counts = new Map<string, number>();
     for (const trade of filtered) counts.set(trade.trade_date, (counts.get(trade.trade_date) ?? 0) + 1);
-    return [...counts.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([date, value]) => ({ label: date, value }));
+    const rows = [...counts.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([date, value]) => ({ label: date, value }));
+    if (rows.length === 0) return rows;
+    const opening = new Date(`${rows[0]!.label}T00:00:00.000Z`);
+    opening.setUTCDate(opening.getUTCDate() - 1);
+    return [{ label: opening.toISOString().slice(0, 10), value: 0 }, ...rows];
   }, [filtered]);
   // Keep one point per transaction (not one per calendar day), so four trades
   // on the same date remain four visible observations in the primary chart.
   const transactionPoints = useMemo(() => {
     let cumulative = 0;
     let peak = 0;
-    return filtered.map((trade, index) => {
-      const net = trade.action === "BUY"
-        ? -(trade.quantity * trade.price + trade.fees)
-        : trade.action === "SELL"
-          ? trade.quantity * trade.price - trade.fees
-          : trade.quantity * trade.price - trade.wht;
-      cumulative += net;
-      peak = Math.max(peak, cumulative);
-      return {
-        label: `${trade.trade_date} · ${trade.ticker} ${trade.action} #${index + 1}`,
-        cumulative,
-        drawdown: cumulative - peak,
-      };
-    });
+    return [
+      { label: "Opening balance", cumulative: 0, drawdown: 0 },
+      ...filtered.map((trade, index) => {
+        const net = trade.action === "BUY"
+          ? -(trade.quantity * trade.price + trade.fees)
+          : trade.action === "SELL"
+            ? trade.quantity * trade.price - trade.fees
+            : trade.quantity * trade.price - trade.wht;
+        cumulative += net;
+        peak = Math.max(peak, cumulative);
+        return {
+          label: `${trade.trade_date} · ${trade.ticker} ${trade.action} #${index + 1}`,
+          cumulative,
+          drawdown: cumulative - peak,
+        };
+      }),
+    ];
   }, [filtered]);
   const mainData = tab === "ticker"
     ? data.tickerRows.map(item => ({ label: item.ticker, value: item.netCash }))

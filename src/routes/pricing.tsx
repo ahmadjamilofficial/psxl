@@ -53,7 +53,7 @@ function Cell({ v }: { v: string | boolean }) {
 
 function Pricing() {
   const navigate = useNavigate();
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
   const { period, setPeriod } = useCheckout();
 
   async function handlePlanClick(plan: PlanId) {
@@ -70,6 +70,7 @@ function Pricing() {
         plan,
         period,
         accessToken: session.access_token,
+        orgId: profile?.org_id ?? "",
       });
       window.location.assign(checkoutUrl);
     } catch (error) {

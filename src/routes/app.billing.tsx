@@ -124,6 +124,7 @@ function Billing() {
           plan,
           period,
           accessToken: data.session.access_token,
+          orgId,
         });
         window.location.assign(checkoutUrl);
       } catch (error) {
@@ -148,6 +149,7 @@ function Billing() {
         plan: "standard",
         period: "monthly",
         accessToken: data.session.access_token,
+        orgId,
         trialDays: TRIAL_DAYS,
       });
       window.location.assign(checkoutUrl);

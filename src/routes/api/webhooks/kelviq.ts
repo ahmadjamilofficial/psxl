@@ -137,8 +137,24 @@ async function processKelviqEvent(
   }
 
   const metadata = (data.metadata ?? {}) as Record<string, unknown>;
-  let checkoutOrgId: string | null = null;
-  if (!metadata["org_id"] && data.customer?.id) {
+  let checkoutIntent: { org_id?: string; plan?: string; expires_at?: string } | null = null;
+  const loadIntent = async (intentId: string) => {
+    const { data: intentRow, error } = await supabase
+      .from("subscription_events")
+      .select("event_data")
+      .eq("kelviq_event_id", `checkout_intent:${intentId}`)
+      .eq("event_type", "checkout.intent.created")
+      .maybeSingle();
+    if (error) throw error;
+    const value = intentRow?.event_data as { org_id?: string; plan?: string; expires_at?: string } | null;
+    if (!value || !value.expires_at || new Date(value.expires_at).getTime() < Date.now()) return null;
+    return value;
+  };
+
+  const directIntentId = metadata["checkout_intent_id"];
+  if (typeof directIntentId === "string") checkoutIntent = await loadIntent(directIntentId);
+
+  if (!checkoutIntent && data.customer?.id) {
     const { data: checkoutEvent, error: checkoutLookupError } = await supabase
       .from("subscription_events")
       .select("event_data")
@@ -149,14 +165,17 @@ async function processKelviqEvent(
       .maybeSingle();
     if (checkoutLookupError) throw checkoutLookupError;
     const checkoutData = checkoutEvent?.event_data as { object?: { metadata?: Record<string, unknown> } } | null;
-    const linkedOrg = checkoutData?.object?.metadata?.["org_id"];
-    if (typeof linkedOrg === "string") checkoutOrgId = linkedOrg;
+    const intentId = checkoutData?.object?.metadata?.["checkout_intent_id"];
+    if (typeof intentId === "string") checkoutIntent = await loadIntent(intentId);
+  }
+
+  if (checkoutIntent && plan && checkoutIntent.plan !== plan) {
+    throw new Error("Kelviq plan does not match the server-created checkout intent.");
   }
   const orgIdCandidate =
-    (typeof metadata["org_id"] === "string" ? metadata["org_id"] : null) ??
-    checkoutOrgId ??
-    (typeof data.customer?.customer_id === "string" ? data.customer.customer_id : null) ??
+    checkoutIntent?.org_id ??
     existing?.org_id ??
+    (typeof data.customer?.customer_id === "string" ? data.customer.customer_id : null) ??
     null;
   const orgId = orgIdCandidate && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(orgIdCandidate)
     ? orgIdCandidate
@@ -171,6 +190,15 @@ async function processKelviqEvent(
   };
 
   switch (event.type) {
+    case "checkout.completed": {
+      const intentId = metadata["checkout_intent_id"];
+      if (typeof intentId !== "string") throw new Error("Checkout completion is missing its PSXL checkout intent.");
+      const intent = await loadIntent(intentId);
+      if (!intent || !intent.org_id || !intent.plan) throw new Error("Checkout intent is invalid or expired.");
+      if (plan && intent.plan !== plan) throw new Error("Checkout plan does not match the selected PSXL plan.");
+      break;
+    }
+
     case "subscription.created":
     case "subscription.updated":
     case "subscription.plan_changed":

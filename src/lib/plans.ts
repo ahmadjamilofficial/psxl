@@ -257,13 +257,14 @@ export function pickCascadeForPlan<
 }
 
 
-/** Create a signed-in customer's checkout session on the server.
- * The server attaches tenant metadata; never put the Kelviq server key in the browser.
+/** Ask PSXL's server to create a one-time workspace-bound checkout intent.
+ * The server returns a hosted Kelviq link; payment is still confirmed only by webhook.
  */
 export async function createKelviqCheckoutSession(opts: {
   plan: "standard" | "pro";
   period: ChargePeriod;
   accessToken: string;
+  orgId: string;
   trialDays?: number;
 }): Promise<string> {
   const response = await fetch("/api/kelviq-checkout", {
@@ -272,7 +273,12 @@ export async function createKelviqCheckoutSession(opts: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${opts.accessToken}`,
     },
-    body: JSON.stringify({ plan: opts.plan, chargePeriod: opts.period === "yearly" ? "YEARLY" : "MONTHLY", ...(opts.trialDays ? { trialPeriod: opts.trialDays } : {}) }),
+    body: JSON.stringify({
+      plan: opts.plan,
+      orgId: opts.orgId,
+      chargePeriod: opts.period === "yearly" ? "YEARLY" : "MONTHLY",
+      ...(opts.trialDays ? { trialPeriod: opts.trialDays } : {}),
+    }),
   });
   const payload = await response.json().catch(() => ({})) as { checkoutUrl?: string; error?: string };
   if (!response.ok || !payload.checkoutUrl) {

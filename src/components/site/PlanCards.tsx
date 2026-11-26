@@ -1,12 +1,13 @@
 import { BadgeCheck } from "lucide-react";
 import { useState } from "react";
+import { supabase } from "@/lib/supabase";
 import { Btn, Panel, StatusPill } from "@/components/kit";
 import {
   type ChargePeriod,
   type PlanId,
   PLAN_ORDER,
   PLANS,
-  kelviqCheckoutUrl,
+  createKelviqCheckoutSession,
   periodSuffix,
   priceLabel,
 } from "@/lib/plans";
@@ -110,10 +111,9 @@ export function PlanCards({
             <Btn
               className="mt-6 w-full"
               variant={t.popular ? "primary" : "secondary"}
-              disabled={current && id !== "free"}
               onClick={() => onSelect(id)}
             >
-              {current && id !== "free" ? "Current plan" : ctaFor(id)}
+              {current && id !== "free" ? "Change / renew plan" : ctaFor(id)}
             </Btn>
           </Panel>
         );
@@ -125,8 +125,15 @@ export function PlanCards({
 export function useCheckout() {
   const [period, setPeriod] = useState<ChargePeriod>("monthly");
 
-  function openCheckout(plan: PlanId, orgId?: string | null | undefined) {
-    window.location.href = kelviqCheckoutUrl({ plan, period, orgId });
+  async function openCheckout(plan: PlanId) {
+    if (plan === "free") return;
+    const { data } = await supabase.auth.getSession();
+    if (!data.session?.access_token) {
+      window.location.assign("/signin");
+      return;
+    }
+    const checkoutUrl = await createKelviqCheckoutSession({ plan, period, accessToken: data.session.access_token });
+    window.location.assign(checkoutUrl);
   }
 
   return { period, setPeriod, openCheckout };

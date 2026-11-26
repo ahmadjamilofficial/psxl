@@ -11,7 +11,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { signUpWithEmail, signInWithGoogle } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
-import { kelviqCheckoutUrl, normalizePlanId } from "@/lib/plans";
+import { createKelviqCheckoutSession, normalizePlanId, type ChargePeriod } from "@/lib/plans";
 
 export const Route = createFileRoute("/signup")({
   head: () => ({ meta: [{ name: "robots", content: "noindex, nofollow" }] }),
@@ -41,11 +41,13 @@ type FormData = z.infer<typeof schema>;
 
 function SignUp() {
   const nav = useNavigate();
-  const { session, loading } = useAuth();
+  const { session, loading, refreshProfile } = useAuth();
   const [showPw, setShowPw] = useState(false);
   const [serverErr, setServerErr] = useState("");
   const [emailSent, setEmailSent] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [setupWorkspaceType, setSetupWorkspaceType] = useState<"business" | "individual" | "">("");
+  const [setupBusy, setSetupBusy] = useState(false);
 
   useEffect(() => {
     persistInviteToken(new URLSearchParams(window.location.search).get("invite"));
@@ -54,37 +56,54 @@ function SignUp() {
   // Get plan from URL query param
   const searchParams = new URLSearchParams(window.location.search);
   const selectedPlan = searchParams.get("plan");
+  const isWorkspaceSetup = searchParams.get("setup") === "workspace";
+  const selectedPeriod: ChargePeriod = searchParams.get("period") === "yearly" ? "yearly" : "monthly";
 
-  // As soon as session is confirmed, redirect to checkout if plan selected, otherwise dashboard
+  // First-time OAuth users must complete workspace selection before any destination or checkout.
   useEffect(() => {
     if (!loading && session) {
+      if (isWorkspaceSetup) return;
+      if (window.localStorage.getItem("psxl.workspace_setup.required") === "true") {
+        nav({ to: "/signup", search: { setup: "workspace" }, replace: true });
+        return;
+      }
       if (selectedPlan) {
-        // Get org_id from profile first
         const fetchProfileAndRedirect = async () => {
           const { data: profileData } = await supabase
             .from("profiles")
             .select("org_id")
             .eq("user_id", session.user.id)
             .single();
-
-          if (profileData) {
-            if (selectedPlan === "trial") {
-              nav({ to: "/app/billing" });
-              return;
-            }
-            const plan = normalizePlanId(selectedPlan === "basic" ? "free" : selectedPlan);
-            window.location.href = kelviqCheckoutUrl({
+          if (!profileData) return;
+          if (selectedPlan === "trial") {
+            nav({ to: "/app/billing" });
+            return;
+          }
+          const plan = normalizePlanId(selectedPlan === "basic" ? "free" : selectedPlan);
+          if (plan === "free") {
+            nav({ to: "/app/overview", replace: true });
+            return;
+          }
+          try {
+            const { data } = await supabase.auth.getSession();
+            if (!data.session?.access_token) throw new Error("Please sign in again.");
+            const checkoutUrl = await createKelviqCheckoutSession({
               plan,
-              orgId: profileData.org_id,
+              period: selectedPeriod,
+              accessToken: data.session.access_token,
+              ...(plan === "standard" ? { trialDays: 7 } : {}),
             });
+            window.location.assign(checkoutUrl);
+          } catch (error) {
+            setServerErr(error instanceof Error ? error.message : "Unable to open secure checkout.");
           }
         };
-        fetchProfileAndRedirect();
+        void fetchProfileAndRedirect();
       } else {
         nav({ to: "/app/overview", replace: true });
       }
     }
-  }, [session, loading, nav, selectedPlan]);
+  }, [session, loading, nav, selectedPlan, selectedPeriod, isWorkspaceSetup]);
 
   const {
     register,
@@ -93,7 +112,7 @@ function SignUp() {
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { jurisdiction: "PSX", workspace_type: "business" },
+    defaultValues: { jurisdiction: "PSX" },
   });
 
   async function onSubmit(data: FormData) {
@@ -114,14 +133,80 @@ function SignUp() {
   }
 
   async function handleGoogleSignUp() {
+    const selectedWorkspace = watch("workspace_type");
+    if (selectedWorkspace !== "business" && selectedWorkspace !== "individual") {
+      setServerErr("Choose Business or Individual before continuing with Google.");
+      return;
+    }
     setGoogleLoading(true);
     try {
-      window.localStorage.setItem("psxl.workspace_type.pending", watch("workspace_type") === "individual" ? "individual" : "business");
+      window.localStorage.setItem("psxl.workspace_type.pending", selectedWorkspace);
       await signInWithGoogle();
     } catch (e) {
       setServerErr((e as Error).message);
       setGoogleLoading(false);
     }
+  }
+
+  async function completeWorkspaceSetup() {
+    if (setupWorkspaceType !== "business" && setupWorkspaceType !== "individual") {
+      setServerErr("Select a workspace type to continue.");
+      return;
+    }
+    setSetupBusy(true);
+    setServerErr("");
+    try {
+      const { error } = await supabase.rpc("set_current_workspace_type", {
+        _workspace_type: setupWorkspaceType,
+      });
+      if (error) throw new Error(error.message);
+      const { error: metadataError } = await supabase.auth.updateUser({
+        data: { workspace_type_selected: true },
+      });
+      if (metadataError) throw new Error(metadataError.message);
+      await refreshProfile();
+      window.localStorage.removeItem("psxl.workspace_setup.required");
+      window.localStorage.removeItem("psxl.workspace_type.pending");
+      nav({ to: "/app/overview", replace: true });
+    } catch (error) {
+      setServerErr(error instanceof Error ? error.message : "Workspace setup could not be saved.");
+    } finally {
+      setSetupBusy(false);
+    }
+  }
+
+  if (isWorkspaceSetup && session && !loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center px-5 py-10" style={{ background: "var(--color-login-bg)" }}>
+        <div className="w-full max-w-xl rounded-2xl border bg-surface p-6 sm:p-8" style={{ borderColor: "var(--hairline)" }}>
+          <LogoIcon size={30} />
+          <p className="mt-6 text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--color-accent)" }}>One-time setup</p>
+          <h1 className="mt-2 text-2xl font-semibold" style={{ fontFamily: "var(--font-heading)" }}>Choose your PSXL workspace</h1>
+          <p className="mt-2 text-sm" style={{ color: "var(--ink-2)" }}>Select how you will use PSXL. You must make a selection before accessing your workspace.</p>
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            {([
+              { id: "business" as const, title: "Business", detail: "Brokerages and financial operations teams.", Icon: Building2 },
+              { id: "individual" as const, title: "Individual", detail: "Personal investors and traders.", Icon: UserRound },
+            ]).map(option => (
+              <button key={option.id} type="button" onClick={() => setSetupWorkspaceType(option.id)}
+                className="rounded-xl border p-4 text-left transition-colors"
+                style={{ borderColor: setupWorkspaceType === option.id ? "var(--color-accent)" : "var(--hairline)", background: setupWorkspaceType === option.id ? "var(--sidebar-accent)" : "var(--color-surface)" }}>
+                <option.Icon size={20} />
+                <span className="mt-3 block text-sm font-semibold">{option.title}</span>
+                <span className="mt-1 block text-xs" style={{ color: "var(--ink-3)" }}>{option.detail}</span>
+              </button>
+            ))}
+          </div>
+          {serverErr && <p className="mt-4 text-sm" style={{ color: "var(--bad)" }}>{serverErr}</p>}
+          <button type="button" disabled={setupBusy || !setupWorkspaceType} onClick={() => void completeWorkspaceSetup()}
+            className="mt-6 w-full rounded-full px-5 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+            style={{ background: "var(--color-accent)", color: "var(--accent-fg)" }}>
+            {setupBusy ? "Saving workspace…" : "Continue to PSXL"}
+          </button>
+          <p className="mt-3 text-center text-[11px]" style={{ color: "var(--ink-3)" }}>This step cannot be skipped.</p>
+        </div>
+      </div>
+    );
   }
 
   if (emailSent) {

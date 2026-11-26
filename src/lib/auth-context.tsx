@@ -74,6 +74,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const { data: existingRow, error } = profileQuery;
       let row = existingRow;
+      if (typeof window !== "undefined" && u.user_metadata?.["workspace_type_selected"] === false) {
+        window.localStorage.setItem("psxl.workspace_setup.required", "true");
+      }
 
       if (error) {
         console.error("[Wab][Auth] Profile lookup failed:", error.message);
@@ -208,6 +211,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const p = data as { id: string; org_id: string; full_name: string; role: string };
     const pendingType = typeof window !== "undefined" ? window.localStorage.getItem("psxl.workspace_type.pending") : null;
     const metadataType = meta["workspace_type"];
+    const hasExplicitChoice = metadataType === "individual" || metadataType === "business" ||
+      pendingType === "individual" || pendingType === "business";
+    if (typeof window !== "undefined" && !hasExplicitChoice) {
+      window.localStorage.setItem("psxl.workspace_setup.required", "true");
+      const { error: metadataError } = await supabase.auth.updateUser({
+        data: { workspace_type_selected: false },
+      });
+      if (metadataError) throw new Error(`Workspace setup status could not be saved: ${metadataError.message}`);
+    }
     const requestedType = metadataType === "individual" || metadataType === "business"
       ? metadataType
       : pendingType === "individual" ? "individual" : "business";

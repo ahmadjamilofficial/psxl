@@ -21,7 +21,8 @@ import { useAuth } from "@/lib/auth-context";
 import { useState, useEffect } from "react";
 import type { AgentAttachment } from "@/lib/agent-service";
 import { setPendingFiles, setPendingPrompt } from "@/lib/chat-session";
-import { type ChargePeriod, kelviqCheckoutUrl } from "@/lib/plans";
+import { type ChargePeriod, createKelviqCheckoutSession } from "@/lib/plans";
+import { supabase } from "@/lib/supabase";
 import {
   Accordion,
   AccordionContent,
@@ -143,7 +144,7 @@ const tiers = [
     popular: false,
     trialDays: 0,
     items: [
-      "30 transactions / month",
+      "500 ledger transactions / month",
       "Limited AI quality",
       "Core ledger tools",
       "CSV export",
@@ -154,13 +155,13 @@ const tiers = [
   {
     id: "standard" as const,
     name: "Standard",
-    price: "$9",
-    yearly: "$45",
+    price: "$5",
+    yearly: "$50",
     note: "For individual traders",
     popular: false,
     trialDays: 7,
     items: [
-      "500 transactions / month",
+      "10,000 ledger transactions / month",
       "Standard AI quality",
       "Document and transaction analysis",
       "PDF tax reports",
@@ -171,13 +172,13 @@ const tiers = [
   {
     id: "pro" as const,
     name: "Pro",
-    price: "$25",
-    yearly: "$90",
+    price: "$12",
+    yearly: "$120",
     note: "For active traders and professionals",
     popular: true,
     trialDays: 0,
     items: [
-      "Unlimited transactions",
+      "Up to 100,000 ledger transactions / month",
       "Highest AI quality and variety",
       "Everything in Standard",
       "Tax-loss harvesting",
@@ -208,7 +209,7 @@ const faqs = [
   ],
   [
     "What's the difference between Basic, Standard and Pro?",
-    "Basic is $0 with limited AI quality, 30 transactions/month and core tools. Standard is $9/month or $45/year with stronger AI and more tools. Pro is $25/month or $90/year with the full tool set and highest AI quality.",
+    "Basic is free with core tools. Standard is $5/month or $50/year with stronger AI and more tools. Pro is $12/month or $120/year with the full tool set and highest AI quality. Annual plans include two months free.",
   ],
   [
     "How does the 7-day free trial work?",
@@ -227,7 +228,7 @@ const faqs = [
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 function Home() {
-  const { session, loading, profile } = useAuth();
+  const { session, loading } = useAuth();
   const navigate = useNavigate();
   const ctaTo = !loading && session ? "/app/overview" : "/signup";
   const [chatValue, setChatValue] = useState("");
@@ -821,8 +822,7 @@ function Home() {
               Simple, transparent pricing
             </h2>
             <p className="mt-3 text-sm" style={{ color: "var(--ink-2)" }}>
-              Basic is $0. Standard is $9/mo or $45/yr. Pro is $25/mo or $90/yr. A 7-day trial is
-              only on Standard, from the trial card.
+              Basic is free. Standard is $5/mo or $50/yr. Pro is $12/mo or $120/yr. Annual plans include two months free; Standard includes a 7-day trial.
             </p>
           </div>
           <div
@@ -885,6 +885,14 @@ function Home() {
                       </span>
                     )}
                   </div>
+                  {t.id !== "free" && (
+                    <p className="mb-1 text-[11px]" style={{ color: "var(--ink-3)" }}>
+                      Approx. PKR {Math.round(Number((billingPeriod === "yearly" ? t.yearly : t.price).replace("$", "")) * 277).toLocaleString("en-PK")}/{billingPeriod === "yearly" ? "year" : "month"} · planning rate PKR 277/USD
+                    </p>
+                  )}
+                  {billingPeriod === "yearly" && t.id !== "free" && (
+                    <p className="mb-2 text-[11px] font-medium" style={{ color: "var(--color-accent)" }}>Two months free with annual billing</p>
+                  )}
                   <div className="mb-5 text-xs" style={{ color: "var(--ink-3)" }}>
                     {t.note}
                   </div>
@@ -902,16 +910,29 @@ function Home() {
                   </ul>
                   <button
                     type="button"
-                    onClick={() => {
-                      if (!session) {
-                        navigate({ to: "/signup", search: { plan: t.id } });
+                    onClick={async () => {
+                      if (t.id === "free") {
+                        if (session) navigate({ to: "/app/overview" });
+                        else navigate({ to: "/signup" });
                         return;
                       }
-                      window.location.href = kelviqCheckoutUrl({
-                        plan: t.id,
-                        period: billingPeriod,
-                        orgId: profile?.org_id ?? null,
-                      });
+                      if (!session) {
+                        window.location.href = `/signup?plan=${t.id}&period=${billingPeriod}`;
+                        return;
+                      }
+                      try {
+                        const { data } = await supabase.auth.getSession();
+                        if (!data.session?.access_token) throw new Error("Please sign in again.");
+                        const checkoutUrl = await createKelviqCheckoutSession({
+                          plan: t.id,
+                          period: billingPeriod,
+                          accessToken: data.session.access_token,
+                          ...(t.id === "standard" && t.trialDays ? { trialDays: t.trialDays } : {}),
+                        });
+                        window.location.assign(checkoutUrl);
+                      } catch (error) {
+                        window.alert(error instanceof Error ? error.message : "Unable to open secure checkout.");
+                      }
                     }}
                     className="flex w-full items-center justify-center gap-2 rounded-full py-2.5 text-sm font-semibold transition-all hover:shadow-md"
                     style={

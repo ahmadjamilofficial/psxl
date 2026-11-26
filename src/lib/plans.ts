@@ -43,6 +43,13 @@ export const KELVIQ_CHECKOUT_URL =
     (import.meta.env?.["VITE_KELVIQ_CHECKOUT_URL"] as string | undefined)) ||
   "https://www.kelviq.com/buy/ac42e10b-db2e-44ca-b212-6d4f0429b6e3/?enabled=free-plan%2Cpro-plan%2Cstandard-plan&plan_identifier=free-plan&charge_period=ONE_TIME";
 
+/** Hosted Kelviq links supplied for the three Brokerage offers. */
+export const BROKERAGE_CHECKOUT_URLS = {
+  pilot: "https://www.kelviq.com/buy/9eee9bc3-92d5-46c9-9f6b-a2fe97f7181c/?enabled=brokerage-pilot&plan_identifier=brokerage-pilot&charge_period=ONE_TIME",
+  operations: "https://www.kelviq.com/buy/9eee9bc3-92d5-46c9-9f6b-a2fe97f7181c/?enabled=brokerage-operations&plan_identifier=brokerage-operations&charge_period=MONTHLY",
+  enterprise: "https://www.kelviq.com/buy/9eee9bc3-92d5-46c9-9f6b-a2fe97f7181c/?enabled=brokerage-enterprise&plan_identifier=brokerage-enterprise&charge_period=MONTHLY",
+} as const;
+
 export const PLANS: Record<PlanId, PlanLimits> = {
   free: {
     id: "free",

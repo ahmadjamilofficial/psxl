@@ -36,8 +36,9 @@ export const Route = createFileRoute("/api/webhooks/kelviq")({
           const expected = createHmac("sha256", KELVIQ_WEBHOOK_SECRET)
             .update(signedPayload, "utf8")
             .digest();
-          const suppliedHex = signatureHeader.split(",", 2)[1]?.trim() ?? "";
-          if (!/^[a-f0-9]{64}$/i.test(suppliedHex)) {
+          const [signatureVersion, signatureValue] = signatureHeader.split(",", 2);
+          const suppliedHex = signatureValue?.trim() ?? "";
+          if (signatureVersion !== "v1" || !/^[a-f0-9]{64}$/i.test(suppliedHex)) {
             return new Response("Invalid webhook signature", { status: 401 });
           }
           const supplied = Buffer.from(suppliedHex, "hex");

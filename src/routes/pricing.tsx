@@ -15,7 +15,7 @@ export const Route = createFileRoute("/pricing")({
       {
         name: "description",
         content:
-          brandText("Compare {{brand}} plans: Basic at $0, Standard at $9/month or $45/year with a 7-day free trial, Pro at $25/month or $90/year."),
+          brandText("Compare {{brand}} plans: Basic at $0, Standard at $5/month or $50/year with a 7-day free trial, Pro at $12/month or $120/year."),
       },
       { property: "og:title", content: brandText("{{brand}} Pricing") },
       {
@@ -140,8 +140,8 @@ function Pricing() {
         <div className="mt-7 grid gap-4 md:grid-cols-3">
           <Panel className="h-full">
             <p className="text-sm font-semibold">Brokerage pilot</p>
-            <p className="mt-4 text-3xl font-semibold">Scoped quote</p>
-            <p className="mt-2 text-xs" style={{ color: "var(--ink-3)" }}>A controlled first deployment for one operations team</p>
+            <p className="mt-4 text-3xl font-semibold">$750–$2,000</p>
+            <p className="mt-2 text-xs" style={{ color: "var(--ink-3)" }}>One-time, scoped pilot · ≈ PKR 208k–554k</p>
             <ul className="mt-5 space-y-2 text-sm" style={{ color: "var(--ink-2)" }}>
               <li>• One reconciliation workflow</li>
               <li>• One or two agreed source formats</li>
@@ -154,8 +154,8 @@ function Pricing() {
           </Panel>
           <Panel className="h-full" style={{ border: "1px solid var(--color-accent)" }}>
             <p className="text-sm font-semibold">Business operations</p>
-            <p className="mt-4 text-3xl font-semibold">Annual agreement</p>
-            <p className="mt-2 text-xs" style={{ color: "var(--ink-3)" }}>For brokerages running recurring reconciliation operations</p>
+            <p className="mt-4 text-3xl font-semibold">$250–$600/mo</p>
+            <p className="mt-2 text-xs" style={{ color: "var(--ink-3)" }}>Annual agreement · ≈ PKR 69k–166k/mo</p>
             <ul className="mt-5 space-y-2 text-sm" style={{ color: "var(--ink-2)" }}>
               <li>• Agreed monthly transaction and file volumes</li>
               <li>• Multiple source formats and workflows, as scoped</li>
@@ -168,8 +168,8 @@ function Pricing() {
           </Panel>
           <Panel className="h-full">
             <p className="text-sm font-semibold">Enterprise</p>
-            <p className="mt-4 text-3xl font-semibold">Custom</p>
-            <p className="mt-2 text-xs" style={{ color: "var(--ink-3)" }}>For multi-entity and security-sensitive environments</p>
+            <p className="mt-4 text-3xl font-semibold">From $1,000/mo</p>
+            <p className="mt-2 text-xs" style={{ color: "var(--ink-3)" }}>Custom annual agreement · ≈ PKR 277k/mo</p>
             <ul className="mt-5 space-y-2 text-sm" style={{ color: "var(--ink-2)" }}>
               <li>• Multi-entity deployment scope</li>
               <li>• Custom integration and deployment assessment</li>
@@ -183,10 +183,10 @@ function Pricing() {
         </div>
         <div className="mt-5 flex items-start gap-2 rounded-lg px-4 py-3 text-xs" style={{ background: "var(--accent-4)", color: "var(--ink-2)" }}>
           <ArrowUpRight size={14} className="mt-0.5 shrink-0" />
-          <p>Brokerage fees are quoted against agreed usage, source formats, hosting, security controls and support requirements. Pilot and recurring Business checkout remain separate from Individual subscriptions. No 24/7 SLA, certification or integration is implied unless agreed and delivered.</p>
+          <p>Indicative Pakistan-market starting ranges, not binding offers. Final brokerage pricing depends on transaction volume, entities, integrations, deployment and support. Pilot and recurring Business checkout remain separate from Individual subscriptions. No 24/7 SLA, certification or integration is implied unless agreed and delivered.</p>
         </div>
         <div className="mt-3 text-xs" style={{ color: "var(--ink-3)" }}>
-          Pilot fees are quoted as a one-time Kelviq purchase only after scope and acceptance criteria are agreed. Recurring business subscriptions must use a separate published Kelviq business product; they must not reuse the Individual plan identifiers.
+          Pilot fees are quoted after scope and acceptance criteria are agreed. New Individual checkouts use Kelviq's server-side custom amount support in USD; existing subscribers retain their original price. Recurring business subscriptions must use a separate published Kelviq Business product and must not reuse Individual plan identifiers.
         </div>
       </section>
 

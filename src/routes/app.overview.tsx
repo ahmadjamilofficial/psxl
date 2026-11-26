@@ -1,5 +1,6 @@
 import { brandText } from "@/lib/brand";
 import { OperationsActionCenter } from "@/components/intelligence/OperationsActionCenter";
+import { BusinessOperationsSuite } from "@/components/intelligence/BusinessOperationsSuite";
 // ─── PSXL Mission Control Dashboard ────────────────────────────────────────
 // "What is happening in my financial world right now?"
 // Every number is deterministic. AI only explains.
@@ -326,6 +327,53 @@ function MissionControl() {
     }, []);
   if (pnlData.length > 0) pnlData.unshift({ date: "Start", value: 0, ticker: "Opening balance", quantity: 0 });
 
+  // When there are fewer than two realized FIFO observations, show the complete
+  // posted-ledger cash-flow series instead of a misleading lone P&L dot. This is
+  // explicitly labelled as cash flow, never presented as profit or equity value.
+  const realizedTrendAvailable = pnlData.length > 2;
+  const postedTrendTransactions = reportingTransactions
+    .filter((tx) => tx.status === "posted" && Number.isFinite(Number(tx.quantity)) && Number.isFinite(Number(tx.price)))
+    .slice()
+    .sort((a, b) => a.trade_date.localeCompare(b.trade_date) || String(a.id).localeCompare(String(b.id)));
+  let runningLedgerCashFlow = 0;
+  const ledgerCashFlowTrend = [
+    { label: "Opening balance", value: 0, date: "Start", ticker: "Opening balance", quantity: 0 },
+    ...postedTrendTransactions.map((tx, index) => {
+      const quantity = Number(tx.quantity);
+      const price = Number(tx.price);
+      const fees = Number(tx.fees) || 0;
+      const wht = Number(tx.wht) || 0;
+      const movement = tx.action === "BUY"
+        ? -(quantity * price + fees)
+        : tx.action === "SELL"
+          ? quantity * price - fees
+          : quantity * price - wht;
+      runningLedgerCashFlow += movement;
+      return {
+        label: `${tx.trade_date} · ${tx.ticker} ${tx.action} #${index + 1}`,
+        value: Math.round(runningLedgerCashFlow * 100) / 100,
+        date: tx.trade_date,
+        ticker: tx.ticker,
+        quantity,
+      };
+    }),
+  ];
+  const overviewTrendData = realizedTrendAvailable
+    ? pnlData.map((point, index) => ({
+        label: index === 0 ? "Opening balance" : `${point.date} · ${point.ticker} #${index}`,
+        value: point.value,
+        date: point.date,
+        ticker: point.ticker,
+        quantity: point.quantity,
+      }))
+    : ledgerCashFlowTrend;
+  const overviewTrendTitle = realizedTrendAvailable
+    ? "Cumulative Realized P&L"
+    : "Ledger cash flow · all posted transactions";
+  const overviewTrendDescription = realizedTrendAvailable
+    ? `${currency} · YTD ${currentYear} · FIFO lot matching · by realization date`
+    : `${currency} · cumulative BUY / SELL / DIV cash movement · not investment profit`;
+
   // Timeline entries — use DB events if available, else synthesize
   const timelineEntries =
     events.length > 0
@@ -439,7 +487,7 @@ function MissionControl() {
         </Link>
       </div>
 
-      {profile?.workspace_type !== "individual" && <OperationsActionCenter />}
+      {profile?.workspace_type !== "individual" && <><OperationsActionCenter /><BusinessOperationsSuite /></>}
 
       {/* Key Metrics Grid */}
       <div
@@ -555,22 +603,22 @@ function MissionControl() {
         {/* Left column - Main charts and insights */}
         <div className="min-w-0 space-y-5">
           {/* P&L Chart */}
-          {pnlData.length > 0 && (
+          {overviewTrendData.length > 1 && (
             <div
               className="rounded-xl bg-surface p-6"
               style={{ border: "1px solid var(--hairline)" }}
             >
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <p className="text-sm font-bold">Cumulative Realized P&L</p>
+                  <p className="text-sm font-bold">{overviewTrendTitle}</p>
                   <p className="text-xs" style={{ color: "var(--ink-3)" }}>
-                    {currency} · YTD {currentYear} · FIFO lot matching · by realization date
+                    {overviewTrendDescription}
                   </p>
                 </div>
                 <TrendingUp size={16} style={{ color: "var(--color-accent)" }} />
               </div>
               <ResponsiveContainer width="100%" height={180}>
-                <AreaChart data={pnlData} margin={{ top: 5, right: 5, bottom: 0, left: 0 }}>
+                <AreaChart data={overviewTrendData} margin={{ top: 5, right: 5, bottom: 0, left: 0 }}>
                   <defs>
                     <linearGradient id="pnlGrad" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="var(--chart-1)" stopOpacity={0.15} />
@@ -578,8 +626,8 @@ function MissionControl() {
                     </linearGradient>
                   </defs>
                   <XAxis
-                    dataKey="date"
-                    tickFormatter={(value, index) => value === "Start" ? "Start" : index > 0 && pnlData[index - 1]?.date === value ? "" : String(value).slice(5)}
+                    dataKey="label"
+                    tickFormatter={(value) => value === "Opening balance" ? "Start" : String(value).slice(5, 10)}
                     interval="preserveStartEnd"
                     minTickGap={28}
                     tick={{ fontSize: 11, fill: "var(--ink-3)" }}
@@ -593,7 +641,7 @@ function MissionControl() {
                     tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
                   />
                   <Tooltip
-                    formatter={(v: number) => [`${currency} ${fmt(v)}`, "Realized P&L"]}
+                    formatter={(v: number) => [`${currency} ${fmt(v)}`, realizedTrendAvailable ? "Realized P&L" : "Cumulative cash flow"]}
                     cursor={{ stroke: "var(--ink-3)", strokeOpacity: 0.55, strokeDasharray: "4 4" }}
                     contentStyle={{
                       backgroundColor: "var(--color-sheet)",

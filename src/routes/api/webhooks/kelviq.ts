@@ -82,7 +82,8 @@ export const Route = createFileRoute("/api/webhooks/kelviq")({
             if (eventError) throw eventError;
           }
 
-          await processKelviqEvent(body, supabase);
+          const handledAsBusiness = await processBusinessKelviqEvent(body, supabase);
+          if (!handledAsBusiness) await processKelviqEvent(body, supabase);
 
           const { error: processedError } = await supabase
             .from("subscription_events")
@@ -115,6 +116,196 @@ type KelviqObject = {
   cancel_at_period_end?: boolean;
   metadata?: Record<string, unknown>;
 };
+
+type BusinessPlanId = "brokerage-pilot" | "brokerage-operations" | "brokerage-enterprise";
+
+function mapBusinessPlan(identifier: string | undefined): BusinessPlanId | null {
+  if (identifier === "brokerage-pilot") return "brokerage-pilot";
+  if (identifier === "brokerage-operations") return "brokerage-operations";
+  if (identifier === "brokerage-enterprise") return "brokerage-enterprise";
+  return null;
+}
+
+function businessStatus(raw: string | undefined): "active" | "past_due" | "paused" | "cancelled" | "expired" | "pending" {
+  const status = (raw ?? "active").toLowerCase();
+  if (status === "active" || status === "trialing") return "active";
+  if (status === "past_due" || status === "incomplete") return "past_due";
+  if (status === "paused") return "paused";
+  if (status === "cancelled" || status === "canceled" || status === "superseded") return "cancelled";
+  if (status === "expired" || status === "incomplete_expired") return "expired";
+  return "pending";
+}
+
+/**
+ * Separate Business billing lifecycle. Checkout metadata is the correlation key
+ * and is trusted only after the signed Kelviq webhook has been verified above.
+ * Kelviq documents checkout.completed as payment confirmation; subscription.created
+ * follows separately and supplies the recurring subscription ID.
+ */
+async function processBusinessKelviqEvent(
+  event: KelviqWebhookEvent,
+  supabase: ReturnType<typeof createClient<Database>>,
+): Promise<boolean> {
+  const db = supabase as any;
+  const data = event.data.object as KelviqObject & {
+    amount?: string;
+    amount_units?: number;
+    currency?: string;
+    customer_id?: string;
+    customer?: { id?: string; customer_id?: string };
+    billing_period_end_time?: string | null;
+    subscription_id?: string;
+    status?: string;
+    end_date?: string | null;
+  };
+  const metadata = (data.metadata ?? {}) as Record<string, unknown>;
+  const planIdentifier = data.plan?.identifier ?? data.plan_identifier;
+  const plan = mapBusinessPlan(planIdentifier);
+  const isBusiness = metadata["product_area"] === "business" || Boolean(plan);
+  if (!isBusiness) return false;
+  if (!plan) throw new Error("Business webhook has no recognised Brokerage plan identifier.");
+
+  const intentId = typeof metadata["checkout_intent_id"] === "string"
+    ? metadata["checkout_intent_id"] as string
+    : null;
+  const loadIntent = async (id: string) => {
+    const { data: row, error } = await db.from("business_checkout_intents")
+      .select("*").eq("intent_id", id).maybeSingle();
+    if (error) throw error;
+    return row;
+  };
+  const customerId = data.customer?.id ?? data.customer_id ?? null;
+  const customerReference = data.customer?.customer_id ?? null;
+
+  if (event.type === "checkout.completed") {
+    if (!intentId) throw new Error("Business checkout completion is missing its checkout intent metadata.");
+    const intent = await loadIntent(intentId);
+    if (!intent || intent.status !== "pending" || new Date(intent.expires_at).getTime() < Date.now()) {
+      throw new Error("Business checkout intent is missing, expired or already consumed.");
+    }
+    if (intent.plan !== plan || intent.charge_period !== (plan === "brokerage-pilot" ? "ONE_TIME" : "MONTHLY")) {
+      throw new Error("Business plan or billing period does not match its server-created checkout intent.");
+    }
+    if (data.status && !["success", "complete", "completed"].includes(data.status.toLowerCase())) {
+      throw new Error("Kelviq checkout event does not report a successful payment.");
+    }
+    const { error: intentError } = await db.from("business_checkout_intents").update({
+      status: "completed",
+      kelviq_customer_id: customerId,
+      kelviq_event_id: event.id,
+      amount: data.amount ? Number(data.amount) : null,
+      currency: data.currency ?? null,
+      completed_at: new Date().toISOString(),
+    }).eq("intent_id", intentId);
+    if (intentError) throw intentError;
+
+    if (plan === "brokerage-pilot") {
+      const { error } = await db.from("business_subscriptions").upsert({
+        org_id: intent.org_id,
+        plan,
+        status: "active",
+        charge_period: "ONE_TIME",
+        kelviq_customer_id: customerId,
+        kelviq_checkout_session_id: data.id ?? intent.kelviq_checkout_session_id,
+        kelviq_plan_identifier: plan,
+        last_paid_at: new Date().toISOString(),
+        activated_at: new Date().toISOString(),
+        metadata: { product_area: "business", checkout_intent_id: intentId, kelviq_event_id: event.id, amount: data.amount ?? null, currency: data.currency ?? null },
+      }, { onConflict: "org_id" });
+      if (error) throw error;
+    }
+    return true;
+  }
+
+  if (event.type === "subscription.created" || event.type === "subscription.updated" ||
+      event.type === "subscription.plan_changed" || event.type === "subscription.resumed") {
+    const subscriptionId = data.subscription_id ?? data.id;
+    if (!subscriptionId) throw new Error("Business subscription webhook is missing its subscription ID.");
+
+    let intent: any = null;
+    if (intentId) intent = await loadIntent(intentId);
+    if (!intent && customerReference) {
+      const { data: found, error } = await db.from("business_checkout_intents")
+        .select("*")
+        .eq("org_id", customerReference)
+        .eq("plan", plan)
+        .eq("status", "completed")
+        .order("completed_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      intent = found;
+    }
+    const { data: existing, error: existingError } = await db.from("business_subscriptions")
+      .select("org_id, plan, metadata")
+      .eq("kelviq_subscription_id", subscriptionId)
+      .maybeSingle();
+    if (existingError) throw existingError;
+    const orgId = existing?.org_id ?? intent?.org_id ??
+      (customerReference && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(customerReference) ? customerReference : null);
+    if (!orgId || !intent || intent.status !== "completed" || intent.plan !== plan) {
+      throw new Error("Could not securely match this Brokerage subscription to a completed PSXL checkout.");
+    }
+    const status = businessStatus(data.status);
+    const { error } = await db.from("business_subscriptions").upsert({
+      org_id: orgId,
+      plan,
+      status,
+      charge_period: "MONTHLY",
+      kelviq_customer_id: customerId,
+      kelviq_subscription_id: subscriptionId,
+      kelviq_checkout_session_id: intent.kelviq_checkout_session_id,
+      kelviq_plan_identifier: planIdentifier,
+      current_period_end: data.billing_period_end_time ?? null,
+      end_date: data.end_date ?? null,
+      activated_at: status === "active" ? new Date().toISOString() : null,
+      metadata: { product_area: "business", checkout_intent_id: intent.intent_id, kelviq_event_id: event.id, recurrence: data.recurrence ?? null },
+    }, { onConflict: "org_id" });
+    if (error) throw error;
+    return true;
+  }
+
+  if (event.type === "invoice.paid" || event.type === "invoice.payment_failed") {
+    const subscriptionId = data.subscription_id;
+    if (!subscriptionId) return true;
+    const patch = event.type === "invoice.paid"
+      ? { status: "active", last_paid_at: new Date().toISOString(), last_invoice_id: data.id ?? null }
+      : { status: "past_due" };
+    const { error } = await db.from("business_subscriptions")
+      .update(patch).eq("kelviq_subscription_id", subscriptionId);
+    if (error) throw error;
+    return true;
+  }
+
+  if (event.type === "subscription.cancelled" || event.type === "subscription.paused") {
+    const subscriptionId = data.subscription_id ?? data.id;
+    if (subscriptionId) {
+      const { error } = await db.from("business_subscriptions").update({
+        status: event.type === "subscription.paused" ? "paused" : "cancelled",
+        end_date: data.end_date ?? new Date().toISOString(),
+        metadata: { ...metadata, last_lifecycle_event: event.type, last_lifecycle_event_id: event.id },
+      }).eq("kelviq_subscription_id", subscriptionId);
+      if (error) throw error;
+    }
+    return true;
+  }
+
+  if (event.type === "order.refunded" && plan === "brokerage-pilot") {
+    const orgId = customerReference;
+    if (orgId) {
+      const { error } = await db.from("business_subscriptions").update({
+        status: "refunded",
+        refunded_at: new Date().toISOString(),
+        metadata: { ...metadata, refund_event_id: event.id },
+      }).eq("org_id", orgId).eq("plan", "brokerage-pilot");
+      if (error) throw error;
+    }
+    return true;
+  }
+
+  // Business-related event recorded for audit; no entitlement transition.
+  return true;
+}
 
 async function processKelviqEvent(
   event: KelviqWebhookEvent,

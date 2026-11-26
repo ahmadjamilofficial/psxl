@@ -726,7 +726,7 @@ export function useDecideApproval() {
       userId: string;
       orgId: string;
     }) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("agent_approvals")
         .update({
           status: decision,
@@ -734,11 +734,18 @@ export function useDecideApproval() {
           decided_at: new Date().toISOString(),
         } as never)
         .eq("id", approvalId)
-        .eq("org_id", orgId);
+        .eq("org_id", orgId)
+        .eq("status", "pending")
+        .select("id")
+        .maybeSingle();
       if (error) throw new Error(error.message);
+      if (!data) {
+        throw new Error("This approval has already been decided or is no longer available. Refresh the inbox.");
+      }
     },
     onSuccess: (_d, { orgId }) => {
       void qc.invalidateQueries({ queryKey: ["agent_approvals_pending", orgId] });
+      void qc.invalidateQueries({ queryKey: ["audit_log", orgId] });
     },
   });
 }

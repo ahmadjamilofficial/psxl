@@ -5,7 +5,8 @@ import { Btn, Panel } from "@/components/kit";
 import { PeriodToggle, PlanCards, useCheckout } from "@/components/site/PlanCards";
 import { PageShell } from "@/components/site/PageShell";
 import { useAuth } from "@/lib/auth-context";
-import { type PlanId, PLANS, TRIAL_DAYS, kelviqCheckoutUrl } from "@/lib/plans";
+import { type PlanId, PLANS, TRIAL_DAYS, createKelviqCheckoutSession } from "@/lib/plans";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/pricing")({
   head: () => ({
@@ -52,15 +53,28 @@ function Cell({ v }: { v: string | boolean }) {
 
 function Pricing() {
   const navigate = useNavigate();
-  const { session, profile } = useAuth();
+  const { session } = useAuth();
   const { period, setPeriod } = useCheckout();
 
-  function handlePlanClick(plan: PlanId) {
+  async function handlePlanClick(plan: PlanId) {
     if (!session) {
       navigate({ to: "/signup", search: { plan } });
       return;
     }
-    window.location.href = kelviqCheckoutUrl({ plan, period, orgId: profile?.org_id ?? null });
+    if (plan === "free") {
+      navigate({ to: "/app/overview" });
+      return;
+    }
+    try {
+      const checkoutUrl = await createKelviqCheckoutSession({
+        plan,
+        period,
+        accessToken: session.access_token,
+      });
+      window.location.assign(checkoutUrl);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to open secure checkout.");
+    }
   }
 
   function handleTrial() {

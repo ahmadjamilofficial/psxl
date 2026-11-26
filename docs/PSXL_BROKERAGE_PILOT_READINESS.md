@@ -78,10 +78,10 @@ The public website keeps the existing Individual Kelviq plans and separates brok
 | Individual plan | Monthly | Annual | Intended customer |
 |---|---:|---:|---|
 | Basic | $0 | $0 | Personal ledger entry and limited AI allowance |
-| Standard | $9/month | $45/year | Active individual traders |
-| Pro | $25/month | $90/year | High-volume individual traders |
+| Standard | $5/month | $50/year | Active individual traders |
+| Pro | $12/month | $120/year | High-volume individual traders |
 
-The annual amounts are totals billed once per year (not monthly prices). The effective monthly equivalents are $3.75 for Standard and $7.50 for Pro. These annual discounts are unusually aggressive relative to monthly billing. Do not change live plan prices or migrate existing subscribers casually; validate willingness to pay and unit economics first, then publish a new Kelviq plan version or new identifiers with an explicit migration policy.
+The annual amounts are totals billed once per year (not monthly prices), equal to two months free compared with monthly billing. The effective monthly equivalents are $4.17 for Standard and $10 for Pro. These are Pakistan-accessible USD launch prices intended to lower the first-purchase barrier while keeping billing in USD. At a planning rate of PKR 277/USD, approximate local equivalents are PKR 1,385/month or PKR 13,850/year for Standard, and PKR 3,324/month or PKR 33,240/year for Pro. FX conversion, issuer fees and applicable taxes may change the final card charge. New checkouts use Kelviq's documented custom_amount override; existing subscribers retain their existing recurring price unless separately migrated with consent.
 
 ### Brokerage commercial model
 
@@ -93,7 +93,7 @@ Do not reuse Individual plan identifiers for a brokerage. Keep the Business prod
 | Brokerage Operations | Annual agreement, quoted after pilot | Recurring reconciliation operations, agreed monthly row volume, source adapters, reviewer workflow and support |
 | Enterprise | Custom annual agreement | Multiple entities/teams, custom controls, dedicated deployment or integrations, security and service commitments |
 
-The $2,500–$7,500 pilot figure is an internal negotiation anchor, not a published Kelviq checkout price. Do not publish the previous speculative $499/$1,500 monthly tiers until the product's supported volumes, integration cost, gross margin and production controls have been measured.
+Pakistan-market commercial starting ranges for discovery conversations are $750–$2,000 for a one-time pilot (approximately PKR 208,000–554,000), $250–$600/month under an annual Business agreement (approximately PKR 69,000–166,000/month), and Enterprise from $1,000/month (approximately PKR 277,000/month). These are indicative sales ranges, not live Kelviq catalogue prices or guaranteed offers. Confirm scope, integrations, security requirements, support and gross margin before issuing a quote.
 
 Price business plans primarily by monthly records processed, source integrations, legal entities, required controls, deployment model, and support commitment. Seat count should be a secondary factor. Define included transaction bands and overage pricing only after measuring infrastructure cost and pilot usage.
 
@@ -142,7 +142,7 @@ Never use real client PII or live account credentials in a sales demo.
 ## Kelviq commercial architecture (November 2026)
 
 - Keep Individual Basic, Standard and Pro in the existing Individual Kelviq product. Their existing plan identifiers remain `free-plan`, `standard-plan` and `pro-plan`; do not repurpose these identifiers for brokerage customers.
-- Keep the current Individual public prices aligned with the published Kelviq plan prices. The application must display the annual effective monthly equivalent correctly and must not claim market data is real-time where the provider may delay or omit an exchange.
+- New Individual checkouts use server-side Kelviq custom USD amounts: Standard $5 monthly / $50 yearly; Pro $12 monthly / $120 yearly. Existing subscribers are not silently repriced. Display annual effective monthly equivalents correctly and do not claim market data is real-time where the provider may delay or omit an exchange.
 - Create a separate Kelviq product for Brokerage Operations. Use a one-time Pilot plan for a scoped 4–6 week engagement, a recurring Business plan for contracted operations, and a sales-led Enterprise plan for bespoke deployment. Configure each plan's feature entitlements and usage limits in Kelviq.
 - Do not expose a Business checkout until its own published product and plan identifiers are explicitly mapped in the application. An unknown Kelviq plan identifier must never fall through to Individual Standard.
 - Kelviq's current webhook contract uses `webhook-id`, `webhook-timestamp`, and `webhook-signature`; signatures cover `id.timestamp.rawBody`. Events carry the resource in `data.object`, and plan identifiers are in `data.object.plan.identifier`. Test this against a signed sandbox event before accepting live payments.

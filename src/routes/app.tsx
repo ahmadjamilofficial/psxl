@@ -15,10 +15,14 @@ function AppLayout() {
   useEffect(() => {
     // Only redirect once we know for certain there's no session.
     // While loading is true the session is still being resolved — don't redirect yet.
+    if (!loading && session && window.localStorage.getItem("psxl.workspace_setup.required") === "true") {
+      window.location.replace("/signup?setup=workspace");
+      return;
+    }
     if (!loading && !session) {
       window.location.replace(`/signin?next=${encodeURIComponent(`${window.location.pathname}${window.location.search}`)}`);
     }
-  }, [loading, session, navigate]);
+  }, [loading, session, profile, navigate]);
 
   // Keep the shell mounted once a session exists so mobile token refresh
   // does not unmount the AI workspace and restart "Opening your workspace".

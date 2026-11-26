@@ -276,7 +276,7 @@ export async function createKelviqCheckoutSession(opts: {
   });
   const payload = await response.json().catch(() => ({})) as { checkoutUrl?: string; error?: string };
   if (!response.ok || !payload.checkoutUrl) {
-    throw new Error(payload.error || "Kelviq checkout could not be created. Please try again.");
+    throw new Error(payload.error || "Secure checkout could not be created. Please try again.");
   }
   return payload.checkoutUrl;
 }

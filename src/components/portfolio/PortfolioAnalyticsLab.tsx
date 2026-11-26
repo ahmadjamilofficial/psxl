@@ -30,7 +30,14 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
 
   const posted = useMemo(
     () => transactions
-      .filter(t => t.status === "posted" && Number.isFinite(t.quantity) && Number.isFinite(t.price))
+      .filter(t => t.status === "posted" && Number.isFinite(Number(t.quantity)) && Number.isFinite(Number(t.price)))
+      .map(t => ({
+        ...t,
+        quantity: Number(t.quantity),
+        price: Number(t.price),
+        fees: Number(t.fees) || 0,
+        wht: Number(t.wht) || 0,
+      }))
       .slice()
       .sort((a, b) => a.trade_date.localeCompare(b.trade_date) || String(a.id).localeCompare(String(b.id))),
     [transactions],

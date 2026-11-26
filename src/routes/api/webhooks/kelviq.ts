@@ -175,7 +175,7 @@ async function processBusinessKelviqEvent(
   if (!isBusiness) return false;
   if (!plan) throw new Error("Business webhook has no recognised Brokerage plan identifier.");
 
-  const intentId = typeof metadata["checkout_intent_id"] === "string"
+  let intentId = typeof metadata["checkout_intent_id"] === "string"
     ? metadata["checkout_intent_id"] as string
     : null;
   const loadIntent = async (id: string) => {
@@ -188,7 +188,22 @@ async function processBusinessKelviqEvent(
   const customerReference = data.customer?.customer_id ?? null;
 
   if (event.type === "checkout.completed") {
-    if (!intentId) throw new Error("Business checkout completion is missing its checkout intent metadata.");
+    // Static Kelviq links cannot attach arbitrary metadata. Resolve the pending
+    // intent using the verified customer_id (the PSXL org UUID) and exact plan.
+    if (!intentId && customerReference) {
+      const { data: pendingIntent, error: pendingError } = await db.from("business_checkout_intents")
+        .select("intent_id")
+        .eq("org_id", customerReference)
+        .eq("plan", plan)
+        .eq("status", "pending")
+        .gt("expires_at", new Date().toISOString())
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (pendingError) throw pendingError;
+      intentId = pendingIntent?.intent_id ?? null;
+    }
+    if (!intentId) throw new Error("Business checkout completion could not be correlated to a pending PSXL checkout intent.");
     const intent = await loadIntent(intentId);
     const replayOfSameEvent = intent?.status === "completed" && intent.kelviq_event_id === event.id;
     if (!intent || (!replayOfSameEvent && (intent.status !== "pending" || new Date(intent.expires_at).getTime() < Date.now()))) {
@@ -358,6 +373,26 @@ async function processKelviqEvent(
   const directIntentId = metadata["checkout_intent_id"];
   if (typeof directIntentId === "string") checkoutIntent = await loadIntent(directIntentId);
 
+  // Static hosted links identify the organisation through customer.customer_id.
+  // Resolve the newest unexpired server-created intent for that org and plan.
+  const staticCustomerOrgId = data.customer?.customer_id ??
+    (typeof data.customer_id === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(data.customer_id) ? data.customer_id : null);
+  if (!checkoutIntent && staticCustomerOrgId && plan) {
+    const { data: intentEvent, error: intentLookupError } = await supabase
+      .from("subscription_events")
+      .select("event_data")
+      .eq("event_type", "checkout.intent.created")
+      .contains("event_data", { org_id: staticCustomerOrgId, plan })
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (intentLookupError) throw intentLookupError;
+    const candidate = intentEvent?.event_data as { org_id?: string; plan?: string; expires_at?: string } | null;
+    if (candidate?.expires_at && new Date(candidate.expires_at).getTime() > Date.now()) {
+      checkoutIntent = candidate;
+    }
+  }
+
   if (!checkoutIntent && data.customer?.id) {
     const { data: checkoutEvent, error: checkoutLookupError } = await supabase
       .from("subscription_events")
@@ -395,9 +430,10 @@ async function processKelviqEvent(
 
   switch (event.type) {
     case "checkout.completed": {
-      const intentId = metadata["checkout_intent_id"];
-      if (typeof intentId !== "string") throw new Error("Checkout completion is missing its PSXL checkout intent.");
-      const intent = await loadIntent(intentId);
+      const intentId = typeof metadata["checkout_intent_id"] === "string"
+        ? metadata["checkout_intent_id"] as string
+        : null;
+      const intent = checkoutIntent ?? (intentId ? await loadIntent(intentId) : null);
       if (!intent || !intent.org_id || !intent.plan) throw new Error("Checkout intent is invalid or expired.");
       if (plan && intent.plan !== plan) throw new Error("Checkout plan does not match the selected PSXL plan.");
       break;

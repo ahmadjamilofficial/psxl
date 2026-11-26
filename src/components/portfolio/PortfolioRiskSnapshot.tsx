@@ -33,7 +33,7 @@ export function PortfolioRiskSnapshot({
 
   return (
     <section
-      className="rounded-2xl bg-surface p-5"
+      className="rounded-lg bg-surface p-5"
       style={{ border: "1px solid var(--hairline)" }}
       aria-label="Portfolio concentration snapshot"
     >
@@ -52,7 +52,7 @@ export function PortfolioRiskSnapshot({
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-xl p-3" style={{ background: "var(--surface-2, var(--surface))" }}>
+        <div className="rounded-md p-3" style={{ background: "var(--surface-2, var(--surface))" }}>
           <p className="text-[11px]" style={{ color: "var(--ink-3)" }}>
             Largest position
           </p>
@@ -61,7 +61,7 @@ export function PortfolioRiskSnapshot({
             {holdings[0]?.ticker ?? "—"}
           </p>
         </div>
-        <div className="rounded-xl p-3" style={{ background: "var(--surface-2, var(--surface))" }}>
+        <div className="rounded-md p-3" style={{ background: "var(--surface-2, var(--surface))" }}>
           <p className="text-[11px]" style={{ color: "var(--ink-3)" }}>
             Top 3 positions
           </p>
@@ -80,7 +80,7 @@ export function PortfolioRiskSnapshot({
           </p>
         </div>
         <span
-          className="rounded-full px-2.5 py-1 text-xs font-semibold"
+          className="rounded-md px-2.5 py-1 text-xs font-semibold"
           style={{
             color: concentrationTone,
             background: `color-mix(in srgb, ${concentrationTone} 12%, transparent)`,
@@ -102,7 +102,7 @@ export function PortfolioRiskSnapshot({
                 </span>
               </div>
               <div
-                className="h-2 overflow-hidden rounded-full"
+                className="h-2 overflow-hidden rounded-md"
                 style={{ background: "var(--hairline)" }}
                 role="progressbar"
                 aria-label={`${position.ticker} share of portfolio cost basis`}
@@ -113,7 +113,7 @@ export function PortfolioRiskSnapshot({
                 title={`${weight.toFixed(1)}% of recorded portfolio cost basis`}
               >
                 <div
-                  className="h-full rounded-full transition-[width] duration-500 ease-out"
+                  className="h-full rounded-md transition-[width] duration-500 ease-out"
                   style={{
                     // Keep very small holdings visible without changing the
                     // percentage shown to users or exposed to assistive tech.

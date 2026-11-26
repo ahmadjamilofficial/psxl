@@ -38,7 +38,7 @@ function SignIn() {
   // As soon as a session appears (from any sign-in method), navigate to dashboard
   useEffect(() => {
     if (!loading && session) {
-      if (window.localStorage.getItem("psxl.workspace_setup.required") === "true") {
+      if (window.localStorage.getItem("psxl.workspace_setup.required") === "true" || session.user.user_metadata?.["workspace_type_selected"] === false) {
         window.location.replace("/signup?setup=workspace");
         return;
       }

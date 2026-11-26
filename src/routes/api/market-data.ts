@@ -103,6 +103,9 @@ interface MarketPrice {
   changePercent: number;
   currency: string;
   lastUpdated: string;
+  resolvedTicker?: string;
+  resolvedExchange?: string;
+  warning?: string;
 }
 
 // ─── Fetch single ticker price from Yahoo Finance (server-side) ─────────────
@@ -114,6 +117,7 @@ async function fetchYahooPrice(ticker: string): Promise<TickerQuote | null> {
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
       },
+      signal: AbortSignal.timeout(8000),
     });
 
     if (!response.ok) return null;
@@ -169,6 +173,7 @@ async function fetchYahooPrices(
       return {
         ticker,
         exchange,
+        ...(correction ? { resolvedTicker, resolvedExchange, warning: correction.note } : {}),
         price: quote.regularMarketPrice,
         change: quote.regularMarketChange,
         changePercent: quote.regularMarketChangePercent,

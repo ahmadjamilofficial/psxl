@@ -51,11 +51,6 @@ CREATE INDEX IF NOT EXISTS business_subscriptions_customer_idx
 ALTER TABLE public.business_checkout_intents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.business_subscriptions ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS business_checkout_intents_org_select ON public.business_checkout_intents;
-CREATE POLICY business_checkout_intents_org_select
-  ON public.business_checkout_intents FOR SELECT
-  USING (org_id IN (SELECT org_id FROM public.profiles WHERE user_id = auth.uid()));
-
 DROP POLICY IF EXISTS business_subscriptions_org_select ON public.business_subscriptions;
 CREATE POLICY business_subscriptions_org_select
   ON public.business_subscriptions FOR SELECT
@@ -63,7 +58,6 @@ CREATE POLICY business_subscriptions_org_select
 
 -- No client insert/update/delete policies: service-role webhook and server endpoints only.
 REVOKE ALL ON public.business_checkout_intents FROM anon, authenticated;
-GRANT SELECT ON public.business_checkout_intents TO authenticated;
 REVOKE ALL ON public.business_subscriptions FROM anon, authenticated;
 GRANT SELECT ON public.business_subscriptions TO authenticated;
 

@@ -34,6 +34,9 @@ export const Route = createFileRoute("/api/kelviq-checkout")({
           });
           const { data: authData, error: authError } = await authClient.auth.getUser(accessToken);
           if (authError || !authData.user) return Response.json({ error: "Your session has expired. Sign in again." }, { status: 401 });
+          if (authData.user.user_metadata?.["workspace_type_selected"] === false) {
+            return Response.json({ error: "Choose your PSXL workspace before continuing to checkout." }, { status: 403 });
+          }
 
           const admin = createClient(supabaseUrl, serviceRoleKey, {
             auth: { persistSession: false, autoRefreshToken: false },

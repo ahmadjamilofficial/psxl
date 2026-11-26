@@ -49,6 +49,11 @@ export const Route = createFileRoute("/api/kelviq-checkout")({
           const apiUrl = process.env["KELVIQ_API_BASE_URL"] ??
             (sandbox ? "https://sandboxapi.kelviq.com/api/v1/checkout/" : "https://api.kelviq.com/api/v1/checkout/");
           const planIdentifier = body.plan === "pro" ? "pro-plan" : "standard-plan";
+          // Pakistan-accessible launch pricing is charged in USD via Kelviq's documented custom_amount field.
+          // Existing subscriptions keep their original recurring price; this only applies to new checkouts.
+          const customAmount = body.plan === "pro"
+            ? (body.chargePeriod === "YEARLY" ? 120 : 12)
+            : (body.chargePeriod === "YEARLY" ? 50 : 5);
           const successUrl = new URL("/app/billing?checkout=success", request.url).toString();
 
           const response = await fetch(apiUrl, {
@@ -60,6 +65,8 @@ export const Route = createFileRoute("/api/kelviq-checkout")({
             body: JSON.stringify({
               planIdentifier,
               chargePeriod: body.chargePeriod,
+              custom_amount: customAmount,
+              currency_code: "USD",
               successUrl,
               customerId: profile.org_id,
               ...(body.trialPeriod ? { trialPeriod: body.trialPeriod } : {}),

@@ -66,19 +66,21 @@ export const Route = createFileRoute("/api/webhooks/kelviq")({
 
           const { data: existingEvent, error: lookupError } = await supabase
             .from("subscription_events")
-            .select("id")
+            .select("id, processed")
             .eq("kelviq_event_id", body.id)
             .maybeSingle();
           if (lookupError) throw lookupError;
-          if (existingEvent) return Response.json({ received: true, duplicate: true });
+          if (existingEvent?.processed) return Response.json({ received: true, duplicate: true });
 
-          const { error: eventError } = await supabase.from("subscription_events").insert({
-            kelviq_event_id: body.id,
-            event_type: body.type,
-            event_data: body.data as never,
-            processed: false,
-          });
-          if (eventError) throw eventError;
+          if (!existingEvent) {
+            const { error: eventError } = await supabase.from("subscription_events").insert({
+              kelviq_event_id: body.id,
+              event_type: body.type,
+              event_data: body.data as never,
+              processed: false,
+            });
+            if (eventError) throw eventError;
+          }
 
           await processKelviqEvent(body, supabase);
 

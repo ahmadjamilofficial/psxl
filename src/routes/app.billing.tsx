@@ -176,6 +176,7 @@ function Billing() {
         plan: "standard",
         period: "monthly",
         accessToken: data.session.access_token,
+        trialDays: TRIAL_DAYS,
       });
       window.location.assign(checkoutUrl);
     } catch (error) {

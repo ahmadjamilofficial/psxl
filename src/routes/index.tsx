@@ -228,7 +228,7 @@ const faqs = [
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 function Home() {
-  const { session, loading, profile } = useAuth();
+  const { session, loading } = useAuth();
   const navigate = useNavigate();
   const ctaTo = !loading && session ? "/app/overview" : "/signup";
   const [chatValue, setChatValue] = useState("");
@@ -885,6 +885,14 @@ function Home() {
                       </span>
                     )}
                   </div>
+                  {t.id !== "free" && (
+                    <p className="mb-1 text-[11px]" style={{ color: "var(--ink-3)" }}>
+                      Approx. PKR {Math.round(Number((billingPeriod === "yearly" ? t.yearly : t.price).replace("$", "")) * 277).toLocaleString("en-PK")}/{billingPeriod === "yearly" ? "year" : "month"} · planning rate PKR 277/USD
+                    </p>
+                  )}
+                  {billingPeriod === "yearly" && t.id !== "free" && (
+                    <p className="mb-2 text-[11px] font-medium" style={{ color: "var(--color-accent)" }}>Two months free with annual billing</p>
+                  )}
                   <div className="mb-5 text-xs" style={{ color: "var(--ink-3)" }}>
                     {t.note}
                   </div>

@@ -137,9 +137,24 @@ async function processKelviqEvent(
   }
 
   const metadata = (data.metadata ?? {}) as Record<string, unknown>;
+  let checkoutOrgId: string | null = null;
+  if (!metadata["org_id"] && data.customer?.id) {
+    const { data: checkoutEvent, error: checkoutLookupError } = await supabase
+      .from("subscription_events")
+      .select("event_data")
+      .eq("event_type", "checkout.completed")
+      .contains("event_data", { object: { customer: { id: data.customer.id } } })
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (checkoutLookupError) throw checkoutLookupError;
+    const checkoutData = checkoutEvent?.event_data as { object?: { metadata?: Record<string, unknown> } } | null;
+    const linkedOrg = checkoutData?.object?.metadata?.["org_id"];
+    if (typeof linkedOrg === "string") checkoutOrgId = linkedOrg;
+  }
   const orgIdCandidate =
     (typeof metadata["org_id"] === "string" ? metadata["org_id"] : null) ??
-    (typeof data.customer?.customer_id === "string" ? data.customer.customer_id : null) ??
+    checkoutOrgId ??
     existing?.org_id ??
     null;
   const orgId = orgIdCandidate && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(orgIdCandidate)

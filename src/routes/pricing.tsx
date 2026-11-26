@@ -125,48 +125,45 @@ function Pricing() {
         </div>
         <div className="mt-7 grid gap-4 md:grid-cols-3">
           <Panel className="h-full">
-            <p className="text-sm font-semibold">Business Starter</p>
-            <p className="tnum mt-4 text-3xl font-semibold">$499<span className="text-sm font-normal" style={{ color: "var(--ink-3)" }}>/month</span></p>
-            <p className="mt-2 text-xs" style={{ color: "var(--ink-3)" }}>For a small brokerage operations team</p>
+            <p className="text-sm font-semibold">Brokerage pilot</p>
+            <p className="mt-4 text-3xl font-semibold">Scoped quote</p>
+            <p className="mt-2 text-xs" style={{ color: "var(--ink-3)" }}>A controlled first deployment for one operations team</p>
             <ul className="mt-5 space-y-2 text-sm" style={{ color: "var(--ink-2)" }}>
-              <li>• One legal entity and one team</li>
-              <li>• One agreed reconciliation workflow</li>
-              <li>• Limited source formats, scoped at onboarding</li>
-              <li>• Exception review and standard exports</li>
-              <li>• Email support during business hours</li>
+              <li>• One reconciliation workflow</li>
+              <li>• One or two agreed source formats</li>
+              <li>• Defined transaction volume and acceptance criteria</li>
+              <li>• Exception review and evidence export</li>
+              <li>• 4–6 week delivery window, subject to discovery</li>
             </ul>
-            <p className="mt-5 border-t pt-4 text-xs" style={{ borderColor: "var(--hairline)", color: "var(--ink-3)" }}>Indicative onboarding: $1,000–$2,500</p>
-            <Btn className="mt-5 w-full" variant="secondary" onClick={() => navigate({ to: "/contact" })}>Discuss a pilot</Btn>
+            <p className="mt-5 border-t pt-4 text-xs" style={{ borderColor: "var(--hairline)", color: "var(--ink-3)" }}>One-time pilot fee, quoted after discovery</p>
+            <Btn className="mt-5 w-full" variant="primary" onClick={() => navigate({ to: "/contact" })}>Scope a pilot</Btn>
           </Panel>
           <Panel className="h-full" style={{ border: "1px solid var(--color-accent)" }}>
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-sm font-semibold">Business Growth</p>
-              <span className="rounded-md px-2 py-1 text-[10px] font-semibold" style={{ background: "var(--accent-8)", color: "var(--color-accent)" }}>Pilot focus</span>
-            </div>
-            <p className="tnum mt-4 text-3xl font-semibold">$1,500<span className="text-sm font-normal" style={{ color: "var(--ink-3)" }}>/month</span></p>
-            <p className="mt-2 text-xs" style={{ color: "var(--ink-3)" }}>For growing teams with multiple data sources</p>
+            <p className="text-sm font-semibold">Business operations</p>
+            <p className="mt-4 text-3xl font-semibold">Annual agreement</p>
+            <p className="mt-2 text-xs" style={{ color: "var(--ink-3)" }}>For brokerages running recurring reconciliation operations</p>
             <ul className="mt-5 space-y-2 text-sm" style={{ color: "var(--ink-2)" }}>
-              <li>• Multiple agreed source formats</li>
-              <li>• Expanded transaction allowance</li>
-              <li>• Reviewer workflow and exception ownership</li>
-              <li>• Operational exports and reporting</li>
-              <li>• Priority support during agreed hours</li>
+              <li>• Agreed monthly transaction and file volumes</li>
+              <li>• Multiple source formats and workflows, as scoped</li>
+              <li>• Reviewer roles and exception ownership</li>
+              <li>• Reporting, exports and operational support</li>
+              <li>• Defined service hours and response targets</li>
             </ul>
-            <p className="mt-5 border-t pt-4 text-xs" style={{ borderColor: "var(--hairline)", color: "var(--ink-3)" }}>Indicative onboarding: $3,000–$7,500</p>
-            <Btn className="mt-5 w-full" variant="primary" onClick={() => navigate({ to: "/contact" })}>Scope a brokerage pilot</Btn>
+            <p className="mt-5 border-t pt-4 text-xs" style={{ borderColor: "var(--hairline)", color: "var(--ink-3)" }}>Recurring fee quoted against measured scope</p>
+            <Btn className="mt-5 w-full" variant="secondary" onClick={() => navigate({ to: "/contact" })}>Discuss business pricing</Btn>
           </Panel>
           <Panel className="h-full">
             <p className="text-sm font-semibold">Enterprise</p>
             <p className="mt-4 text-3xl font-semibold">Custom</p>
-            <p className="mt-2 text-xs" style={{ color: "var(--ink-3)" }}>For multi-team and multi-entity operations</p>
+            <p className="mt-2 text-xs" style={{ color: "var(--ink-3)" }}>For multi-entity and security-sensitive environments</p>
             <ul className="mt-5 space-y-2 text-sm" style={{ color: "var(--ink-2)" }}>
-              <li>• Multiple entities and teams</li>
-              <li>• Custom integration and deployment scope</li>
-              <li>• Security and access-control discovery</li>
-              <li>• Agreed support and service requirements</li>
+              <li>• Multi-entity deployment scope</li>
+              <li>• Custom integration and deployment assessment</li>
+              <li>• Security, access-control and data-residency review</li>
+              <li>• Agreed support, resilience and service requirements</li>
               <li>• Annual commercial agreement</li>
             </ul>
-            <p className="mt-5 border-t pt-4 text-xs" style={{ borderColor: "var(--hairline)", color: "var(--ink-3)" }}>Implementation quoted after discovery</p>
+            <p className="mt-5 border-t pt-4 text-xs" style={{ borderColor: "var(--hairline)", color: "var(--ink-3)" }}>Implementation and recurring fees quoted separately</p>
             <Btn className="mt-5 w-full" variant="secondary" onClick={() => navigate({ to: "/contact" })}>Contact enterprise sales</Btn>
           </Panel>
         </div>
@@ -175,7 +172,7 @@ function Pricing() {
           <p>All brokerage prices are proposed starting points. Usage bands, supported formats, integrations, hosting, security controls and support commitments are written into each pilot order. No 24/7 SLA, certification or integration is implied unless agreed and delivered.</p>
         </div>
         <div className="mt-3 text-xs" style={{ color: "var(--ink-3)" }}>
-          First brokerage pilot: proposed $2,500–$7,500 for 4–6 weeks, scoped to one team and one or two source formats. The pilot fee may be credited toward an annual contract by agreement.
+          Pilot fees are quoted as a one-time Kelviq purchase only after scope and acceptance criteria are agreed. Recurring business subscriptions must use a separate published Kelviq business product; they must not reuse the Individual plan identifiers.
         </div>
       </section>
 

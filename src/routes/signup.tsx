@@ -160,6 +160,10 @@ function SignUp() {
         _workspace_type: setupWorkspaceType,
       });
       if (error) throw new Error(error.message);
+      const { error: metadataError } = await supabase.auth.updateUser({
+        data: { workspace_type_selected: true },
+      });
+      if (metadataError) throw new Error(metadataError.message);
       await refreshProfile();
       window.localStorage.removeItem("psxl.workspace_setup.required");
       window.localStorage.removeItem("psxl.workspace_type.pending");

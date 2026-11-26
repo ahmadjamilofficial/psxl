@@ -228,3 +228,36 @@ export function marketListingHint(symbol: string, exchange: string): string | nu
   }
   return null;
 }
+
+
+export interface MarketListingCorrection {
+  symbol: string;
+  exchange: string;
+  note: string;
+}
+
+/** Correct only unambiguous, well-known listing mistakes for market-data lookup.
+ * The user's ledger row is never modified by this resolver.
+ */
+export function correctKnownMarketListing(
+  symbol: string,
+  exchange: string,
+): MarketListingCorrection | null {
+  const ticker = symbol.trim().toUpperCase();
+  const venue = exchange.trim().toUpperCase();
+  if (ticker === "OGDC" && ["NYSE ARCA", "AMEX", "NYSE", "NASDAQ"].includes(venue)) {
+    return {
+      symbol: "OGDC",
+      exchange: "PSX",
+      note: "Resolved OGDC to its Pakistan Stock Exchange listing for market data. Your ledger entry was not changed.",
+    };
+  }
+  if (ticker === "SYST" && ["NASDAQ", "NYSE", "NYSE ARCA", "AMEX"].includes(venue)) {
+    return {
+      symbol: "SYS",
+      exchange: "PSX",
+      note: "Resolved SYST to Systems Limited (PSX: SYS) for market data. Your ledger entry was not changed.",
+    };
+  }
+  return null;
+}

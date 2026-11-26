@@ -87,7 +87,7 @@ export const Route = createFileRoute("/api/kelviq-business-checkout")({
               planIdentifier: PLANS[plan].priceIdentifier,
               chargePeriod: period,
               customerId: profile.org_id,
-              successUrl: `${origin}/app/billing?business_checkout=success`,
+              successUrl: `${origin}/app/overview?business_checkout=success`,
               cancelUrl: `${origin}/pricing?business_checkout=cancelled`,
               lockEmail: true,
               metadata: {

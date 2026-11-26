@@ -155,6 +155,7 @@ async function processKelviqEvent(
   const orgIdCandidate =
     (typeof metadata["org_id"] === "string" ? metadata["org_id"] : null) ??
     checkoutOrgId ??
+    (typeof data.customer?.customer_id === "string" ? data.customer.customer_id : null) ??
     existing?.org_id ??
     null;
   const orgId = orgIdCandidate && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(orgIdCandidate)

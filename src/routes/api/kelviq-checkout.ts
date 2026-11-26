@@ -103,6 +103,7 @@ export const Route = createFileRoute("/api/kelviq-checkout")({
             body: JSON.stringify({
               planIdentifier: INDIVIDUAL_PLAN_IDENTIFIERS[body.plan as "standard" | "pro"],
               chargePeriod: body.chargePeriod,
+              plansEnabled: "free-plan,pro-plan,standard-plan",
               customerId: profile.org_id,
               ...(authData.user.email ? { email: authData.user.email, lockEmail: true } : {}),
               ...(body.trialPeriod ? { trialPeriod: body.trialPeriod } : {}),

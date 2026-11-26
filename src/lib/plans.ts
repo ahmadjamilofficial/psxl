@@ -169,7 +169,7 @@ export type FeatureKey = keyof PlanLimits["features"];
 
 export function normalizePlanId(plan: string | null | undefined): PlanId {
   const id = (plan ?? "free").toLowerCase();
-  if (id === "pro" || id === "enterprise") return "pro";
+  if (id === "pro") return "pro";
   if (id === "standard") return "standard";
   return "free";
 }
@@ -254,4 +254,29 @@ export function pickCascadeForPlan<
       ?? fallback;
   }
   return cascade.find((c) => premium(c.modelId)) ?? fallback;
+}
+
+
+/** Create a signed-in customer's checkout session on the server.
+ * The server attaches tenant metadata; never put the Kelviq server key in the browser.
+ */
+export async function createKelviqCheckoutSession(opts: {
+  plan: "standard" | "pro";
+  period: ChargePeriod;
+  accessToken: string;
+  trialDays?: number;
+}): Promise<string> {
+  const response = await fetch("/api/kelviq-checkout", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${opts.accessToken}`,
+    },
+    body: JSON.stringify({ plan: opts.plan, chargePeriod: opts.period === "yearly" ? "YEARLY" : "MONTHLY", ...(opts.trialDays ? { trialPeriod: opts.trialDays } : {}) }),
+  });
+  const payload = await response.json().catch(() => ({})) as { checkoutUrl?: string; error?: string };
+  if (!response.ok || !payload.checkoutUrl) {
+    throw new Error(payload.error || "Kelviq checkout could not be created. Please try again.");
+  }
+  return payload.checkoutUrl;
 }

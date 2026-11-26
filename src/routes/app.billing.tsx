@@ -17,7 +17,7 @@ import {
   type PlanId,
   PLANS,
   TRIAL_DAYS,
-  kelviqCheckoutUrl,
+  createKelviqCheckoutSession,
   normalizePlanId,
 } from "@/lib/plans";
 import { supabase } from "@/lib/supabase";
@@ -144,8 +144,20 @@ function Billing() {
       void restorePaid(plan);
       return;
     }
-    window.open(kelviqCheckoutUrl({ plan, period, orgId }), "_blank", "noopener");
-    toast.info(`Opening secure checkout for ${PLANS[plan].name}.`);
+    void (async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (!data.session?.access_token) throw new Error("Please sign in again to continue.");
+        const checkoutUrl = await createKelviqCheckoutSession({
+          plan,
+          period,
+          accessToken: data.session.access_token,
+        });
+        window.location.assign(checkoutUrl);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Unable to open secure checkout.");
+      }
+    })();
   }
 
   async function handleStartTrial() {
@@ -157,12 +169,19 @@ function Billing() {
     // Kelviq's payment webhook is the source of truth and activates the plan.
     clearTrialClock(orgId, userId);
     setClockTick((n) => n + 1);
-    window.open(
-      kelviqCheckoutUrl({ plan: "standard", period: "monthly", orgId }),
-      "_blank",
-      "noopener",
-    );
-    toast.info("Checkout opened. Your plan changes only after Kelviq confirms payment.");
+    try {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session?.access_token) throw new Error("Please sign in again to continue.");
+      const checkoutUrl = await createKelviqCheckoutSession({
+        plan: "standard",
+        period: "monthly",
+        accessToken: data.session.access_token,
+        trialDays: TRIAL_DAYS,
+      });
+      window.location.assign(checkoutUrl);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to open secure checkout.");
+    }
   }
 
   function handleStayBasic() {

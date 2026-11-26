@@ -73,29 +73,40 @@ Set numeric targets with the brokerage after measuring its baseline. Never publi
 
 ## Commercial pricing proposal
 
-These are proposed PSXL launch prices for validation with prospects, not current contractual offers or a claim about market averages.
+The public website keeps the existing Individual Kelviq plans and separates brokerage sales from self-serve checkout. These prices are the current PSXL site configuration and must remain aligned with the published Kelviq plans:
 
-| Package | Proposed price | Scope |
-|---|---:|---|
-| Individual | Free / $15 per month | Personal ledger and portfolio tools; not brokerage operations |
-| Business Starter | $499 per month | One legal entity, one operations team, limited source formats, standard support |
-| Business Growth | $1,500 per month | Multiple sources, expanded transaction allowance, reviewer workflow, exports, priority support |
-| Enterprise | $3,000–$8,000+ per month | Multiple teams/entities, custom controls, API/SFTP, SSO, dedicated support and agreed service levels |
+| Individual plan | Monthly | Annual | Intended customer |
+|---|---:|---:|---|
+| Basic | $0 | $0 | Personal ledger entry and limited AI allowance |
+| Standard | $9/month | $45/year | Active individual traders |
+| Pro | $25/month | $90/year | High-volume individual traders |
 
-Price business plans primarily by monthly records processed, source integrations, legal entities, required controls, deployment model, and support commitment. Do not make seat count the main pricing axis. Define included transaction bands and overage pricing only after measuring infrastructure cost and pilot usage.
+The annual amounts are totals billed once per year (not monthly prices). The effective monthly equivalents are $3.75 for Standard and $7.50 for Pro. These annual discounts are unusually aggressive relative to monthly billing. Do not change live plan prices or migrate existing subscribers casually; validate willingness to pay and unit economics first, then publish a new Kelviq plan version or new identifiers with an explicit migration policy.
+
+### Brokerage commercial model
+
+Do not reuse Individual plan identifiers for a brokerage. Keep the Business product separate in Kelviq and keep the public site sales-led until PSXL has passed the relevant pilot acceptance and production gates.
+
+| Commercial offer | Pricing approach | What is sold |
+|---|---|---|
+| Brokerage pilot | One-time scoped quote; initial internal anchor $2,500–$7,500 | 4–6 week evaluation of one entity, one operations team and one or two agreed statement formats |
+| Brokerage Operations | Annual agreement, quoted after pilot | Recurring reconciliation operations, agreed monthly row volume, source adapters, reviewer workflow and support |
+| Enterprise | Custom annual agreement | Multiple entities/teams, custom controls, dedicated deployment or integrations, security and service commitments |
+
+The $2,500–$7,500 pilot figure is an internal negotiation anchor, not a published Kelviq checkout price. Do not publish the previous speculative $499/$1,500 monthly tiers until the product's supported volumes, integration cost, gross margin and production controls have been measured.
+
+Price business plans primarily by monthly records processed, source integrations, legal entities, required controls, deployment model, and support commitment. Seat count should be a secondary factor. Define included transaction bands and overage pricing only after measuring infrastructure cost and pilot usage.
 
 ### Implementation and pilot fees
 
-- Starter onboarding: proposed $1,000–$2,500.
-- Growth onboarding: proposed $3,000–$7,500.
-- Enterprise implementation: scoped after technical discovery.
-- First brokerage pilot: proposed $2,500–$7,500 for a 4–6 week, tightly scoped evaluation.
-
-A pilot should define one brokerage entity, one team, one or two source formats, anonymised historical samples, a limited live shadow period, agreed exception categories, weekly operations reviews, and a written acceptance report. Consider crediting part of the pilot fee toward an annual contract if the customer converts.
+- Charge implementation separately from recurring software fees when source mapping, migration, or custom integrations are required.
+- Quote enterprise implementation after technical discovery.
+- A pilot should define one brokerage entity, one team, one or two source formats, anonymised historical samples, a limited live shadow period, agreed exception categories, weekly operations reviews, and a written acceptance report.
+- Consider crediting part of the pilot fee toward an annual contract if the customer converts.
 
 ### Pricing rules
 
-- Quote annual contracts for enterprise customers, with monthly-equivalent pricing shown only as an estimate.
+- Quote annual agreements for business and enterprise customers; monthly-equivalent pricing is only a comparison, not a monthly cancellation option unless contractually offered.
 - Charge separately for custom integrations, data migration, on-premise/private-cloud deployment, and bespoke support.
 - Never promise 24/7 support, an SLA, SSO, data residency, or a security certification until the capability and operational process exist.
 - Set usage limits from observed cost and capacity, not guesses.
@@ -126,3 +137,27 @@ Never use real client PII or live account credentials in a sales demo.
 - What data may be processed in a vendor-hosted cloud and what must remain on-premise?
 - What security questionnaire, DPA, retention, audit, and incident requirements must a vendor satisfy?
 - What measurable result would justify a paid production contract?
+
+
+## Kelviq commercial architecture (November 2026)
+
+- Keep Individual Basic, Standard and Pro in the existing Individual Kelviq product. Their existing plan identifiers remain `free-plan`, `standard-plan` and `pro-plan`; do not repurpose these identifiers for brokerage customers.
+- Keep the current Individual public prices aligned with the published Kelviq plan prices. The application must display the annual effective monthly equivalent correctly and must not claim market data is real-time where the provider may delay or omit an exchange.
+- Create a separate Kelviq product for Brokerage Operations. Use a one-time Pilot plan for a scoped 4–6 week engagement, a recurring Business plan for contracted operations, and a sales-led Enterprise plan for bespoke deployment. Configure each plan's feature entitlements and usage limits in Kelviq.
+- Do not expose a Business checkout until its own published product and plan identifiers are explicitly mapped in the application. An unknown Kelviq plan identifier must never fall through to Individual Standard.
+- Kelviq's current webhook contract uses `webhook-id`, `webhook-timestamp`, and `webhook-signature`; signatures cover `id.timestamp.rawBody`. Events carry the resource in `data.object`, and plan identifiers are in `data.object.plan.identifier`. Test this against a signed sandbox event before accepting live payments.
+- For enterprise sales, quote implementation separately from recurring software fees. Define included entities, source adapters, monthly processed rows, storage, support hours, response targets, security requirements and change requests in the order form.
+
+
+### Recommended Kelviq catalogue identifiers (not yet created)
+
+Use a separate Kelviq product with the following proposed identity:
+
+- Product name: `PSXL Brokerage Operations`
+- Product identifier: `psxl-brokerage-operations`
+- Tax code: `saas_business`
+- Pilot plan identifier: `brokerage-pilot` (one-time purchase)
+- Business plan identifier: `brokerage-operations` (recurring annual agreement)
+- Enterprise plan identifier: `brokerage-enterprise` (recurring annual, custom scope)
+
+These are reserved recommendations, not live Kelviq IDs. The Kelviq API generates the product UUID when the product is created. Do not wire these plan identifiers into checkout or publish them until the plans, prices, feature entitlements and webhook mappings have been created and verified in the correct Kelviq environment. Keep the existing Individual product and its published plan identifiers unchanged.

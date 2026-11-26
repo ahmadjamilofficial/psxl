@@ -158,7 +158,7 @@ const ALIASES: Record<string, string> = {
 export const SUPPORTED_EXCHANGES = EXCHANGES;
 
 const YAHOO_SUFFIX: Record<string, string> = {
-  PSX: ".KAR", NSE: ".NS", BSE: ".BO",
+  PSX: ".KA", NSE: ".NS", BSE: ".BO",
   LSE: ".L", AIM: ".L", TSX: ".TO", TSXV: ".V", CNSX: ".CN",
   ASX: ".AX", NZX: ".NZ", HKEX: ".HK",
   TSE: ".T", JPX: ".T", OSE: ".OS",
@@ -209,4 +209,55 @@ export function exchangeInfo(exchange: string | null | undefined): ExchangeInfo 
 
 export function currencyForExchange(exchange: string | null | undefined): string {
   return exchangeInfo(exchange)?.currency ?? "USD";
+}
+
+/** Explicit corrections for well-known symbols entered against the wrong venue.
+ * Never silently rewrite a customer's ledger instrument or exchange.
+ */
+export function marketListingHint(symbol: string, exchange: string): string | null {
+  const ticker = symbol.trim().toUpperCase();
+  const venue = exchange.trim().toUpperCase();
+  if (ticker === "INFY" && venue === "PSX") {
+    return "INFY is not a PSX listing. It trades on India's NSE as INFY.NS and on the NYSE as INFY; select the venue matching your holding.";
+  }
+  if (ticker === "OGDC" && ["NYSE ARCA", "AMEX", "NYSE", "NASDAQ"].includes(venue)) {
+    return "OGDC is listed on the Pakistan Stock Exchange (PSX) under OGDC. Correct the exchange to PSX if this is your Pakistani holding.";
+  }
+  if (ticker === "SYST" && ["NASDAQ", "NYSE", "NYSE ARCA", "AMEX"].includes(venue)) {
+    return "Systems Limited is listed on PSX as SYS, not SYST. Correct the holding to symbol SYS and exchange PSX if this is the intended company.";
+  }
+  return null;
+}
+
+
+export interface MarketListingCorrection {
+  symbol: string;
+  exchange: string;
+  note: string;
+}
+
+/** Correct only unambiguous, well-known listing mistakes for market-data lookup.
+ * The user's ledger row is never modified by this resolver.
+ */
+export function correctKnownMarketListing(
+  symbol: string,
+  exchange: string,
+): MarketListingCorrection | null {
+  const ticker = symbol.trim().toUpperCase();
+  const venue = exchange.trim().toUpperCase();
+  if (ticker === "OGDC" && ["NYSE ARCA", "AMEX", "NYSE", "NASDAQ"].includes(venue)) {
+    return {
+      symbol: "OGDC",
+      exchange: "PSX",
+      note: "Resolved OGDC to its Pakistan Stock Exchange listing for market data. Your ledger entry was not changed.",
+    };
+  }
+  if (ticker === "SYST" && ["NASDAQ", "NYSE", "NYSE ARCA", "AMEX"].includes(venue)) {
+    return {
+      symbol: "SYS",
+      exchange: "PSX",
+      note: "Resolved SYST to Systems Limited (PSX: SYS) for market data. Your ledger entry was not changed.",
+    };
+  }
+  return null;
 }

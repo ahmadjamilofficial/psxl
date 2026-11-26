@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { currencyForExchange, exchangeCurrency, exchangeInfo, normalizeMarketTicker, SUPPORTED_EXCHANGES } from "./market-currency";
+import { correctKnownMarketListing, currencyForExchange, exchangeCurrency, exchangeInfo, marketListingHint, normalizeMarketTicker, SUPPORTED_EXCHANGES } from "./market-currency";
 
 describe("global exchange directory", () => {
   it("includes major exchanges across all regions", () => {
@@ -31,7 +31,12 @@ describe("global exchange directory", () => {
   });
 
   it("normalizes common international tickers for the quote provider", () => {
-    expect(normalizeMarketTicker("OGDC", "PSX")).toBe("OGDC.KAR");
+    expect(normalizeMarketTicker("OGDC", "PSX")).toBe("OGDC.KA");
+    expect(marketListingHint("INFY", "PSX")).toContain("not a PSX listing");
+    expect(correctKnownMarketListing("OGDC", "NYSE ARCA")).toMatchObject({ symbol: "OGDC", exchange: "PSX" });
+    expect(correctKnownMarketListing("SYST", "NASDAQ")).toMatchObject({ symbol: "SYS", exchange: "PSX" });
+    expect(correctKnownMarketListing("AAPL", "NASDAQ")).toBeNull();
+    expect(marketListingHint("AAPL", "NASDAQ")).toBeNull();
     expect(normalizeMarketTicker("RELIANCE", "NSE")).toBe("RELIANCE.NS");
     expect(normalizeMarketTicker("VOD", "LSE")).toBe("VOD.L");
     expect(normalizeMarketTicker("SHOP", "TSX")).toBe("SHOP.TO");

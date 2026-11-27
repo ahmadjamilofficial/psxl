@@ -46,7 +46,7 @@ const TABS: { id: Tab; label: string; icon: typeof Building2 }[] = [
 ];
 
 function Settings() {
-  const { profile, user, signOut } = useAuth();
+  const { profile, user, signOut, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const currentHref = useRouterState({ select: (state) => state.location.href });
@@ -66,6 +66,7 @@ function Settings() {
   const [inviting, setInviting] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
 
+  useEffect(() => {\n    setOrgName(profile?.org_name ?? "My Organisation");\n    setJurisdiction(profile?.jurisdiction ?? "CUSTOM");\n  }, [profile?.org_id, profile?.org_name, profile?.jurisdiction]);\n
   const deleteOrgMutation = useDeleteOrganization();
   const { data: aiUsage } = useAiUsage30Days(user?.id);
   const { data: monthlyDocuments = 0 } = useMonthlyDocumentCount(profile?.org_id);
@@ -187,23 +188,33 @@ function Settings() {
 
     setSaving(true);
     try {
-      const { error } = await supabase
+      const cleanName = orgName.trim();
+      if (cleanName.length < 2) throw new Error("Organisation name must contain at least 2 characters.");
+
+      const { data, error } = await supabase
         .from("organizations")
         .update({
-          name: orgName,
+          name: cleanName,
           jurisdiction_default: jurisdiction,
+          updated_at: new Date().toISOString(),
         })
-        .eq("id", profile.org_id);
+        .eq("id", profile.org_id)
+        .select("id, name, jurisdiction_default")
+        .maybeSingle();
 
-      if (error) throw error;
+      if (error) throw new Error(error.message);
+      if (!data) throw new Error("No organisation was updated. Check that you are an organisation owner or admin and that the settings migration is applied.");
 
-      queryClient.invalidateQueries({ queryKey: ["profile"] });
+      setOrgName(data.name);
+      setJurisdiction(data.jurisdiction_default);
+      await refreshProfile();
+      await queryClient.invalidateQueries({ queryKey: ["org-members", profile.org_id] });
 
       setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+      window.setTimeout(() => setSaved(false), 2000);
     } catch (error) {
       console.error("Failed to save settings:", error);
-      toast.error("Failed to save organization settings");
+      toast.error(error instanceof Error ? error.message : "Failed to save organisation settings");
     } finally {
       setSaving(false);
     }

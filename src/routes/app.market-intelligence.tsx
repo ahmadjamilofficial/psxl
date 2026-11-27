@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { Activity, ArrowRight, BarChart3, Layers3, RefreshCw } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
@@ -8,6 +8,7 @@ import { PortfolioMarketTerminal } from "@/components/portfolio/PortfolioMarketT
 import { PortfolioAnalyticsLab } from "@/components/portfolio/PortfolioAnalyticsLab";
 
 export const Route = createFileRoute("/app/market-intelligence")({
+  beforeLoad: () => { throw redirect({ to: "/app/overview" }); },
   component: MarketIntelligence,
 });
 

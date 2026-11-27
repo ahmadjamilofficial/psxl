@@ -421,7 +421,11 @@ function MissionControl() {
 
       </div>
 
-      {profile?.workspace_type !== "individual" && <OperationsActionCenter />}
+      {profile?.workspace_type !== "individual" && (
+        <ClientOnly fallback={<div className="h-28 animate-pulse rounded-xl bg-surface" />}>
+          <OperationsActionCenter />
+        </ClientOnly>
+      )}
 
       {/* Key Metrics Grid */}
       <div

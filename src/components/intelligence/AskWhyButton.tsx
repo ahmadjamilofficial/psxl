@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { HelpCircle, Loader2, Sparkles, X } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { supabase } from "@/lib/supabase";
 import {
   getTaxLiability,
   getPortfolioSummary,
@@ -81,9 +82,13 @@ export function AskWhyButton({ context, className }: Props) {
       });
 
       // Use server-side API instead of client-side Groq call
+      const { data: { session } } = await supabase.auth.getSession();
       const response = await fetch("/api/intelligence", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
         body: JSON.stringify({
           systemPrompt:
             "You are Wab Intelligence. Explain financial metrics clearly and concisely. Only reference numbers from the provided data.",
@@ -94,7 +99,10 @@ export function AskWhyButton({ context, className }: Props) {
       });
 
       if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+        const errorBody = await response.json().catch(() => ({})) as { code?: string; message?: string; error?: string };
+        throw new Error(errorBody.code === "quota_exceeded"
+          ? `quota_exceeded: ${errorBody.message ?? "AI credit limit reached. Upgrade your plan to continue."}`
+          : errorBody.message ?? errorBody.error ?? `API error: ${response.status}`);
       }
 
       // Stream the response

@@ -3,8 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
-// Kelviq webhook signature verification (if they provide one)
-// For now, we'll use event ID deduplication
+// Only signed provider events may mutate subscription entitlements.
 
 const KELVIQ_WEBHOOK_SECRET = process.env["KELVIQ_WEBHOOK_SECRET"] ?? "";
 
@@ -13,10 +12,12 @@ export const Route = createFileRoute("/api/webhooks/kelviq")({
     handlers: {
       POST: async ({ request }) => {
         try {
+          if (!KELVIQ_WEBHOOK_SECRET) {
+            return new Response("Webhook signing is not configured", { status: 503 });
+          }
           const rawBody = await request.text();
-          const body = JSON.parse(rawBody) as KelviqWebhookEvent;
           const signature = request.headers.get("x-kelviq-signature") ?? "";
-          if (KELVIQ_WEBHOOK_SECRET) {
+          {
             const supplied = signature.replace(/^sha256=/i, "").trim();
             const expected = createHmac("sha256", KELVIQ_WEBHOOK_SECRET)
               .update(rawBody)
@@ -26,16 +27,14 @@ export const Route = createFileRoute("/api/webhooks/kelviq")({
               timingSafeEqual(Buffer.from(supplied), Buffer.from(expected));
             if (!valid) return new Response("Invalid signature", { status: 401 });
           }
-          if (!body.id || !body.type)
+          const body = JSON.parse(rawBody) as KelviqWebhookEvent;
+          if (!body.id || !body.type || !body.data || typeof body.data !== "object")
             return new Response("Invalid webhook payload", { status: 400 });
 
           const supabaseUrl =
             process.env["SUPABASE_URL"] ??
             (import.meta.env["VITE_SUPABASE_URL"] as string | undefined);
-          const supabaseKey =
-            process.env["SUPABASE_SERVICE_ROLE_KEY"] ??
-            ((import.meta.env["VITE_SUPABASE_SERVICE_ROLE_KEY"] ??
-              import.meta.env["VITE_SUPABASE_ANON_KEY"]) as string | undefined);
+          const supabaseKey = process.env["SUPABASE_SERVICE_ROLE_KEY"];
 
           if (!supabaseUrl || !supabaseKey) {
             return new Response("Database configuration missing", { status: 500 });
@@ -114,6 +113,7 @@ async function processKelviqEvent(
       if (!existingSubscription || !metadata["payment_confirmed_at"]) break;
       const planIdentifier = data.plan_identifier as string;
       const plan = mapKelviqPlan(planIdentifier);
+      if (!plan) break;
 
       if (plan === "free") {
         await supabase
@@ -134,7 +134,7 @@ async function processKelviqEvent(
               ? new Date(data.current_period_end as string).toISOString()
               : null,
             cancel_at_period_end: (data.cancel_at_period_end as boolean) || false,
-            metadata: data.metadata as never,
+            metadata: { ...metadata, ...(data.metadata ?? {}) } as never,
           })
           .eq("kelviq_subscription_id", subscriptionId);
 
@@ -164,15 +164,14 @@ async function processKelviqEvent(
     }
 
     case "subscription.cancelled": {
-      // Subscription cancelled
       const subscriptionId = data.subscription_id as string;
-
+      const atPeriodEnd = Boolean(data.cancel_at_period_end);
       const { error: cancelError } = await supabase
         .from("subscriptions")
         .update({
-          status: "cancelled",
-          cancelled_at: new Date().toISOString(),
-          cancel_at_period_end: (data.cancel_at_period_end as boolean) || false,
+          status: atPeriodEnd ? "active" : "cancelled",
+          cancelled_at: atPeriodEnd ? null : new Date().toISOString(),
+          cancel_at_period_end: atPeriodEnd,
         })
         .eq("kelviq_subscription_id", subscriptionId);
 
@@ -180,21 +179,14 @@ async function processKelviqEvent(
         // Silent error handling
       }
 
-      // Update user's profile plan to Basic ($0)
-      const { data: subscription } = await supabase
-        .from("subscriptions")
-        .select("org_id")
-        .eq("kelviq_subscription_id", subscriptionId)
-        .single();
-
-      if (subscription) {
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .update({ plan: "free" } as never)
-          .eq("org_id", subscription.org_id);
-
-        if (profileError) {
-          // Silent error handling
+      if (!atPeriodEnd) {
+        const { data: subscription } = await supabase
+          .from("subscriptions")
+          .select("org_id")
+          .eq("kelviq_subscription_id", subscriptionId)
+          .single();
+        if (subscription) {
+          await supabase.from("profiles").update({ plan: "free" } as never).eq("org_id", subscription.org_id);
         }
       }
       break;
@@ -205,7 +197,7 @@ async function processKelviqEvent(
       const subscriptionId = data.subscription_id as string | undefined;
       const orgId = data.metadata?.["org_id"] as string | undefined;
       const plan = mapKelviqPlan(data.plan_identifier as string | undefined);
-      if (!subscriptionId || !orgId || plan === "free") break;
+      if (!subscriptionId || !orgId || !plan || plan === "free") break;
       const { error: paymentError } = await supabase.from("subscriptions").upsert(
         {
           org_id: orgId,
@@ -216,7 +208,7 @@ async function processKelviqEvent(
           charge_period: (data.charge_period as string) || "MONTHLY",
           current_period_end: data.current_period_end
             ? new Date(data.current_period_end as string).toISOString()
-            : null,
+            : new Date(new Date(event.created_at).getTime() + ((data.charge_period || "MONTHLY") === "YEARLY" ? 365 : 30) * 86_400_000).toISOString(),
           metadata: {
             ...(data.metadata ?? {}),
             payment_confirmed_at: new Date().toISOString(),
@@ -256,10 +248,11 @@ async function processKelviqEvent(
   }
 }
 
-function mapKelviqPlan(planIdentifier: string | undefined): "free" | "standard" | "pro" {
+function mapKelviqPlan(planIdentifier: string | undefined): "free" | "standard" | "pro" | null {
   if (planIdentifier === "pro-plan") return "pro";
+  if (planIdentifier === "standard-plan") return "standard";
   if (planIdentifier === "free-plan") return "free";
-  return "standard";
+  return null;
 }
 
 interface KelviqWebhookEvent {

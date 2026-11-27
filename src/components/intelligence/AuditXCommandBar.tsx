@@ -20,6 +20,7 @@ import {
 import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth-context";
+import { supabase } from "@/lib/supabase";
 import { useAIContext } from "@/lib/financial-intelligence-hooks";
 import {
   detectIntent,
@@ -241,9 +242,13 @@ export function WabCommandBar({ open, onClose }: CommandBarProps) {
 
         setLoadingState(null);
         // Use server-side API instead of client-side Groq call
-        const response = await fetch("/api/intelligence", {
+        const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch("/api/intelligence", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+          "Content-Type": "application/json",
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
           body: JSON.stringify({
             systemPrompt:
               "You are Wab Intelligence, a financial audit assistant. Be concise, precise, and reference specific numbers from the data provided. Never invent figures.",
@@ -254,7 +259,10 @@ export function WabCommandBar({ open, onClose }: CommandBarProps) {
         });
 
         if (!response.ok) {
-          throw new Error(`API error: ${response.status}`);
+          const errorBody = await response.json().catch(() => ({})) as { code?: string; message?: string; error?: string };
+          throw new Error(errorBody.code === "quota_exceeded"
+            ? `quota_exceeded: ${errorBody.message ?? "AI credit limit reached. Upgrade your plan to continue."}`
+            : errorBody.message ?? errorBody.error ?? `API error: ${response.status}`);
         }
 
         // Stream the response

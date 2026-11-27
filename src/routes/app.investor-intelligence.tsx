@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { ArrowUpRight, BriefcaseBusiness, Calculator, ShieldCheck, Wallet } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
@@ -7,7 +7,7 @@ import { computeTax } from "@/lib/tax";
 import { useLedgerContext } from "@/lib/use-ledger-context";
 import { currencyForExchange } from "@/lib/market-currency";
 
-export const Route = createFileRoute("/app/investor-intelligence")({ component: InvestorIntelligence });
+export const Route = createFileRoute("/app/investor-intelligence")({ beforeLoad: () => { throw redirect({ to: "/app/overview" }); }, component: InvestorIntelligence });
 
 function InvestorIntelligence() {
   const { profile } = useAuth();

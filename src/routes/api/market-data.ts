@@ -12,6 +12,43 @@ const marketJson = (body: unknown, init: ResponseInit = {}) =>
     },
   });
 
+// Small per-instance cache: PSX EOD history is slow to scrape upstream and
+// does not change during most of the trading session.
+const historyCache = new Map<string, { expiresAt: number; points: Array<{ time: number; price: number }> }>();
+const HISTORY_CACHE_TTL = 10 * 60 * 1000;
+
+async function fetchPsxHistory(symbol: string, range: string) {
+  const key = `PSX:${symbol}:${range}`;
+  const cached = historyCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) return cached.points;
+
+  const response = await fetch(`https://dps.psx.com.pk/timeseries/eod/${encodeURIComponent(symbol)}`, {
+    headers: { Accept: "application/json", "User-Agent": "PSXL/1.0", "X-Requested-With": "XMLHttpRequest" },
+    signal: AbortSignal.timeout(12000),
+  });
+  if (!response.ok) throw new Error(`PSX history provider returned HTTP ${response.status}`);
+  const payload = await response.json() as { status?: number; data?: unknown[] };
+  if (!Array.isArray(payload.data)) throw new Error("PSX returned an invalid historical-data response.");
+
+  const days: Record<string, number> = { "1d": 1, "5d": 5, "1mo": 31, "3mo": 93, "1y": 366 };
+  const cutoff = Date.now() - (days[range] ?? 31) * 24 * 60 * 60 * 1000;
+  const points = payload.data
+    .filter((row): row is [number, number, number, number] =>
+      Array.isArray(row) && typeof row[0] === "number" && typeof row[1] === "number" && Number.isFinite(row[1]))
+    .map(row => ({ time: row[0] * 1000, price: row[1] }))
+    .filter(point => point.time >= cutoff && point.price > 0)
+    .sort((a, b) => a.time - b.time);
+
+  if (points.length) {
+    historyCache.set(key, { expiresAt: Date.now() + HISTORY_CACHE_TTL, points });
+    if (historyCache.size > 500) {
+      const oldest = historyCache.keys().next().value;
+      if (oldest) historyCache.delete(oldest);
+    }
+  }
+  return points;
+}
+
 export const Route = createFileRoute("/api/market-data")({
   server: {
     handlers: {
@@ -23,6 +60,17 @@ export const Route = createFileRoute("/api/market-data")({
           const range = url.searchParams.get("range") || "1mo";
           const interval = url.searchParams.get("interval") || "1d";
           if (!/^(?:\^)?[A-Z0-9][A-Z0-9.&_-]{0,19}$/.test(symbol) || !/^[A-Z0-9 _.-]{2,40}$/.test(exchange) || !["1d", "5d", "1mo", "3mo", "1y"].includes(range) || !["5m", "30m", "1d"].includes(interval)) return marketJson({ points: [], error: "Invalid ticker, exchange, range, or interval. Ticker must be a symbol, not a company name." }, { status: 400 });
+          // PSX has its own EOD time-series feed. Do not route Pakistani
+          // symbols through Yahoo's unsupported .KA mapping.
+          if (["PSX", "KSE", "KARACHI", "KARACHI STOCK EXCHANGE"].includes(exchange)) {
+            try {
+              const points = await fetchPsxHistory(symbol, range);
+              if (!points.length) return marketJson({ points: [], error: `No published PSX historical candles were returned for ${symbol} in the selected range.`, provider: "Pakistan Stock Exchange", requestedSymbol: symbol }, { status: 404 });
+              return marketJson({ points, meta: { symbol, currency: "PKR", source: "PSX EOD", fetchedAt: new Date().toISOString() } });
+            } catch (error) {
+              return marketJson({ points: [], error: error instanceof Error ? error.message : "PSX historical data is temporarily unavailable.", provider: "Pakistan Stock Exchange", requestedSymbol: symbol }, { status: 503 });
+            }
+          }
           const ticker = normalizeMarketTicker(symbol, exchange);
           if (!ticker) return marketJson({ points: [], error: "This exchange is recognized for ledger and currency tracking, but its quote-provider symbol mapping is not available yet. Choose the exact local exchange or enter a provider-ready symbol such as ABC.L." }, { status: 422 });
           // Yahoo's primary edge intermittently returns 5xx/blocked responses.

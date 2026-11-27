@@ -171,7 +171,12 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
       ? activityRows
       : tab === "drawdown"
         ? transactionPoints.map(point => ({ label: point.label, value: point.drawdown }))
-        : transactionPoints.map(point => ({ label: point.label, value: point.cumulative }));
+        : transactionPoints.length
+          ? [
+              { label: `Start · ${transactionPoints[0]!.label.split(" · ")[0]}`, value: 0 },
+              ...transactionPoints.map(point => ({ label: point.label, value: point.cumulative })),
+            ]
+          : [];
   // If the ledger contains only one calendar month, monthly aggregation
   // necessarily produces one point. Fall back to transaction-level observations
   // so the trend remains visible without fabricating dates or values.
@@ -260,7 +265,7 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
               height="100%"
               debounce={80}
             >
-              <ComposedChart data={mainData} margin={{top:12,right:14,left:4,bottom:tab === "ticker" ? 42 : 4}}>
+              <ComposedChart key={`main-series-${tab}-${mainData.length}-${filtered.length}-${chartStyle}`} data={mainData} margin={{top:12,right:14,left:4,bottom:tab === "ticker" ? 42 : 4}}>
                 <defs>
                   <linearGradient id="psxl-cashflow-fill" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="var(--color-accent)" stopOpacity={0.28}/>
@@ -278,10 +283,10 @@ export function PortfolioAnalyticsLab({ transactions, currency }: Props) {
                   contentStyle={tooltipContentStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle}
                 />
                 {chartStyle === "area"
-                  ? <Area key={tab + "-area"} dataKey="value" name={mainTitle} type="monotone" stroke="var(--color-accent)" strokeWidth={2.6} strokeLinecap="round" fill="url(#psxl-cashflow-fill)" dot={mainData.length <= 12 ? {r:3,fill:"var(--color-accent)",strokeWidth:0} : false} activeDot={{r:6,stroke:"var(--color-sheet)",strokeWidth:2}} connectNulls isAnimationActive animationBegin={80} animationDuration={1100} animationEasing="ease-out"/>
+                  ? <Area key={tab + "-area"} dataKey="value" name={mainTitle} type="monotone" stroke="var(--color-accent)" strokeWidth={2.6} strokeLinecap="round" fill="url(#psxl-cashflow-fill)" dot={mainData.length <= 12 ? {r:3,fill:"var(--color-accent)",strokeWidth:0} : false} activeDot={{r:6,stroke:"var(--color-sheet)",strokeWidth:2}} connectNulls isAnimationActive={false}/>
                   : chartStyle === "line"
                     ? <Line key={tab + "-line"} dataKey="value" name={mainTitle} type="monotone" stroke="var(--color-accent)" strokeWidth={2.6} strokeLinecap="round" dot={mainData.length <= 12 ? {r:3,fill:"var(--color-accent)",strokeWidth:0} : false} activeDot={{r:6,stroke:"var(--color-sheet)",strokeWidth:2}} connectNulls isAnimationActive animationBegin={80} animationDuration={1100} animationEasing="ease-out"/>
-                    : <Bar key={tab + "-bars"} dataKey="value" name={mainTitle} barSize={tab === "ticker" ? 34 : 12} radius={[4,4,0,0]} isAnimationActive animationBegin={80} animationDuration={850} animationEasing="ease-out">{mainData.map((point,index)=><Cell key={point.label + index} fill={point.value >= 0 ? "var(--ok)" : "var(--bad)"}/>)}</Bar>
+                    : <Bar key={tab + "-bars"} dataKey="value" name={mainTitle} barSize={tab === "ticker" ? 34 : 12} radius={[4,4,0,0]} isAnimationActive={false}>{mainData.map((point,index)=><Cell key={point.label + index} fill={point.value >= 0 ? "var(--ok)" : "var(--bad)"}/>)}</Bar>
                 }
               </ComposedChart>
             </ResponsiveContainer>

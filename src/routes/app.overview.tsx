@@ -476,7 +476,6 @@ function MissionControl() {
       </div>
 
       {/* Consolidated market intelligence and ledger analytics */}
-      <ClientOnly fallback={<div className="h-72 rounded-xl bg-surface animate-pulse" style={{ border: "1px solid var(--hairline)" }} />}>\n        <PortfolioMarketTerminal transactions={transactions} currency={currency} />\n      </ClientOnly>
 
       {/* AVMIRS-inspired, ledger-derived analytics suite */}
       <ClientOnly fallback={<div className="h-96 rounded-xl bg-surface animate-pulse" style={{ border: "1px solid var(--hairline)" }} />}>\n        <PortfolioAnalyticsLab transactions={transactions} currency={currency} />\n      </ClientOnly>

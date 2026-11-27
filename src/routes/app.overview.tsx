@@ -408,23 +408,21 @@ function MissionControl() {
               color: "var(--color-text)",
             }}
           >
-            {profile?.workspace_type === "individual" ? "Portfolio overview" : "Financial operations overview"}
+            Portfolio overview
           </h1>
           <p
             className="mt-1 text-sm"
             style={{ color: "var(--ink-2)" }}
           >
-            {profile?.workspace_type === "individual" ? "Your holdings, trading activity and financial records" : "Organisation activity, ledger health and financial intelligence"}
+            Your holdings, trading activity and financial records
           </p>
         </div>
 
       </div>
 
-      {profile?.workspace_type !== "individual" && (
-        <ClientOnly fallback={<div className="h-28 animate-pulse rounded-xl bg-surface" />}>
+      <ClientOnly fallback={<div className="h-28 animate-pulse rounded-xl bg-surface" />}>
           <OperationsActionCenter />
         </ClientOnly>
-      )}
 
       {/* Key Metrics Grid */}
       <div

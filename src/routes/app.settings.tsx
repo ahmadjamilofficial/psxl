@@ -66,7 +66,7 @@ function Settings() {
   }, [profile?.org_id, profile?.org_name, profile?.jurisdiction]);
 
   const deleteOrgMutation = useDeleteOrganization();
-  const { data: aiUsage } = useAiUsage30Days(user?.id);
+  const { data: aiUsage } = useAiUsage30Days(user?.id, profile?.plan);
   const { data: monthlyDocuments = 0 } = useMonthlyDocumentCount(profile?.org_id);
   const { data: monthlyTransactions = 0 } = useMonthlyTransactionCount(profile?.org_id);
   const { data: ledgerTransactions = [] } = useTransactions(profile?.org_id);

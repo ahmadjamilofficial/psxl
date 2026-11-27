@@ -28,7 +28,7 @@ export const Route = createFileRoute("/pricing")({
 });
 
 const rows: [string, string | boolean, string | boolean, string | boolean][] = [
-  ["Parsed transactions / month", "30", "500", "Unlimited"],
+  ["Parsed transactions / month", "500", "10,000", "100,000"],
   ["AI quality", "Limited", "Standard", "Highest"],
   ["AI variety / tools", "Core only", "Standard set", "Full set"],
   ["Real-time market data", true, true, true],

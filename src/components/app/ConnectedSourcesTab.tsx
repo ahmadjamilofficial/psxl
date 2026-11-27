@@ -24,6 +24,7 @@ import {
 } from "@/lib/data-hooks";
 import type { ConnectedSource, SourceRules } from "@/lib/connected-sources";
 import { startGoogleOAuth } from "@/lib/connected-sources";
+import { useAuth } from "@/lib/auth-context";
 
 // ── Source type icons / labels ────────────────────────────────────────────────
 const SOURCE_META: Record<string, { label: string; icon: typeof Sheet }> = {
@@ -387,11 +388,24 @@ function AgentPolicySection({ orgId }: { orgId: string }) {
 
 // ── Main export ───────────────────────────────────────────────────────────────
 export function ConnectedSourcesTab({ orgId }: { orgId: string }) {
-  const { data: flags } = useOrgFeatureFlags(orgId || undefined);
+  const { profile } = useAuth();
+  const { data: flags, isLoading: flagsLoading } = useOrgFeatureFlags(orgId || undefined);
   const { data: sources, isLoading } = useConnectedSources(orgId || undefined);
   const [connecting, setConnecting] = useState(false);
 
-  const autonomousEnabled = flags?.autonomous_agent === true;
+  // Pro includes autonomous data-source connections. Do not require a separate
+  // org_feature_flags row to unlock a plan entitlement; older workspaces may not
+  // have that flag populated even when their subscription is Pro.
+  const isPro = profile?.plan === "pro";
+  const autonomousEnabled = isPro || flags?.autonomous_agent === true;
+
+  if (flagsLoading && !isPro) {
+    return (
+      <div className="flex justify-center py-8">
+        <Loader2 size={20} className="animate-spin" style={{ color: "var(--color-accent)" }} />
+      </div>
+    );
+  }
 
   if (!autonomousEnabled) {
     return (

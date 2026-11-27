@@ -8,6 +8,7 @@ import {
   Download,
   Activity,
   Trash2,
+  Loader2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -56,6 +57,7 @@ function Settings() {
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deletingOrg, setDeletingOrg] = useState(false);
+  const canManageOrganisation = profile?.role === "owner" || profile?.role === "admin";
   const canDeleteOrganisation = profile?.role === "owner";
 
   useEffect(() => {

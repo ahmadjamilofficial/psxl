@@ -2,7 +2,7 @@ import { brandText } from "@/lib/brand";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { BadgeCheck, Minus, Sparkles, Building2, ArrowUpRight } from "lucide-react";
 import { Btn, Panel } from "@/components/kit";
-import { PeriodToggle, PlanCards, useCheckout } from "@/components/site/PlanCards";
+import { PlanCards } from "@/components/site/PlanCards";
 import { PageShell } from "@/components/site/PageShell";
 import { useAuth } from "@/lib/auth-context";
 import { type PlanId, PLANS, TRIAL_DAYS, kelviqCheckoutUrl } from "@/lib/plans";
@@ -53,7 +53,7 @@ function Cell({ v }: { v: string | boolean }) {
 function Pricing() {
   const navigate = useNavigate();
   const { session, profile } = useAuth();
-  const { period, setPeriod } = useCheckout();
+  const period = "monthly" as const;
 
   function handlePlanClick(plan: PlanId) {
     if (!session) {
@@ -100,9 +100,6 @@ function Pricing() {
         </Btn>
       </div>
 
-      <div className="mt-10 flex justify-center">
-        <PeriodToggle period={period} onChange={setPeriod} />
-      </div>
       <div className="mt-8">
         <PlanCards
           period={period}

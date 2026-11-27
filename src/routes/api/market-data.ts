@@ -14,18 +14,44 @@ export const Route = createFileRoute("/api/market-data")({
           if (!/^(?:\^)?[A-Z0-9][A-Z0-9.&_-]{0,19}$/.test(symbol) || !/^[A-Z0-9 _.-]{2,40}$/.test(exchange) || !["1d", "5d", "1mo", "3mo", "1y"].includes(range) || !["5m", "30m", "1d"].includes(interval)) return Response.json({ points: [], error: "Invalid ticker, exchange, range, or interval. Ticker must be a symbol, not a company name." }, { status: 400 });
           const ticker = normalizeMarketTicker(symbol, exchange);
           if (!ticker) return Response.json({ points: [], error: "This exchange is recognized for ledger and currency tracking, but its quote-provider symbol mapping is not available yet. Choose the exact local exchange or enter a provider-ready symbol such as ABC.L." }, { status: 422 });
-          const response = await fetch("https://query1.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(ticker) + "?interval=" + interval + "&range=" + range, { headers: { "User-Agent": "Mozilla/5.0" } });
-          if (!response.ok) return Response.json({ points: [], error: `Market data provider returned HTTP ${response.status} for ${ticker}. The symbol may not be listed on the selected exchange or the provider may be unavailable.`, provider: "Yahoo Finance", requestedSymbol: symbol, providerSymbol: ticker }, { status: 502 });
-          const data = await response.json();
-          const result = data.chart?.result?.[0];
-          const providerError = data.chart?.error;
-          if (!result) return Response.json({ points: [], error: providerError?.description ?? `No market history found for ${ticker}.`, requestedSymbol: symbol, providerSymbol: ticker }, { status: 502 });
+          // Yahoo's primary edge intermittently returns 5xx/blocked responses.
+          // Retry the secondary edge and degrade to an empty chart instead of
+          // failing the whole dashboard with a 502.
+          let data: any = null;
+          let providerStatus = 0;
+          for (const host of ["query1.finance.yahoo.com", "query2.finance.yahoo.com"]) {
+            try {
+              const response = await fetch(
+                `https://${host}/v8/finance/chart/${encodeURIComponent(ticker)}?interval=${interval}&range=${range}`,
+                {
+                  headers: { "User-Agent": "Mozilla/5.0 (compatible; PSXL/1.0)" },
+                  signal: AbortSignal.timeout(8000),
+                },
+              );
+              providerStatus = response.status;
+              if (!response.ok) continue;
+              data = await response.json();
+              if (data.chart?.result?.[0]) break;
+            } catch {
+              // Try the secondary Yahoo edge.
+            }
+          }
+          const result = data?.chart?.result?.[0];
+          const providerError = data?.chart?.error;
+          if (!result) return Response.json({
+            points: [],
+            error: providerError?.description ?? `Historical quotes are temporarily unavailable for ${ticker}. Ledger analytics remain available.`,
+            provider: "Yahoo Finance",
+            providerStatus: providerStatus || undefined,
+            requestedSymbol: symbol,
+            providerSymbol: ticker,
+          });
           const timestamps = result?.timestamp || [];
           const closes = result?.indicators?.quote?.[0]?.close || [];
           const points = timestamps.map((time: number, i: number) => ({ time: time * 1000, price: closes[i] })).filter((p: { time: number; price: number | null }) => typeof p.price === "number" && Number.isFinite(p.price));
           return Response.json({ points, meta: { symbol: result?.meta?.symbol, currency: result?.meta?.currency, source: "Yahoo Finance", fetchedAt: new Date().toISOString() } });
         } catch {
-          return Response.json({ points: [] }, { status: 500 });
+          return Response.json({ points: [], error: "Market data is temporarily unavailable. Please retry shortly." });
         }
       },
       POST: async ({ request }) => {
@@ -87,15 +113,21 @@ interface MarketPrice {
 async function fetchYahooPrice(ticker: string): Promise<TickerQuote | null> {
   try {
     const proxyUrl = "https://query1.finance.yahoo.com/v8/finance/chart/";
-    const response = await fetch(`${proxyUrl}${ticker}?interval=1d&range=1d`, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-      },
-    });
-
-    if (!response.ok) return null;
-
-    const data = await response.json();
+    let data: any = null;
+    for (const host of ["query1.finance.yahoo.com", "query2.finance.yahoo.com"]) {
+      try {
+        const response = await fetch(`https://${host}/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1d`, {
+          headers: { "User-Agent": "Mozilla/5.0 (compatible; PSXL/1.0)" },
+          signal: AbortSignal.timeout(8000),
+        });
+        if (!response.ok) continue;
+        data = await response.json();
+        if (data.chart?.result?.[0]) break;
+      } catch {
+        // Continue to the secondary Yahoo edge.
+      }
+    }
+    if (!data) return null;
     const result = data.chart?.result?.[0];
     const meta = result?.meta;
     const quote = result?.indicators?.quote?.[0];

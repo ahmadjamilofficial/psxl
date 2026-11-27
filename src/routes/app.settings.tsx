@@ -28,20 +28,18 @@ import {
 } from "@/lib/data-hooks";
 import { normalizePlanId, planOf } from "@/lib/plans";
 import { DirectSourceConnect } from "@/components/app/DirectSourceConnect";
-import { inviteUrl, randomInviteToken, type TeamRole } from "@/lib/team";
 
 export const Route = createFileRoute("/app/settings")({
   component: Settings,
 });
 
-type Tab = "org" | "usage" | "tax-profiles" | "import" | "team" | "notifications";
+type Tab = "org" | "usage" | "tax-profiles" | "import" | "notifications";
 
 const TABS: { id: Tab; label: string; icon: typeof Building2 }[] = [
   { id: "org", label: "Organisation", icon: Building2 },
   { id: "usage", label: "Usage", icon: Activity },
   { id: "tax-profiles", label: "Tax Profiles", icon: CreditCard },
   { id: "import", label: "Import Data", icon: Download },
-  { id: "team", label: "Team & Roles", icon: Users },
   { id: "notifications", label: "Notifications", icon: Bell },
 ];
 
@@ -61,11 +59,6 @@ function Settings() {
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deletingOrg, setDeletingOrg] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState<TeamRole>("analyst");
-  const [inviting, setInviting] = useState(false);
-  const [inviteOpen, setInviteOpen] = useState(false);
-  const canManageOrganisation = profile?.role === "owner" || profile?.role === "admin";
   const canDeleteOrganisation = profile?.role === "owner";
 
   useEffect(() => {
@@ -102,80 +95,6 @@ function Settings() {
       return data ?? [];
     },
   });
-
-  const { data: invites = [] } = useQuery({
-    queryKey: ["org-invites", profile?.org_id],
-    enabled: Boolean(profile?.org_id),
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("org_invites")
-        .select("id, email, role, token, status, expires_at, created_at")
-        .eq("org_id", profile!.org_id)
-        .eq("status", "pending")
-        .order("created_at", { ascending: false });
-      if (error) throw new Error(error.message);
-      return data ?? [];
-    },
-  });
-
-  async function sendInvite() {
-    if (!profile?.org_id || !user?.id) return;
-    const email = inviteEmail.trim().toLowerCase();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      toast.error("Enter a valid email address");
-      return;
-    }
-    setInviting(true);
-    try {
-      const token = randomInviteToken();
-      const { data: invite, error } = await supabase
-        .from("org_invites")
-        .insert({
-          org_id: profile.org_id,
-          email,
-          role: inviteRole,
-          token,
-          invited_by: user.id,
-          status: "pending",
-        })
-        .select("id")
-        .single();
-      if (error) throw error;
-      const url = inviteUrl(token);
-      await navigator.clipboard.writeText(url).catch(() => undefined);
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData.session?.access_token;
-      if (!accessToken) throw new Error("Your session expired. Please sign in again.");
-      const mailResponse = await fetch("/api/team/invite-email", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ invite_id: invite.id }),
-      });
-      const mailResult = (await mailResponse.json().catch(() => ({}))) as { error?: string };
-      if (!mailResponse.ok) {
-        toast.warning("Invitation created, but email was not sent", {
-          description:
-            mailResult.error ??
-            "The invite link is copied. Share it manually or configure email delivery.",
-        });
-      } else {
-        toast.success(`Invitation email sent to ${email}`, {
-          description: "A secure invite link was also copied to your clipboard.",
-        });
-      }
-      setInviteEmail("");
-      setInviteOpen(false);
-      void queryClient.invalidateQueries({ queryKey: ["org-invites", profile.org_id] });
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Could not create invite. Apply the org_invites migration in Supabase.",
-      );
-    } finally {
-      setInviting(false);
-    }
-  }
 
   const [notifications, setNotifications] = useState({
     lowConfidenceAlert: true,
@@ -562,131 +481,6 @@ function Settings() {
                       </div>
                     );
                   })}
-                </div>
-              </Panel>
-            </motion.div>
-          )}
-
-          {tab === "team" && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              <Panel>
-                <div className="mb-4 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-sm font-semibold">Team Members</p>
-                  {canManageOrganisation && <Btn variant="secondary" onClick={() => setInviteOpen((v) => !v)}>
-                    <Plus size={15} strokeWidth={1.75} />
-                    {inviteOpen ? "Cancel" : "Invite member"}
-                  </Btn>}
-                </div>
-
-                {inviteOpen && (
-                  <div
-                    className="mb-4 grid min-w-0 gap-3 rounded-xl p-4 md:grid-cols-[minmax(0,1fr)_140px_auto]"
-                    style={{ background: "var(--color-login-bg)" }}
-                  >
-                    <input
-                      type="email"
-                      value={inviteEmail}
-                      onChange={(e) => setInviteEmail(e.target.value)}
-                      placeholder="teammate@company.com"
-                      className="rounded-[10px] border bg-surface px-3.5 py-2.5 text-sm outline-none"
-                      style={{ borderColor: "var(--hairline)" }}
-                    />
-                    <select
-                      value={inviteRole}
-                      onChange={(e) => setInviteRole(e.target.value as TeamRole)}
-                      className="rounded-[10px] border bg-surface px-3.5 py-2.5 text-sm outline-none"
-                      style={{ borderColor: "var(--hairline)" }}
-                    >
-                      <option value="admin">Admin</option>
-                      <option value="analyst">Analyst</option>
-                      <option value="viewer">Viewer</option>
-                    </select>
-                    <Btn onClick={() => void sendInvite()} disabled={inviting}>
-                      {inviting ? (
-                        <Loader2 size={15} strokeWidth={1.75} className="animate-spin" />
-                      ) : (
-                        "Create invite"
-                      )}
-                    </Btn>
-                    <p className="text-xs sm:col-span-3" style={{ color: "var(--ink-3)" }}>
-                      Creates a join link (copied to your clipboard). They sign up or sign in with
-                      that link and are added to this organisation.
-                    </p>
-                  </div>
-                )}
-
-                <div className="space-y-3">
-                  {members.map((member) => {
-                    const isYou = member.user_id === user?.id;
-                    return (
-                      <div
-                        key={member.id}
-                        className="flex min-w-0 flex-wrap items-center gap-3 rounded-xl px-4 py-3"
-                        style={{ background: "var(--color-login-bg)" }}
-                      >
-                        <div
-                          className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full text-xs font-semibold"
-                          style={{
-                            background: isYou && avatarUrl ? "transparent" : "var(--color-accent)",
-                            color: "var(--accent-fg)",
-                          }}
-                        >
-                          {isYou && avatarUrl ? (
-                            <img
-                              src={avatarUrl}
-                              alt={displayName}
-                              className="size-full object-cover"
-                            />
-                          ) : (
-                            (member.full_name || "?").charAt(0).toUpperCase()
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">
-                            {member.full_name || "Member"}
-                            {isYou ? " (you)" : ""}
-                          </p>
-                          <p className="text-xs capitalize" style={{ color: "var(--ink-3)" }}>
-                            {member.role}
-                          </p>
-                        </div>
-                        <span
-                          className="rounded-full px-2.5 py-1 text-xs font-medium capitalize"
-                          style={{ background: "var(--accent-10)", color: "var(--color-accent)" }}
-                        >
-                          {member.role}
-                        </span>
-                      </div>
-                    );
-                  })}
-
-                  {invites.map((inv) => (
-                    <div
-                      key={inv.id}
-                      className="flex items-center gap-3 rounded-xl px-4 py-3"
-                      style={{ background: "var(--color-login-bg)" }}
-                    >
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">{inv.email}</p>
-                        <p className="text-xs capitalize" style={{ color: "var(--ink-3)" }}>
-                          Pending {inv.role} · expires{" "}
-                          {new Date(inv.expires_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium"
-                        style={{ border: "1px solid var(--hairline)" }}
-                        onClick={() => {
-                          void navigator.clipboard.writeText(inviteUrl(inv.token));
-                          toast.success("Invite link copied");
-                        }}
-                      >
-                        <Copy size={12} />
-                        Copy link
-                      </button>
-                    </div>
-                  ))}
                 </div>
               </Panel>
             </motion.div>

@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { ArrowLeft, ArrowRightCircle, Building2, Eye, EyeOff, UserRound } from "lucide-react";
+import { ArrowLeft, ArrowRightCircle, Eye, EyeOff } from "lucide-react";
 import { persistInviteToken } from "@/lib/team";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -22,15 +22,9 @@ const schema = z
   .object({
     full_name: z.string().min(2, "Name is required"),
     email: z.string().email("Enter a valid email"),
-    workspace_type: z.enum(["business", "individual"]),
-    org: z.string().optional(),
     jurisdiction: z.enum(["PSX", "NSE"]),
     password: z.string().min(8, "Password must be at least 8 characters"),
     confirm: z.string(),
-  })
-  .refine((d) => d.workspace_type !== "business" || Boolean(d.org?.trim() && d.org.trim().length >= 2), {
-    message: "Organisation name is required",
-    path: ["org"],
   })
   .refine((d) => d.password === d.confirm, {
     message: "Passwords don't match",
@@ -88,12 +82,11 @@ function SignUp() {
 
   const {
     register,
-    watch,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { jurisdiction: "PSX", workspace_type: "business" },
+    defaultValues: { jurisdiction: "PSX" },
   });
 
   async function onSubmit(data: FormData) {
@@ -101,9 +94,9 @@ function SignUp() {
     try {
       await signUpWithEmail(data.email, data.password, {
         full_name: data.full_name,
-        org_name: data.workspace_type === "business" ? (data.org?.trim() ?? "") : data.full_name + "'s Personal Workspace",
+        org_name: data.full_name + "'s Personal Workspace",
         jurisdiction: data.jurisdiction,
-        workspace_type: data.workspace_type,
+        workspace_type: "individual",
       });
       // Supabase sends a confirmation email by default.
       // If email confirmation is disabled in Supabase, redirect directly.
@@ -116,7 +109,7 @@ function SignUp() {
   async function handleGoogleSignUp() {
     setGoogleLoading(true);
     try {
-      window.localStorage.setItem("psxl.workspace_type.pending", watch("workspace_type") === "individual" ? "individual" : "business");
+      window.localStorage.setItem("psxl.workspace_type.pending", "individual");
       await signInWithGoogle();
     } catch (e) {
       setServerErr((e as Error).message);
@@ -356,69 +349,6 @@ function SignUp() {
                 </p>
               )}
             </div>
-
-            {/* Workspace type */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium">Choose your workspace</label>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <label
-                  className="cursor-pointer rounded-md border p-3 transition-colors"
-                  style={{
-                    borderColor: watch("workspace_type") === "business" ? "var(--color-accent)" : "var(--hairline)",
-                    background: watch("workspace_type") === "business" ? "var(--sidebar-accent)" : "var(--color-surface)",
-                  }}
-                >
-                  <input type="radio" value="business" {...register("workspace_type")} className="sr-only" />
-                  <div className="flex items-center gap-2">
-                    <Building2 size={17} strokeWidth={1.7} />
-                    <span className="text-sm font-semibold">Business</span>
-                  </div>
-                  <p className="mt-2 text-xs leading-relaxed" style={{ color: "var(--ink-3)" }}>
-                    Brokerages and financial operations teams.
-                  </p>
-                </label>
-                <label
-                  className="cursor-pointer rounded-md border p-3 transition-colors"
-                  style={{
-                    borderColor: watch("workspace_type") === "individual" ? "var(--color-accent)" : "var(--hairline)",
-                    background: watch("workspace_type") === "individual" ? "var(--sidebar-accent)" : "var(--color-surface)",
-                  }}
-                >
-                  <input type="radio" value="individual" {...register("workspace_type")} className="sr-only" />
-                  <div className="flex items-center gap-2">
-                    <UserRound size={17} strokeWidth={1.7} />
-                    <span className="text-sm font-semibold">Individual</span>
-                  </div>
-                  <p className="mt-2 text-xs leading-relaxed" style={{ color: "var(--ink-3)" }}>
-                    Personal investors and traders.
-                  </p>
-                </label>
-              </div>
-              <p className="text-xs" style={{ color: "var(--ink-3)" }}>
-                This selects your default PSXL workspace. You can use the same account for additional workspaces later.
-              </p>
-            </div>
-
-            {watch("workspace_type") === "business" && (
-              <div>
-                <label className="mb-1.5 block text-sm font-medium">Organisation name</label>
-                <input
-                  type="text"
-                  placeholder="My Trading Firm"
-                  {...register("org")}
-                  className="w-full rounded-[10px] border bg-surface px-4 py-3 text-sm outline-none focus:ring-2"
-                  style={{
-                    borderColor: errors.org ? "var(--bad)" : "var(--hairline)",
-                    ["--tw-ring-color" as string]: "var(--color-accent)",
-                  }}
-                />
-                {errors.org && (
-                  <p className="mt-1 text-xs" style={{ color: "var(--bad)" }}>
-                    {errors.org.message}
-                  </p>
-                )}
-              </div>
-            )}
 
             {/* Jurisdiction */}
             <div>

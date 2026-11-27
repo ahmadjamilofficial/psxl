@@ -7,13 +7,10 @@ import {
   CreditCard,
   Download,
   Activity,
-  Loader2,
-  Plus,
   Trash2,
-  Users,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Btn, Panel } from "@/components/kit";
 import { useAuth } from "@/lib/auth-context";
@@ -81,20 +78,6 @@ function Settings() {
     transactionLimit === null
       ? 0
       : Math.min(100, Math.round((monthlyTransactions / transactionLimit) * 100));
-
-  const { data: members = [] } = useQuery({
-    queryKey: ["org-members", profile?.org_id],
-    enabled: Boolean(profile?.org_id),
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, full_name, role, user_id")
-        .eq("org_id", profile!.org_id)
-        .order("created_at", { ascending: true });
-      if (error) throw new Error(error.message);
-      return data ?? [];
-    },
-  });
 
   const [notifications, setNotifications] = useState({
     lowConfidenceAlert: true,

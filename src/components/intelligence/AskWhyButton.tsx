@@ -248,6 +248,12 @@ export function AskWhyButton({ context, className }: Props) {
                           </p>
                         );
                       })}
+                      {response.includes("quota_exceeded") && (
+                        <a href="/app/billing" className="mt-3 inline-flex rounded-lg px-3 py-2 text-xs font-semibold"
+                          style={{ background: "var(--color-accent)", color: "white" }}>
+                          View upgrade options
+                        </a>
+                      )}
                       {isStreaming && (
                         <span
                           className="inline-block h-3.5 w-1.5 animate-pulse rounded-sm"

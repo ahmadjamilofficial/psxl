@@ -1,6 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { normalizeMarketTicker } from "@/lib/market-currency";
 
+const marketJson = (body: unknown, status = 200) =>
+  marketJson(body, {
+    status,
+    headers: {
+      "Cache-Control": "no-store",
+      "Cross-Origin-Resource-Policy": "same-origin",
+      "X-Content-Type-Options": "nosniff",
+    },
+  });
+
 export const Route = createFileRoute("/api/market-data")({
   server: {
     handlers: {
@@ -11,9 +21,9 @@ export const Route = createFileRoute("/api/market-data")({
           const exchange = (url.searchParams.get("exchange") || "NYSE").trim().toUpperCase();
           const range = url.searchParams.get("range") || "1mo";
           const interval = url.searchParams.get("interval") || "1d";
-          if (!/^(?:\^)?[A-Z0-9][A-Z0-9.&_-]{0,19}$/.test(symbol) || !/^[A-Z0-9 _.-]{2,40}$/.test(exchange) || !["1d", "5d", "1mo", "3mo", "1y"].includes(range) || !["5m", "30m", "1d"].includes(interval)) return Response.json({ points: [], error: "Invalid ticker, exchange, range, or interval. Ticker must be a symbol, not a company name." }, { status: 400 });
+          if (!/^(?:\^)?[A-Z0-9][A-Z0-9.&_-]{0,19}$/.test(symbol) || !/^[A-Z0-9 _.-]{2,40}$/.test(exchange) || !["1d", "5d", "1mo", "3mo", "1y"].includes(range) || !["5m", "30m", "1d"].includes(interval)) return marketJson({ points: [], error: "Invalid ticker, exchange, range, or interval. Ticker must be a symbol, not a company name." }, { status: 400 });
           const ticker = normalizeMarketTicker(symbol, exchange);
-          if (!ticker) return Response.json({ points: [], error: "This exchange is recognized for ledger and currency tracking, but its quote-provider symbol mapping is not available yet. Choose the exact local exchange or enter a provider-ready symbol such as ABC.L." }, { status: 422 });
+          if (!ticker) return marketJson({ points: [], error: "This exchange is recognized for ledger and currency tracking, but its quote-provider symbol mapping is not available yet. Choose the exact local exchange or enter a provider-ready symbol such as ABC.L." }, { status: 422 });
           // Yahoo's primary edge intermittently returns 5xx/blocked responses.
           // Retry the secondary edge and degrade to an empty chart instead of
           // failing the whole dashboard with a 502.
@@ -38,20 +48,20 @@ export const Route = createFileRoute("/api/market-data")({
           }
           const result = data?.chart?.result?.[0];
           const providerError = data?.chart?.error;
-          if (!result) return Response.json({
+          if (!result) return marketJson({
             points: [],
             error: providerError?.description ?? `Historical quotes are temporarily unavailable for ${ticker}. Ledger analytics remain available.`,
             provider: "Yahoo Finance",
             providerStatus: providerStatus || undefined,
             requestedSymbol: symbol,
             providerSymbol: ticker,
-          });
+          }, 503);
           const timestamps = result?.timestamp || [];
           const closes = result?.indicators?.quote?.[0]?.close || [];
           const points = timestamps.map((time: number, i: number) => ({ time: time * 1000, price: closes[i] })).filter((p: { time: number; price: number | null }) => typeof p.price === "number" && Number.isFinite(p.price));
-          return Response.json({ points, meta: { symbol: result?.meta?.symbol, currency: result?.meta?.currency, source: "Yahoo Finance", fetchedAt: new Date().toISOString() } });
+          return marketJson({ points, meta: { symbol: result?.meta?.symbol, currency: result?.meta?.currency, source: "Yahoo Finance", fetchedAt: new Date().toISOString() } });
         } catch {
-          return Response.json({ points: [], error: "Market data is temporarily unavailable. Please retry shortly." });
+          return marketJson({ points: [], error: "Market data is temporarily unavailable. Please retry shortly." });
         }
       },
       POST: async ({ request }) => {
@@ -60,10 +70,10 @@ export const Route = createFileRoute("/api/market-data")({
             tickers?: Array<{ ticker?: string; exchange?: string }>;
           } | null;
           if (!body || !Array.isArray(body.tickers)) {
-            return Response.json({ prices: [], error: "Provide a tickers array." }, { status: 400 });
+            return marketJson({ prices: [], error: "Provide a tickers array." }, { status: 400 });
           }
           if (body.tickers.length > 100) {
-            return Response.json({ prices: [], error: "Request up to 100 symbols at a time." }, { status: 400 });
+            return marketJson({ prices: [], error: "Request up to 100 symbols at a time." }, { status: 400 });
           }
           const tickers = body.tickers
             .filter((item): item is { ticker: string; exchange: string } =>
@@ -74,10 +84,10 @@ export const Route = createFileRoute("/api/market-data")({
             )
             .map((item) => ({ ticker: item.ticker.trim().toUpperCase(), exchange: item.exchange.trim().toUpperCase() }));
           if (tickers.length !== body.tickers.length) {
-            return Response.json({ prices: [], error: "One or more symbols or exchange codes are invalid." }, { status: 400 });
+            return marketJson({ prices: [], error: "One or more symbols or exchange codes are invalid." }, { status: 400 });
           }
           const prices = await fetchYahooPrices(tickers);
-          return Response.json({ prices, requested: tickers.length, returned: prices.length });
+          return marketJson({ prices, requested: tickers.length, returned: prices.length });
         } catch (error) {
           return new Response(JSON.stringify({ prices: [] }), {
             status: 500,

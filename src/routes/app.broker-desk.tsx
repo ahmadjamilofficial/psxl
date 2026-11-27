@@ -1,11 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
 import { FileUp, RefreshCw, CheckCircle2, AlertTriangle, FileText, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { useTransactions, useReconciliationFlags, useUpdateTransaction, useDocuments } from "@/lib/data-hooks";
 
-export const Route = createFileRoute("/app/broker-desk")({ component: BrokerDesk });
+export const Route = createFileRoute("/app/broker-desk")({ beforeLoad: () => { throw redirect({ to: "/app/overview" }); }, component: BrokerDesk });
 
 function BrokerDesk() {
   const { profile, session } = useAuth();

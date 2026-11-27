@@ -68,9 +68,6 @@ const navGroups = [
     title: "Workspace",
     items: [
       { label: "Portfolio", icon: LayoutDashboard, to: "/app/overview" },
-      { label: "Investor Intelligence", icon: BrainCircuit, to: "/app/investor-intelligence" },
-      { label: "Market Intelligence", icon: TrendingUp, to: "/app/market-intelligence" },
-      { label: "Broker Desk", icon: Building2, to: "/app/broker-desk" },
       { label: "Ledger", icon: BookOpen, to: "/app/ledger" },
       { label: "Exceptions", icon: GitFork, to: "/app/reconciliation" },
       { label: "Data Sources", icon: Plug, to: "/app/sources" },
@@ -232,7 +229,6 @@ function InnerShell({ children }: { children: ReactNode }) {
     ? [
         { label: "Portfolio", icon: LayoutDashboard, to: "/app/overview" },
         { label: "Ledger", icon: BookOpen, to: "/app/ledger" },
-        { label: "Markets", icon: TrendingUp, to: "/app/market-intelligence" },
         { label: "Tax", icon: BarChart3, to: "/app/tax" },
       ]
     : mobileTabs;

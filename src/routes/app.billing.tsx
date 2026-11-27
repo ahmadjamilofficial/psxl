@@ -3,7 +3,7 @@ import { ArrowUpRight, CreditCard, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Btn, Panel, StatusPill } from "@/components/kit";
-import { PeriodToggle, PlanCards } from "@/components/site/PlanCards";
+import { PlanCards } from "@/components/site/PlanCards";
 import { useAuth } from "@/lib/auth-context";
 import {
   MONTHLY_DAYS,
@@ -292,7 +292,6 @@ function Billing() {
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm font-semibold">Available Plans</p>
-        <PeriodToggle period={period} onChange={setPeriod} />
       </div>
       <PlanCards
         period={period}

@@ -256,13 +256,35 @@ function RootComponent() {
       if (handleStaleChunkError(event.reason)) event.preventDefault();
     };
     const onError = (event: ErrorEvent) => {
+      // A stale HTML document can reference hashed Vite bundles that no longer
+      // exist in the active deployment. Resource-load errors do not always
+      // include a useful Error object, so inspect the failed element as well.
+      const target = event.target;
+      const failedAsset =
+        (target instanceof HTMLScriptElement && target.src) ||
+        (target instanceof HTMLLinkElement && target.href) ||
+        "";
+      if (
+        failedAsset &&
+        (() => {
+          try {
+            return new URL(failedAsset, window.location.href).pathname.startsWith("/assets/");
+          } catch {
+            return false;
+          }
+        })()
+      ) {
+        handleStaleChunkError("Failed to fetch dynamically imported module");
+        return;
+      }
       handleStaleChunkError(event.error ?? event.message);
     };
     window.addEventListener("unhandledrejection", onRejection);
-    window.addEventListener("error", onError);
+    // Capture is required because script/link resource errors do not bubble.
+    window.addEventListener("error", onError, true);
     return () => {
       window.removeEventListener("unhandledrejection", onRejection);
-      window.removeEventListener("error", onError);
+      window.removeEventListener("error", onError, true);
     };
   }, []);
 

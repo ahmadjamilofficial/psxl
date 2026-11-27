@@ -95,17 +95,12 @@ export function OperationsActionCenter() {
           {[0, 1, 2].map((n) => <div key={n} className="h-16 animate-pulse rounded-md" style={{ background: "var(--accent-4)" }} />)}
         </div>
       ) : activeItems.length === 0 && processingDocuments === 0 ? (
-        <div className="flex flex-col items-start gap-3 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-          <div className="flex items-start gap-3">
-            <CheckCircle2 size={20} className="mt-0.5 shrink-0" style={{ color: "var(--ok)" }} />
-            <div>
-              <p className="text-sm font-semibold">Your operational queue is clear.</p>
-              <p className="mt-1 text-xs" style={{ color: "var(--ink-3)" }}>Upload the latest broker statement to keep the ledger and reconciliation trail current.</p>
-            </div>
+        <div className="flex items-center gap-3 p-5 sm:p-6">
+          <CheckCircle2 size={20} className="shrink-0" style={{ color: "var(--ok)" }} />
+          <div>
+            <p className="text-sm font-semibold">Your operational queue is clear.</p>
+            <p className="mt-1 text-xs" style={{ color: "var(--ink-3)" }}>There are no outstanding operational actions right now.</p>
           </div>
-          <Link to="/app/broker-desk" className="inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold" style={{ background: "var(--color-accent)", color: "var(--accent-fg)" }}>
-            Upload statement <ArrowRight size={13} />
-          </Link>
         </div>
       ) : (
         <div className="divide-y" style={{ borderColor: "var(--hairline)" }}>

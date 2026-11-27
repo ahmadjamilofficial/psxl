@@ -397,6 +397,7 @@ function MissionControl() {
   }
 
   return (
+    <ClientOnly fallback={<div className="mx-auto w-full max-w-[1440px] p-6"><div className="h-[70vh] animate-pulse rounded-xl bg-surface" /></div>}>
     <div className="mx-auto w-full max-w-[1440px] space-y-5 p-3 sm:space-y-6 sm:p-6">
       {/* Header Section */}
       <div className="overview-hero flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -721,5 +722,6 @@ function MissionControl() {
         </div>
       </div>
     </div>
+    </ClientOnly>
   );
 }

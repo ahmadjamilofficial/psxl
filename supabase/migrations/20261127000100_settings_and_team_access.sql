@@ -26,6 +26,68 @@ CREATE POLICY organizations_update_owner_admin
     )
   );
 
+-- Only owners and admins may inspect, create, revoke or resend organisation invites.
+DROP POLICY IF EXISTS org_invites_select ON public.org_invites;
+CREATE POLICY org_invites_select ON public.org_invites
+  FOR SELECT
+  USING (
+    org_id = public.current_org_id()
+    AND EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE p.user_id = auth.uid()
+        AND p.org_id = org_invites.org_id
+        AND p.role IN ('owner', 'admin')
+    )
+  );
+
+DROP POLICY IF EXISTS org_invites_insert ON public.org_invites;
+CREATE POLICY org_invites_insert ON public.org_invites
+  FOR INSERT
+  WITH CHECK (
+    org_id = public.current_org_id()
+    AND EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE p.user_id = auth.uid()
+        AND p.org_id = org_invites.org_id
+        AND p.role IN ('owner', 'admin')
+    )
+  );
+
+DROP POLICY IF EXISTS org_invites_update ON public.org_invites;
+CREATE POLICY org_invites_update ON public.org_invites
+  FOR UPDATE
+  USING (
+    org_id = public.current_org_id()
+    AND EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE p.user_id = auth.uid()
+        AND p.org_id = org_invites.org_id
+        AND p.role IN ('owner', 'admin')
+    )
+  )
+  WITH CHECK (
+    org_id = public.current_org_id()
+    AND EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE p.user_id = auth.uid()
+        AND p.org_id = org_invites.org_id
+        AND p.role IN ('owner', 'admin')
+    )
+  );
+
+DROP POLICY IF EXISTS org_invites_delete ON public.org_invites;
+CREATE POLICY org_invites_delete ON public.org_invites
+  FOR DELETE
+  USING (
+    org_id = public.current_org_id()
+    AND EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE p.user_id = auth.uid()
+        AND p.org_id = org_invites.org_id
+        AND p.role IN ('owner', 'admin')
+    )
+  );
+
 -- An invite can only be accepted by the email address it was issued to.
 CREATE OR REPLACE FUNCTION public.accept_org_invite(_token text)
 RETURNS jsonb

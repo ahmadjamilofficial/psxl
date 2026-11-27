@@ -90,24 +90,6 @@ const navGroups = [
   },
 ] as const;
 
-const individualNavGroups = [
-  {
-    title: "Personal",
-    items: [
-      { label: "Portfolio", icon: LayoutDashboard, to: "/app/overview" },
-      { label: "Ledger", icon: BookOpen, to: "/app/ledger" },
-      { label: "Tax Center", icon: BarChart3, to: "/app/tax" },
-    ],
-  },
-  {
-    title: "Account",
-    items: [
-      { label: "Settings", icon: Settings, to: "/app/settings" },
-      { label: "Billing", icon: CreditCard, to: "/app/billing" },
-    ],
-  },
-] as const;
-
 const mobileTabs = [
   { label: brandText("Ask {{brand}}"), icon: Sparkles, to: "/app/parser" },
   { label: "Portfolio", icon: LayoutDashboard, to: "/app/overview" },
@@ -219,15 +201,8 @@ function InnerShell({ children }: { children: ReactNode }) {
   const displayName = profile?.full_name || user?.email?.split("@")[0] || "User";
   const orgName = profile?.org_name || "My Organisation";
   const plan = profile?.plan || "free";
-  const workspaceType = profile?.workspace_type ?? "business";
-  const visibleNavGroups = workspaceType === "individual" ? individualNavGroups : navGroups;
-  const visibleMobileTabs = workspaceType === "individual"
-    ? [
-        { label: "Portfolio", icon: LayoutDashboard, to: "/app/overview" },
-        { label: "Ledger", icon: BookOpen, to: "/app/ledger" },
-        { label: "Tax", icon: BarChart3, to: "/app/tax" },
-      ]
-    : mobileTabs;
+  const visibleNavGroups = navGroups;
+  const visibleMobileTabs = mobileTabs;
   const isAskPage = currentPath.startsWith("/app/parser");
   const initials = displayName.charAt(0).toUpperCase();
   const avatarUrl = (profile?.avatar_url || user?.user_metadata?.["avatar_url"]) as
@@ -296,7 +271,7 @@ function InnerShell({ children }: { children: ReactNode }) {
             collapsed ? "flex flex-col items-center gap-1 px-3" : "space-y-4 px-4"
           }`}
         >
-          {workspaceType === "business" && <NavItem
+          <NavItem
             label={primaryItem.label}
             icon={primaryItem.icon}
             to={primaryItem.to}
@@ -304,7 +279,7 @@ function InnerShell({ children }: { children: ReactNode }) {
             accent
             active={isActive(primaryItem.to)}
             onClick={onClose}
-          />}
+          />
 
           {visibleNavGroups.map((group) => (
             <div

@@ -549,13 +549,11 @@ export const Route = createFileRoute("/api/chat")({
             ? new Date(subData.trial_end_at) > new Date()
             : false;
           const pausedToFree = subData?.cancel_at_period_end === true;
-          const periodDays = subData?.charge_period === "YEARLY" ? 365 : 30;
-          const started = subData?.created_at ? new Date(subData.created_at).getTime() : 0;
-          const strictEnd = started ? started + periodDays * 86_400_000 : 0;
-          const serverEnd = subData?.current_period_end
+          // The persisted billing period end is authoritative. Do not infer expiry
+          // from created_at: manual grants and migrated subscriptions can be older.
+          const cycleEnd = subData?.current_period_end
             ? new Date(subData.current_period_end).getTime()
             : 0;
-          const cycleEnd = Math.min(...[strictEnd, serverEnd].filter((n) => n > 0));
           const cycleExpired = cycleEnd > 0 && Date.now() >= cycleEnd;
           const rawPlan = (subData?.plan as string) ?? "free";
           const plan =

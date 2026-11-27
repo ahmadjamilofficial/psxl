@@ -39,9 +39,14 @@ export interface PlanLimits {
 export const TRIAL_DAYS = 7;
 
 export const KELVIQ_CHECKOUT_URL =
-  (typeof import.meta !== "undefined" &&
-    (import.meta.env?.["VITE_KELVIQ_CHECKOUT_URL"] as string | undefined)) ||
-  "https://www.kelviq.com/buy/ac42e10b-db2e-44ca-b212-6d4f0429b6e3/?enabled=free-plan%2Cpro-plan%2Cstandard-plan&plan_identifier=free-plan&charge_period=ONE_TIME";
+  "https://www.kelviq.com/buy/ac42e10b-db2e-44ca-b212-6d4f0429b6e3/?enabled=standard-plan&plan_identifier=standard-plan&charge_period=MONTHLY";
+
+const KELVIQ_PLAN_CHECKOUT_URLS: Partial<Record<PlanId, string>> = {
+  standard:
+    "https://www.kelviq.com/buy/ac42e10b-db2e-44ca-b212-6d4f0429b6e3/?enabled=standard-plan&plan_identifier=standard-plan&charge_period=MONTHLY",
+  pro:
+    "https://www.kelviq.com/buy/ac42de10b-db2e-44ca-b212-6d4f0429b6e3/?enabled=pro-plan&plan_identifier=pro-plan&charge_period=MONTHLY",
+};
 
 export const PLANS: Record<PlanId, PlanLimits> = {
   free: {
@@ -216,23 +221,13 @@ export function kelviqCheckoutUrl(opts: {
   orgId?: string | null | undefined;
   checkoutBase?: string | undefined;
 }): string {
-  const base = opts.checkoutBase || KELVIQ_CHECKOUT_URL;
-  const limits = PLANS[opts.plan];
-  let url = base;
-  url = url.replace(/plan_identifier=[a-z-]+/, `plan_identifier=${limits.kelviqPlan}`);
-  if (opts.plan === "free") {
-    url = url.replace(/charge_period=[A-Z_]+/, "charge_period=ONE_TIME");
-  } else {
-    const period = opts.period === "yearly" ? "YEARLY" : "MONTHLY";
-    url = url.replace(/charge_period=[A-Z_]+/, `charge_period=${period}`);
-    if (!/[?&]charge_period=/.test(url)) {
-      url += `${url.includes("?") ? "&" : "?"}charge_period=${period}`;
-    }
-  }
-  if (opts.orgId) {
-    url += `${url.includes("?") ? "&" : "?"}metadata[org_id]=${encodeURIComponent(opts.orgId)}`;
-  }
-  return url;
+  const base =
+    opts.plan === "free"
+      ? opts.checkoutBase || KELVIQ_CHECKOUT_URL
+      : KELVIQ_PLAN_CHECKOUT_URLS[opts.plan]!;
+  const url = new URL(base);
+  if (opts.orgId) url.searchParams.set("metadata[org_id]", opts.orgId);
+  return url.toString();
 }
 
 /** Prefer cheaper cascade entries for Basic; keep full quality for Pro. */

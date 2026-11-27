@@ -3,9 +3,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   BarChart3,
   BookOpen,
-  Building2,
-  TrendingUp,
-  BrainCircuit,
   ChevronDown,
   CreditCard,
   Cloud,
@@ -98,7 +95,6 @@ const individualNavGroups = [
     title: "Personal",
     items: [
       { label: "Portfolio", icon: LayoutDashboard, to: "/app/overview" },
-      { label: "Market Intelligence", icon: TrendingUp, to: "/app/market-intelligence" },
       { label: "Ledger", icon: BookOpen, to: "/app/ledger" },
       { label: "Tax Center", icon: BarChart3, to: "/app/tax" },
     ],

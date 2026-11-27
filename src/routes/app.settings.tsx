@@ -65,6 +65,8 @@ function Settings() {
   const [inviteRole, setInviteRole] = useState<TeamRole>("analyst");
   const [inviting, setInviting] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const canManageOrganisation = profile?.role === "owner" || profile?.role === "admin";
+  const canDeleteOrganisation = profile?.role === "owner";
 
   useEffect(() => {
     setOrgName(profile?.org_name ?? "My Organisation");
@@ -373,7 +375,7 @@ function Settings() {
                       <option value="CUSTOM">Other / Global</option>
                     </select>
                   </div>
-                  <Btn onClick={save} variant="primary" disabled={saving}>
+                  <Btn onClick={save} variant="primary" disabled={saving || !canManageOrganisation}>
                     {saving ? (
                       <>
                         <Loader2 size={15} strokeWidth={1.75} className="animate-spin" />
@@ -409,7 +411,7 @@ function Settings() {
                 <Btn
                   variant="ghost"
                   onClick={deleteOrganisation}
-                  disabled={deletingOrg}
+                  disabled={deletingOrg || !canDeleteOrganisation}
                   className="!text-[var(--bad)] border border-[var(--bad)]/30 hover:!bg-red-50"
                 >
                   {deletingOrg ? (
@@ -570,10 +572,10 @@ function Settings() {
               <Panel>
                 <div className="mb-4 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-sm font-semibold">Team Members</p>
-                  <Btn variant="secondary" onClick={() => setInviteOpen((v) => !v)}>
+                  {canManageOrganisation && <Btn variant="secondary" onClick={() => setInviteOpen((v) => !v)}>
                     <Plus size={15} strokeWidth={1.75} />
                     {inviteOpen ? "Cancel" : "Invite member"}
-                  </Btn>
+                  </Btn>}
                 </div>
 
                 {inviteOpen && (

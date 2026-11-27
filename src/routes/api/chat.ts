@@ -576,6 +576,9 @@ export const Route = createFileRoute("/api/chat")({
             .from("ai_usage")
             .select("credits_used, created_at")
             .eq("user_id", authData.user.id)
+            // Each plan has an independent rolling allowance. When the effective
+            // plan changes (e.g. Standard trial -> Basic), prior-plan credits reset.
+            .eq("plan", plan)
             // Successful calls count for the full rolling window. Pending calls
             // count only briefly to prevent concurrent requests overspending quota;
             // abandoned serverless invocations cannot reserve credits forever.

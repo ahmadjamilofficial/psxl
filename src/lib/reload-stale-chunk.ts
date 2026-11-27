@@ -23,7 +23,9 @@ export function reloadOnceForStaleChunk(): boolean {
   } catch {
     /* ignore storage failures and still reload */
   }
-  window.location.reload();
+  const url = new URL(window.location.href);
+  url.searchParams.set("__psxl_chunk_retry", String(now));
+  window.location.replace(url.toString());
   return true;
 }
 

@@ -609,9 +609,9 @@ export const AI_PLAN_MONTHLY_LIMITS: Record<string, number> = {
   enterprise: 1500,
 };
 
-export function useAiUsage30Days(userId: string | undefined) {
+export function useAiUsage30Days(userId: string | undefined, plan: string | undefined) {
   return useQuery({
-    queryKey: ["ai_usage_30_days", userId],
+    queryKey: ["ai_usage_30_days", userId, plan ?? "free"],
     enabled: !!userId,
     queryFn: async () => {
       const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
@@ -619,6 +619,9 @@ export function useAiUsage30Days(userId: string | undefined) {
         .from("ai_usage")
         .select("credits_used")
         .eq("user_id", userId!)
+        // A plan transition starts a fresh allowance. Usage from a different
+        // plan (including a Standard trial) must not consume the current plan.
+        .eq("plan", plan ?? "free")
         .eq("status", "ok")
         .gte("created_at", since);
       if (error) return { credits_used_month: 0, requests_month: 0 } as AiUsage30Days;

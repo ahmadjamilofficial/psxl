@@ -10,7 +10,6 @@ import {
   YEARLY_DAYS,
   pausePaidClock,
   resolveEntitlement,
-  resumePaidClock,
 } from "@/lib/entitlement";
 import {
   type ChargePeriod,
@@ -67,8 +66,8 @@ function Billing() {
   const entitlement = resolveEntitlement({
     orgId,
     userId,
-    subPlan: sub?.plan ?? profile?.plan,
-    subStatus: sub?.status ?? profile?.plan_status,
+    subPlan: sub?.plan ?? "free",
+    subStatus: sub?.status ?? "inactive",
     chargePeriod: sub?.charge_period,
     currentPeriodEnd: sub?.current_period_end,
     createdAt: sub?.created_at,
@@ -95,7 +94,7 @@ function Billing() {
 
   async function revertToFree() {
     if (!orgId || !userId) return;
-    pausePaidClock(orgId, userId);
+    // The subscription row remains authoritative; do not pause a local entitlement clock.
     try {
       await supabase
         .from("subscriptions")
@@ -107,7 +106,7 @@ function Billing() {
     setClockTick((n) => n + 1);
     await refreshProfile();
     toast.success(
-      "Reverted to Basic ($0). You can restore your paid plan for free until the paid window ends.",
+      "Cancellation scheduled. Your paid access remains active until the confirmed billing period ends.",
     );
   }
 
@@ -115,11 +114,11 @@ function Billing() {
     if (!orgId || !userId) return;
     if (plan !== "standard" && plan !== "pro") return;
     if (!entitlement.canRestore || entitlement.paidPlan !== plan) return;
-    resumePaidClock(orgId, userId);
+    // Client-side state must never reactivate a paid entitlement.
     try {
       await supabase
         .from("subscriptions")
-        .update({ cancel_at_period_end: false, status: "active", plan } as never)
+        .update({ cancel_at_period_end: false } as never)
         .eq("org_id", orgId);
     } catch {
       /* local resume still applies */

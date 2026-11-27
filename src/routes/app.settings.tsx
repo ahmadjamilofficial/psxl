@@ -66,7 +66,11 @@ function Settings() {
   const [inviting, setInviting] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
 
-  useEffect(() => {\n    setOrgName(profile?.org_name ?? "My Organisation");\n    setJurisdiction(profile?.jurisdiction ?? "CUSTOM");\n  }, [profile?.org_id, profile?.org_name, profile?.jurisdiction]);\n
+  useEffect(() => {
+    setOrgName(profile?.org_name ?? "My Organisation");
+    setJurisdiction(profile?.jurisdiction ?? "CUSTOM");
+  }, [profile?.org_id, profile?.org_name, profile?.jurisdiction]);
+
   const deleteOrgMutation = useDeleteOrganization();
   const { data: aiUsage } = useAiUsage30Days(user?.id);
   const { data: monthlyDocuments = 0 } = useMonthlyDocumentCount(profile?.org_id);

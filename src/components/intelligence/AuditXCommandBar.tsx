@@ -412,7 +412,17 @@ export function WabCommandBar({ open, onClose }: CommandBarProps) {
 
               {/* AI Response */}
               {hasResponse && aiResponse && (
-                <AIResponse text={aiResponse} isStreaming={isStreaming} />
+                <>
+                  <AIResponse text={aiResponse} isStreaming={isStreaming} />
+                  {aiResponse.includes("quota_exceeded") && (
+                    <div className="px-5 pb-4">
+                      <a href="/app/billing" className="inline-flex rounded-lg px-3 py-2 text-xs font-semibold"
+                        style={{ background: "var(--color-accent)", color: "white" }}>
+                        View upgrade options
+                      </a>
+                    </div>
+                  )}
+                </>
               )}
 
               {/* Navigation shortcuts */}

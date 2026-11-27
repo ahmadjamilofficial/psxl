@@ -30,7 +30,8 @@ async function fetchPsxHistory(symbol: string, range: string) {
   const payload = await response.json() as { status?: number; data?: unknown[] };
   if (!Array.isArray(payload.data)) throw new Error("PSX returned an invalid historical-data response.");
 
-  const days: Record<string, number> = { "1d": 1, "5d": 5, "1mo": 31, "3mo": 93, "1y": 366 };
+  // The PSX feed is end-of-day, so widen short windows across weekends/holidays.
+  const days: Record<string, number> = { "1d": 7, "5d": 14, "1mo": 31, "3mo": 93, "1y": 366 };
   const cutoff = Date.now() - (days[range] ?? 31) * 24 * 60 * 60 * 1000;
   const points = payload.data
     .filter((row): row is [number, number, number, number] =>
@@ -38,6 +39,17 @@ async function fetchPsxHistory(symbol: string, range: string) {
     .map(row => ({ time: row[0] * 1000, price: row[1] }))
     .filter(point => point.time >= cutoff && point.price > 0)
     .sort((a, b) => a.time - b.time);
+  // Always provide enough daily observations for the chart to draw, including
+  // weekends and market holidays when the latest session is several days old.
+  if (points.length < 2) {
+    const recent = payload.data
+      .filter((row): row is [number, number, number, number] =>
+        Array.isArray(row) && typeof row[0] === "number" && typeof row[1] === "number" && Number.isFinite(row[1]) && row[1] > 0)
+      .slice(0, 2)
+      .map(row => ({ time: row[0] * 1000, price: row[1] }))
+      .sort((a, b) => a.time - b.time);
+    if (recent.length > points.length) points.splice(0, points.length, ...recent);
+  }
 
   if (points.length) {
     historyCache.set(key, { expiresAt: Date.now() + HISTORY_CACHE_TTL, points });

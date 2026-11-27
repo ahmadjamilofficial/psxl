@@ -39,7 +39,9 @@ export interface PlanLimits {
 export const TRIAL_DAYS = 7;
 
 export const KELVIQ_CHECKOUT_URL =
-  "https://www.kelviq.com/buy/ac42e10b-db2e-44ca-b212-6d4f0429b6e3/?enabled=standard-plan&plan_identifier=standard-plan&charge_period=MONTHLY";
+  (typeof import.meta !== "undefined" &&
+    (import.meta.env?.["VITE_KELVIQ_CHECKOUT_URL"] as string | undefined)) ||
+  "https://www.kelviq.com/buy/ac42e10b-db2e-44ca-b212-6d4f0429b6e3/?enabled=free-plan%2Cpro-plan%2Cstandard-plan&plan_identifier=free-plan&charge_period=ONE_TIME";
 
 const KELVIQ_PLAN_CHECKOUT_URLS: Partial<Record<PlanId, string>> = {
   standard:

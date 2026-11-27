@@ -8,7 +8,6 @@ import { useAuth } from "@/lib/auth-context";
 import {
   MONTHLY_DAYS,
   YEARLY_DAYS,
-  pausePaidClock,
   resolveEntitlement,
 } from "@/lib/entitlement";
 import {
@@ -96,12 +95,14 @@ function Billing() {
     if (!orgId || !userId) return;
     // The subscription row remains authoritative; do not pause a local entitlement clock.
     try {
-      await supabase
+      const { error } = await supabase
         .from("subscriptions")
         .update({ cancel_at_period_end: true } as never)
         .eq("org_id", orgId);
+      if (error) throw error;
     } catch {
-      /* local pause still applies */
+      toast.error("We couldn't update your cancellation. Please try again.");
+      return;
     }
     setClockTick((n) => n + 1);
     await refreshProfile();

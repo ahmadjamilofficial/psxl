@@ -142,7 +142,7 @@ const tiers = [
     popular: false,
     trialDays: 0,
     items: [
-      "30 transactions / month",
+      "500 transactions / month",
       "Limited AI quality",
       "Core ledger tools",
       "CSV export",
@@ -158,7 +158,8 @@ const tiers = [
     popular: false,
     trialDays: 7,
     items: [
-      "500 transactions / month",
+      "10,000 transactions / month",
+      "300 AI credits / month",
       "Standard AI quality",
       "Document and transaction analysis",
       "PDF tax reports",
@@ -174,7 +175,8 @@ const tiers = [
     popular: true,
     trialDays: 0,
     items: [
-      "Unlimited transactions",
+      "Up to 100,000 transactions / month",
+      "1,500 AI credits / month",
       "Highest AI quality and variety",
       "Everything in Standard",
       "Tax-loss harvesting",
@@ -846,9 +848,6 @@ function Home() {
               Start 7-day free trial
             </button>
           </div>
-          <div className="mb-6 flex justify-center">
-            <PeriodToggle period={billingPeriod} onChange={setBillingPeriod} />
-          </div>
           <div className="grid gap-5 md:grid-cols-3">
             {tiers.map((t, i) => (
               <Reveal key={t.name} i={i}>
@@ -905,7 +904,7 @@ function Home() {
                       }
                       window.location.href = kelviqCheckoutUrl({
                         plan: t.id,
-                        period: billingPeriod,
+                        period: "monthly",
                         orgId: profile?.org_id ?? null,
                       });
                     }}

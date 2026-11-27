@@ -154,8 +154,8 @@ const tiers = [
   {
     id: "standard" as const,
     name: "Standard",
-    price: "$9",
-    yearly: "$45",
+    price: "$5",
+    yearly: "$50",
     note: "For individual traders",
     popular: false,
     trialDays: 7,
@@ -171,8 +171,8 @@ const tiers = [
   {
     id: "pro" as const,
     name: "Pro",
-    price: "$25",
-    yearly: "$90",
+    price: "$12",
+    yearly: "$120",
     note: "For active traders and professionals",
     popular: true,
     trialDays: 0,
@@ -208,7 +208,7 @@ const faqs = [
   ],
   [
     "What's the difference between Basic, Standard and Pro?",
-    "Basic is $0 with limited AI quality, 30 transactions/month and core tools. Standard is $9/month or $45/year with stronger AI and more tools. Pro is $25/month or $90/year with the full tool set and highest AI quality.",
+    "Basic is $0 with limited AI quality, 30 transactions/month and core tools. Standard is $5/month or $50/year with stronger AI and more tools. Pro is $12/month or $120/year with the full tool set and highest AI quality.",
   ],
   [
     "How does the 7-day free trial work?",
@@ -821,7 +821,7 @@ function Home() {
               Simple, transparent pricing
             </h2>
             <p className="mt-3 text-sm" style={{ color: "var(--ink-2)" }}>
-              Basic is $0. Standard is $9/mo or $45/yr. Pro is $25/mo or $90/yr. A 7-day trial is
+              Basic is $0. Standard is $5/mo or $50/yr. Pro is $12/mo or $120/yr. A 7-day trial is
               only on Standard, from the trial card.
             </p>
           </div>

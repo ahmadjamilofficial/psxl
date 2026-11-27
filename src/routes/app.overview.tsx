@@ -44,7 +44,6 @@ import {
 } from "@/lib/financial-intelligence-hooks";
 import { PortfolioRiskSnapshot } from "@/components/portfolio/PortfolioRiskSnapshot";
 import { PortfolioAnalyticsLab } from "@/components/portfolio/PortfolioAnalyticsLab";
-import { PortfolioMarketTerminal } from "@/components/portfolio/PortfolioMarketTerminal";
 import { PortfolioTaxReturns } from "@/components/portfolio/PortfolioTaxReturns";
 import { useLedgerContext } from "@/lib/use-ledger-context";
 import { currencyForExchange, exchangeInfo } from "@/lib/market-currency";

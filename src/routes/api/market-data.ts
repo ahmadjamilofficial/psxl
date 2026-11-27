@@ -1,13 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { normalizeMarketTicker } from "@/lib/market-currency";
 
-const marketJson = (body: unknown, status = 200) =>
-  marketJson(body, {
-    status,
+const marketJson = (body: unknown, init: ResponseInit = {}) =>
+  Response.json(body, {
+    ...init,
     headers: {
       "Cache-Control": "no-store",
       "Cross-Origin-Resource-Policy": "same-origin",
       "X-Content-Type-Options": "nosniff",
+      ...Object.fromEntries(new Headers(init.headers).entries()),
     },
   });
 
@@ -55,7 +56,7 @@ export const Route = createFileRoute("/api/market-data")({
             providerStatus: providerStatus || undefined,
             requestedSymbol: symbol,
             providerSymbol: ticker,
-          }, 503);
+          }, { status: 503 });
           const timestamps = result?.timestamp || [];
           const closes = result?.indicators?.quote?.[0]?.close || [];
           const points = timestamps.map((time: number, i: number) => ({ time: time * 1000, price: closes[i] })).filter((p: { time: number; price: number | null }) => typeof p.price === "number" && Number.isFinite(p.price));

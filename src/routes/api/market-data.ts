@@ -112,7 +112,6 @@ interface MarketPrice {
 
 async function fetchYahooPrice(ticker: string): Promise<TickerQuote | null> {
   try {
-    const proxyUrl = "https://query1.finance.yahoo.com/v8/finance/chart/";
     let data: any = null;
     for (const host of ["query1.finance.yahoo.com", "query2.finance.yahoo.com"]) {
       try {

@@ -4,7 +4,7 @@ import { OperationsActionCenter } from "@/components/intelligence/OperationsActi
 // "What is happening in my financial world right now?"
 // Every number is deterministic. AI only explains.
 
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { ClientOnly, createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
@@ -18,7 +18,6 @@ import {
   Search,
   Sparkles,
   TrendingUp,
-  Upload,
 } from "lucide-react";
 import {
   Area,
@@ -385,26 +384,14 @@ function MissionControl() {
           className="flex size-20 items-center justify-center rounded-3xl"
           style={{ background: "var(--accent-8)" }}
         >
-          <Upload size={36} style={{ color: "var(--color-accent)" }} />
+          <BarChart3 size={36} style={{ color: "var(--color-accent)" }} />
         </div>
         <h1 className="mt-6 text-2xl font-bold" style={{ fontFamily: "var(--font-heading)" }}>
           No transactions yet
         </h1>
         <p className="mt-3 max-w-md text-sm leading-relaxed" style={{ color: "var(--ink-2)" }}>
-          {brandText("Upload your first broker statement and {{brand}} will extract and reconcile it.")}
+          Your portfolio analytics will appear here when records are available in your ledger.
         </p>
-        <Link
-          to="/app/parser"
-          className="mt-6 flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold"
-          style={{
-            background: "var(--color-accent)",
-            color: "var(--accent-fg)",
-            boxShadow: "var(--shadow-accent)",
-          }}
-        >
-          <Upload size={16} />
-          Upload records
-        </Link>
       </div>
     );
   }
@@ -430,14 +417,7 @@ function MissionControl() {
             {profile?.workspace_type === "individual" ? "Your holdings, trading activity and financial records" : "Organisation activity, ledger health and financial intelligence"}
           </p>
         </div>
-        <Link
-          to="/app/parser"
-          className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-opacity hover:opacity-85"
-          style={{ background: "var(--color-accent)", color: "var(--accent-fg)" }}
-        >
-          <Upload size={16} />
-          {profile?.workspace_type === "individual" ? "Import statement" : "Upload Data"}
-        </Link>
+
       </div>
 
       {profile?.workspace_type !== "individual" && <OperationsActionCenter />}
@@ -492,10 +472,10 @@ function MissionControl() {
       </div>
 
       {/* Consolidated market intelligence and ledger analytics */}
-      <PortfolioMarketTerminal transactions={transactions} currency={currency} />
+      <ClientOnly fallback={<div className="h-72 rounded-xl bg-surface animate-pulse" style={{ border: "1px solid var(--hairline)" }} />}>\n        <PortfolioMarketTerminal transactions={transactions} currency={currency} />\n      </ClientOnly>
 
       {/* AVMIRS-inspired, ledger-derived analytics suite */}
-      <PortfolioAnalyticsLab transactions={transactions} currency={currency} />
+      <ClientOnly fallback={<div className="h-96 rounded-xl bg-surface animate-pulse" style={{ border: "1px solid var(--hairline)" }} />}>\n        <PortfolioAnalyticsLab transactions={transactions} currency={currency} />\n      </ClientOnly>
 
       <PortfolioTaxReturns transactions={transactions} isLoading={txLoading} />
 
@@ -512,7 +492,7 @@ function MissionControl() {
                 <XAxis dataKey="action" tick={{ fontSize: 11, fill: "var(--ink-3)" }} axisLine={false} tickLine={false} />
                 <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "var(--ink-3)" }} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={{ background: "var(--sidebar)", border: "1px solid var(--hairline)", borderRadius: 10, fontSize: 12 }} />
-                <Bar dataKey="count" name="Transactions" fill="var(--chart-1)" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="count" name="Transactions" fill="var(--chart-1)" radius={[6, 6, 0, 0]} minPointSize={2} isAnimationActive animationBegin={80} animationDuration={850} animationEasing="ease-out" activeBar={{ fill: "var(--color-accent)", stroke: "var(--color-text)", strokeWidth: 1 }} />
               </BarChart>
             </ResponsiveContainer>
           ) : <p className="flex h-[220px] items-center justify-center text-xs" style={{ color: "var(--ink-3)" }}>No transactions to chart yet.</p>}
@@ -529,7 +509,7 @@ function MissionControl() {
                 <XAxis dataKey="range" tick={{ fontSize: 10, fill: "var(--ink-3)" }} axisLine={false} tickLine={false} />
                 <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "var(--ink-3)" }} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={{ background: "var(--sidebar)", border: "1px solid var(--hairline)", borderRadius: 10, fontSize: 12 }} />
-                <Bar dataKey="count" name="Transactions" fill="var(--chart-2)" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="count" name="Transactions" fill="var(--chart-2)" radius={[6, 6, 0, 0]} minPointSize={2} isAnimationActive animationBegin={80} animationDuration={850} animationEasing="ease-out" activeBar={{ fill: "var(--color-accent)", stroke: "var(--color-text)", strokeWidth: 1 }} />
               </BarChart>
             </ResponsiveContainer>
           ) : <p className="flex h-[220px] items-center justify-center text-xs" style={{ color: "var(--ink-3)" }}>No transaction sizes available yet.</p>}

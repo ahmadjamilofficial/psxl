@@ -32,6 +32,7 @@
 - [Why PSXL](#-why-psxl)
 - [Features](#-features)
 - [Architecture](#-architecture)
+- [Deployment & Cache Resilience](#-deployment--cache-resilience)
 - [Tech Stack](#-tech-stack)
 - [Quick Start](#-quick-start)
 - [Environment Variables](#-environment-variables)
@@ -144,6 +145,18 @@ Every mutation (parse, post, reconcile, compute) writes a `sha256(prev_hash + pa
 3. Every extraction writes a `confidence_score`; anything < 0.75 → review queue
 4. Every mutation appends to the immutable hash-chained `audit_log`
 5. Multi-tenant isolation via `org_id` + Postgres RLS on every table
+
+---
+
+## Deployment & Cache Resilience
+
+PSXL uses fingerprinted JavaScript and CSS assets for production deployments. Vercel response headers are configured so that:
+
+- Application routes and HTML responses are not stored by browser or CDN caches, helping clients receive the current asset manifest after a deployment.
+- Fingerprinted files under `/assets/` are cached as immutable for one year. A new build generates new asset URLs when file contents change.
+- If a browser encounters a stale dynamically imported module after a deployment, the client-side stale-chunk handler retries by reloading the current page with a cache-busting query parameter. A short session guard prevents repeated reload loops.
+
+Deploy the complete build output together so the route manifest and its referenced hashed assets stay in sync. If a missing-chunk error persists, reload the page and investigate the deployed asset list and Vercel deployment status. Avoid disabling caching for fingerprinted assets, which are designed to be immutable.
 
 ---
 

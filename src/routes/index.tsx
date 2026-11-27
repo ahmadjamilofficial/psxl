@@ -16,12 +16,11 @@ import { LANDING_SUGGESTIONS } from "@/components/site/LandingComposer";
 import { Footer } from "@/components/site/Footer";
 import { LandingNavbar } from "@/components/site/LandingNavbar";
 import { StatusPill, Container, Reveal, Panel } from "@/components/kit";
-import { PeriodToggle } from "@/components/site/PlanCards";
 import { useAuth } from "@/lib/auth-context";
 import { useState, useEffect } from "react";
 import type { AgentAttachment } from "@/lib/agent-service";
 import { setPendingFiles, setPendingPrompt } from "@/lib/chat-session";
-import { type ChargePeriod, kelviqCheckoutUrl } from "@/lib/plans";
+import { kelviqCheckoutUrl } from "@/lib/plans";
 import {
   Accordion,
   AccordionContent,
@@ -155,7 +154,6 @@ const tiers = [
     id: "standard" as const,
     name: "Standard",
     price: "$5",
-    yearly: "$50",
     note: "For individual traders",
     popular: false,
     trialDays: 7,
@@ -172,7 +170,6 @@ const tiers = [
     id: "pro" as const,
     name: "Pro",
     price: "$12",
-    yearly: "$120",
     note: "For active traders and professionals",
     popular: true,
     trialDays: 0,
@@ -234,7 +231,6 @@ function Home() {
   const [attachments, setAttachments] = useState<AgentAttachment[]>([]);
   const [isBusy, setIsBusy] = useState(false);
   const [pendingFileList, setPendingFileList] = useState<File[]>([]);
-  const [billingPeriod, setBillingPeriod] = useState<ChargePeriod>("monthly");
 
   // Redirect logged-in users to dashboard
   useEffect(() => {
@@ -821,7 +817,7 @@ function Home() {
               Simple, transparent pricing
             </h2>
             <p className="mt-3 text-sm" style={{ color: "var(--ink-2)" }}>
-              Basic is $0. Standard is $5/mo or $50/yr. Pro is $12/mo or $120/yr. A 7-day trial is
+              Basic is $0. Standard is $5/month. Pro is $12/month. A 7-day trial is
               only on Standard, from the trial card.
             </p>
           </div>
@@ -878,10 +874,10 @@ function Home() {
                     {t.id === "free" && <StatusPill tone="ok">Free</StatusPill>}
                   </div>
                   <div className="tnum mb-1 text-3xl font-bold">
-                    {billingPeriod === "yearly" ? t.yearly : t.price}
+                    {t.price}
                     {t.id !== "free" && (
                       <span className="text-sm font-normal" style={{ color: "var(--ink-3)" }}>
-                        {billingPeriod === "yearly" ? "/yr" : "/mo"}
+                        /mo
                       </span>
                     )}
                   </div>

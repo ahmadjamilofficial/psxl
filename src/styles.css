@@ -73,7 +73,7 @@
   --chat-scrollbar-track: transparent;
 
   /* ── Type ─────────────────────────────────────────────────────────────── */
-  --font-heading: "Helvetica Now Display Bold", "Inter", system-ui, sans-serif;
+  --font-heading: "Inter", system-ui, sans-serif;
   --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
 
   /* ── Ink ──────────────────────────────────────────────────────────────── */

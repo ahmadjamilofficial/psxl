@@ -106,7 +106,7 @@ async function processKelviqEvent(
       const subscriptionId = data.subscription_id as string;
       const { data: existingSubscription } = await supabase
         .from("subscriptions")
-        .select("org_id, metadata")
+        .select("org_id, metadata, current_period_end")
         .eq("kelviq_subscription_id", subscriptionId)
         .maybeSingle();
       const metadata = (existingSubscription?.metadata ?? {}) as Record<string, unknown>;
@@ -132,7 +132,7 @@ async function processKelviqEvent(
             status: (data.status as string) || "active",
             current_period_end: data.current_period_end
               ? new Date(data.current_period_end as string).toISOString()
-              : null,
+              : existingSubscription.current_period_end,
             cancel_at_period_end: (data.cancel_at_period_end as boolean) || false,
             metadata: { ...metadata, ...(data.metadata ?? {}) } as never,
           })

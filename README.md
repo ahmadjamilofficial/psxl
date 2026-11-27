@@ -432,8 +432,8 @@ The engine is a pure function with zero side effects — fully unit-testable and
 |---|---|---|---|---|
 | **Basic** | $0 | — | 30 / month | Core ledger, limited AI |
 | **Standard trial** | $0 for 7 days | 7 days | Standard limits | Started only from the trial card |
-| **Standard** | $9/mo or $45/yr | — | 500 / month | Stronger AI, anomaly detection, team invites |
-| **Pro** | $25/mo or $90/yr | — | Unlimited | Highest AI quality, tax-loss harvesting, live integrations |
+| **Standard** | $5/mo or $50/yr | — | 500 / month | Stronger AI, anomaly detection, team invites |
+| **Pro** | $12/mo or $120/yr | — | Unlimited | Highest AI quality, tax-loss harvesting, live integrations |
 
 Checkout is Kelviq. Switching back to Basic is in-app (no blank checkout). Paid access uses a strict 30-day or 365-day clock and can be restored if that window is still valid.
 

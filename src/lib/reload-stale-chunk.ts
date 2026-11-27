@@ -15,9 +15,9 @@ export function isStaleChunkError(error: unknown): boolean {
 
 export function reloadOnceForStaleChunk(): boolean {
   if (typeof window === "undefined") return false;
+  const now = Date.now();
   try {
     const last = Number(sessionStorage.getItem(RELOAD_KEY) ?? "0");
-    const now = Date.now();
     if (last && now - last < RELOAD_WINDOW_MS) return false;
     sessionStorage.setItem(RELOAD_KEY, String(now));
   } catch {

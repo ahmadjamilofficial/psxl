@@ -14,7 +14,7 @@ export const Route = createFileRoute("/pricing")({
       {
         name: "description",
         content:
-          brandText("Compare {{brand}} plans: Basic at $0, Standard at $9/month or $45/year with a 7-day free trial, Pro at $25/month or $90/year."),
+          brandText("Compare {{brand}} plans: Basic at $0, Standard at $5/month or $50/year with a 7-day free trial, Pro at $12/month or $120/year."),
       },
       { property: "og:title", content: brandText("{{brand}} Pricing") },
       {

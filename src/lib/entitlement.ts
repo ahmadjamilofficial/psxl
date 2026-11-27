@@ -142,56 +142,25 @@ export function resolveEntitlement(opts: {
   currentPeriodEnd?: string | null;
   createdAt?: string | null;
 }): Entitlement {
+  // A browser clock or localStorage value is never proof of payment.
+  // Only a provider-confirmed subscription row with a live status and a
+  // future server-side billing period end can unlock a paid plan.
   const subPlan = (opts.subPlan ?? "free").toLowerCase();
-  const status = (opts.subStatus ?? "active").toLowerCase();
-  const period: ChargePeriod = opts.chargePeriod === "YEARLY" ? "yearly" : "monthly";
-  const paidSub = (subPlan === "standard" || subPlan === "pro") && ["active", "trialing"].includes(status);
-
-  let clock = getPaidClock(opts.orgId, opts.userId);
-
-  if (paidSub && opts.orgId && opts.userId) {
-    clock = ensurePaidClock({
-      orgId: opts.orgId,
-      userId: opts.userId,
-      plan: subPlan,
-      period,
-      startedAt: opts.createdAt,
-      serverEndsAt: opts.currentPeriodEnd,
-    });
-  }
-
-  if (clock && isPaidExpired(clock)) {
-    return {
-      featurePlan: "free",
-      paidPlan: clock.plan,
-      periodEndsAt: clock.endsAt,
-      daysLeft: 0,
-      paused: clock.paused,
-      expired: true,
-      canRestore: false,
-    };
-  }
-
-  if (clock && !isPaidExpired(clock)) {
-    const daysLeft = daysLeftFromIso(clock.endsAt) ?? 0;
-    return {
-      featurePlan: clock.paused ? "free" : clock.plan,
-      paidPlan: clock.plan,
-      periodEndsAt: clock.endsAt,
-      daysLeft,
-      paused: clock.paused,
-      expired: false,
-      canRestore: clock.paused,
-    };
-  }
+  const status = (opts.subStatus ?? "inactive").toLowerCase();
+  const paidPlan = subPlan === "standard" || subPlan === "pro" ? subPlan : null;
+  const endTime = opts.currentPeriodEnd ? new Date(opts.currentPeriodEnd).getTime() : Number.NaN;
+  const hasValidPeriod = Number.isFinite(endTime) && endTime > Date.now();
+  const active = Boolean(paidPlan && status === "active" && hasValidPeriod);
+  const trialing = Boolean(paidPlan && status === "trialing" && hasValidPeriod);
+  const daysLeft = hasValidPeriod ? daysLeftFromIso(opts.currentPeriodEnd) ?? 0 : 0;
 
   return {
-    featurePlan: paidSub ? (subPlan as PlanId) : "free",
-    paidPlan: paidSub ? (subPlan as "standard" | "pro") : null,
-    periodEndsAt: opts.currentPeriodEnd ?? null,
-    daysLeft: daysLeftFromIso(opts.currentPeriodEnd) ?? 0,
+    featurePlan: active || trialing ? (paidPlan as PlanId) : "free",
+    paidPlan: active || trialing ? paidPlan : null,
+    periodEndsAt: hasValidPeriod ? opts.currentPeriodEnd ?? null : null,
+    daysLeft,
     paused: false,
-    expired: false,
+    expired: Boolean(paidPlan && !hasValidPeriod),
     canRestore: false,
   };
 }

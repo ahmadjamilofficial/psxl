@@ -224,9 +224,9 @@ export async function runNeedleLocalFallback(
   return [
     "### Local extraction — Needle 3",
     "Extracted " + safeTransactions.length + " transaction row(s) from the supplied source.",
-    "\`\`\`json",
+    String.fromCharCode(96, 96, 96) + "json",
     JSON.stringify({ intent: result.intent ?? "statement_extraction", transactions: safeTransactions, notes }, null, 2),
-    "\`\`\`",
+    String.fromCharCode(96, 96, 96),
     "**Safety:** This is a local extraction draft only. Nothing was inserted, updated, reconciled, or posted to your PSXL ledger. Review the source excerpts and values before using them.",
   ].join("\n\n");
 }

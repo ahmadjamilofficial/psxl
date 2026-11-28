@@ -42,18 +42,19 @@ async function download(url, destination, expectedSha256, expectedSize) {
 async function ensureModel() {
   await mkdir(modelDir, { recursive: true });
   const destination = join(modelDir, "needle3.cact");
+  const licensePath = join(modelDir, "LICENSE");
   if (await exists(destination)) {
     const bytes = await readFile(destination);
     const valid = bytes.length === MODEL_SIZE && createHash("sha256").update(bytes).digest("hex") === MODEL_SHA256;
     if (valid) {
       console.log("[PSXL Needle] Verified cached Needle 3 model; skipping download.");
+      if (!(await exists(licensePath))) await download(MODEL_LICENSE_URL, licensePath);
       return;
     }
     await rm(destination, { force: true });
   }
   console.log("[PSXL Needle] Downloading Needle 3 weights from Hugging Face…");
   await download(MODEL_URL, destination, MODEL_SHA256, MODEL_SIZE);
-  const licensePath = join(modelDir, "LICENSE");
   if (!(await exists(licensePath))) await download(MODEL_LICENSE_URL, licensePath);
 }
 

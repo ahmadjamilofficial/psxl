@@ -137,7 +137,7 @@ async function attachmentText(parts: LocalMessagePart[]): Promise<{ text: string
   return { text: sections.join("\n\n").slice(0, 5_000), unsupported };
 }
 
-async function getNeedle(onDownloadProgress?: (progress: DownloadProgress) => void): Promise<NeedleSession> {
+async function getNeedle(): Promise<NeedleSession> {
   if (!needleSessionPromise) {
     needleSessionPromise = (async () => {
       // Loaded from the build-downloaded same-origin browser runtime. The model
@@ -150,7 +150,6 @@ async function getNeedle(onDownloadProgress?: (progress: DownloadProgress) => vo
         wasmUrl: "/vendor/cactus-needle/vendor/needle.wasm",
         modelSha256: "c9d915eca282ed42d1a09b143b592adb4cc6744ffe2d294adf5cfc5548170c38",
         cache: true,
-        onDownloadProgress,
       });
     })().catch((error) => {
       needleSessionPromise = null;
@@ -158,6 +157,17 @@ async function getNeedle(onDownloadProgress?: (progress: DownloadProgress) => vo
     });
   }
   return needleSessionPromise;
+}
+
+// Warm the local model in the background before a cloud-provider failure.
+// The module-level promise keeps one worker/session alive for this tab, while
+// cactus-needle persists verified model and WASM bytes in CacheStorage.
+export function preloadNeedleLocal(): void {
+  if (typeof window === "undefined" || needleSessionPromise) return;
+  void getNeedle().catch((error) => {
+    // Warm-up failures must not block cloud chat; fallback can retry later.
+    console.warn("[PSXL] Local assistant warm-up failed", error);
+  });
 }
 
 export function shouldUseNeedleFallback(error: unknown): boolean {

@@ -58,8 +58,8 @@ export function deterministicAssistantAnswer(messages: unknown[]): string | null
     return `${BRAND_NAME} follows Connect → Verify → Sync → Review → Post → Monitor. Connect a source, verify it, sync the records, inspect any low-confidence or unmatched items, and then monitor freshness and exceptions from one workspace.`;
   }
 
-  if (/^(who are you|what are you|what is your name)$/.test(normalized)) {
-    return `I’m ${ASSISTANT_NAME}, the AI assistant built into ${BRAND_NAME}. I can explain the product, inspect your connected financial workspace, and help with ledger and reconciliation tasks. Configured third-party AI providers may power responses, but they do not replace your approval for material changes.`;
+  if (/^(who are you|what are you|what is your name|which model are you|what model are you|which ai are you|what ai are you)$/.test(normalized)) {
+    return `I’m ${ASSISTANT_NAME}, your assistant inside ${BRAND_NAME}.`;
   }
 
   return null;

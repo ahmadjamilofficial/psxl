@@ -52,6 +52,7 @@ import { supabase } from "@/lib/supabase";
 import { withTimeout } from "@/lib/utils";
 import { useDeleteChatThread, AI_PLAN_MONTHLY_LIMITS } from "@/lib/data-hooks";
 import { loadComposerDraft, saveComposerDraft, clearComposerDraft } from "@/lib/chat-session";
+import { runNeedleLocalFallback, shouldUseNeedleFallback } from "@/lib/needle-local";
 
 // ── Suggestion chips ──────────────────────────────────────────────────────────
 
@@ -879,6 +880,10 @@ function Chat({
   const queryClient = useQueryClient();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
+  const [needleFallback, setNeedleFallback] = useState<string | null>(null);
+  const [needleFallbackLoading, setNeedleFallbackLoading] = useState(false);
+  const [needleFallbackProgress, setNeedleFallbackProgress] = useState<number | null>(null);
+  const messagesRef = useRef<UIMessage[]>(initial);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Messages that existed when the thread opened never animate in; only new
@@ -896,10 +901,34 @@ function Chat({
       void queryClient.invalidateQueries({ queryKey: ["chat_threads", user?.id] });
     },
     onError: (cause) => {
-      // Don't show a generic toast — the ErrorBanner in the UI handles it
+      // Cloud provider outages can fall back to local Needle 3 for structured
+      // statement extraction. Plan and credit errors are deliberately excluded.
       console.error("[PSXL] Chat error", cause);
+      if (!shouldUseNeedleFallback(cause)) return;
+      setNeedleFallback(null);
+      setNeedleFallbackLoading(true);
+      setNeedleFallbackProgress(null);
+      void runNeedleLocalFallback(messagesRef.current, (progress) => {
+        setNeedleFallbackProgress(progress.percentage ?? null);
+      })
+        .then(setNeedleFallback)
+        .catch((fallbackError) => {
+          const detail = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
+          setNeedleFallback(
+            "Needle 3 could not start locally: " + detail + ". No ledger changes were made. You can retry the cloud AI when its provider recovers.",
+          );
+        })
+        .finally(() => {
+          setNeedleFallbackLoading(false);
+          setNeedleFallbackProgress(null);
+        });
+    }
     },
   });
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   // ── Pending prompt from landing composer ──────────────────────────────────
   useEffect(() => {
@@ -1186,8 +1215,35 @@ function Chat({
             </div>
           )}
 
-          {/* Quota / provider / timeout error banners */}
-          {error && (
+          {/* Local Needle 3 is a structured-extraction fallback, not a general chat model. */}
+          {needleFallbackLoading && (
+            <div
+              className="mx-auto my-3 max-w-[48rem] rounded-2xl border px-4 py-3 text-xs"
+              style={{ borderColor: "var(--hairline)", background: "var(--surface)", color: "var(--ink-2)" }}
+              role="status"
+              aria-live="polite"
+            >
+              <p className="font-semibold" style={{ color: "var(--color-text)" }}>Cloud AI unavailable — starting local Needle 3</p>
+              <p className="mt-1">
+                {needleFallbackProgress === null
+                  ? "Preparing the on-device model. Its first download is approximately 35 MB and is cached on this device."
+                  : "Downloading and verifying Needle 3: " + Math.round(needleFallbackProgress) + "%"}
+              </p>
+            </div>
+          )}
+          {needleFallback && (
+            <Message from="assistant" className="wab-msg-in">
+              <MessageContent>
+                <div className="mb-2 inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[10px] font-semibold"
+                  style={{ borderColor: "var(--hairline)", color: "var(--color-accent)" }}>
+                  <Zap size={11} /> Local Needle 3
+                </div>
+                <MessageResponse>{needleFallback}</MessageResponse>
+              </MessageContent>
+            </Message>
+          )}
+          {/* Never bypass PSXL credit limits; only provider outages invoke Needle. */}
+          {error && !needleFallback && !needleFallbackLoading && (
             <ErrorBanner
               message={errorMessage}
               plan={plan}
@@ -1196,7 +1252,10 @@ function Chat({
                 if (lastUserMsg) {
                   const textParts = lastUserMsg.parts.filter((p) => p.type === "text");
                   const text = textParts.map((p) => (p as { text: string }).text).join(" ");
-                  if (text) void sendMessage({ text });
+                  if (text) {
+                    setNeedleFallback(null);
+                    void sendMessage({ text });
+                  }
                 }
               }}
             />
@@ -1234,6 +1293,8 @@ function Chat({
               const trimmed = (text ?? "").trim();
               if (!trimmed && (!files || files.length === 0)) return;
               clearComposerDraft(threadId);
+              setNeedleFallback(null);
+              setNeedleFallbackLoading(false);
               // Collapse the box back to one line as soon as the message leaves.
               requestAnimationFrame(() => {
                 if (textareaRef.current) textareaRef.current.style.height = "";

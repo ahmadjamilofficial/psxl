@@ -51,7 +51,7 @@ import { supabase } from "@/lib/supabase";
 import { withTimeout } from "@/lib/utils";
 import { useDeleteChatThread, AI_PLAN_MONTHLY_LIMITS } from "@/lib/data-hooks";
 import { loadComposerDraft, saveComposerDraft, clearComposerDraft } from "@/lib/chat-session";
-import { runNeedleLocalFallback, shouldUseNeedleFallback } from "@/lib/needle-local";
+import { preloadNeedleLocal, runNeedleLocalFallback, shouldUseNeedleFallback } from "@/lib/needle-local";
 
 // ── Suggestion chips ──────────────────────────────────────────────────────────
 
@@ -918,6 +918,11 @@ function Chat({
         });
     },
   });
+
+  // Warm Needle in the background as soon as the parser workspace opens.
+  useEffect(() => {
+    preloadNeedleLocal();
+  }, []);
 
   useEffect(() => {
     messagesRef.current = messages;

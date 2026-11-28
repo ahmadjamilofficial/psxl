@@ -96,7 +96,7 @@ DROP POLICY IF EXISTS "agent_role_catalog_members_read" ON public.agent_role_cat
 CREATE POLICY "agent_role_catalog_members_read"
   ON public.agent_role_catalog FOR SELECT
   USING (auth.uid() IS NOT NULL AND role_code IN (
-    'ingestion_sync','reconciliation','exception_triage','compliance_audit','reliability_maintenance'
+    'ingestion_sync','reconciliation','exception_triage','compliance_audit'
   ));
 
 DROP POLICY IF EXISTS "agent_role_configs_members_read" ON public.agent_role_configs;

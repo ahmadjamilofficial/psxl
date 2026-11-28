@@ -11,6 +11,7 @@ const modelDir = join(publicDir, "models");
 const vendorDir = join(publicDir, "vendor", "cactus-needle");
 
 const MODEL_URL = "https://huggingface.co/Cactus-Compute/needle3/resolve/main/needle3.cact";
+const MODEL_LICENSE_URL = "https://huggingface.co/Cactus-Compute/needle3/resolve/main/LICENSE";
 const MODEL_SHA256 = "c9d915eca282ed42d1a09b143b592adb4cc6744ffe2d294adf5cfc5548170c38";
 const MODEL_SIZE = 35_335_380;
 const WRAPPER_VERSION = "0.3.0";
@@ -52,6 +53,8 @@ async function ensureModel() {
   }
   console.log("[PSXL Needle] Downloading Needle 3 weights from Hugging Face…");
   await download(MODEL_URL, destination, MODEL_SHA256, MODEL_SIZE);
+  const licensePath = join(modelDir, "LICENSE");
+  if (!(await exists(licensePath))) await download(MODEL_LICENSE_URL, licensePath);
 }
 
 async function ensureBrowserRuntime() {

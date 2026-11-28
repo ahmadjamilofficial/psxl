@@ -4,16 +4,16 @@ import { ParserWorkspace } from "@/components/agent/ParserWorkspace";
 export const Route = createFileRoute("/app/parser/$threadId")({
   head: () => ({
     meta: [
-      { title: "Audit Workspace | Wab" },
+      { title: "Ask PSXL | PSXL" },
       {
         name: "description",
         content:
           "Review broker documents, reconcile trades, and approve ledger updates with the Wab agent.",
       },
-      { property: "og:title", content: "Audit Workspace | Wab" },
+      { property: "og:title", content: "Ask PSXL | PSXL" },
       {
         property: "og:description",
-        content: "AI-assisted trade reconciliation with approval-gated ledger execution.",
+        content: "AI-assisted trade reconciliation with approval-gated ledger execution in PSXL.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

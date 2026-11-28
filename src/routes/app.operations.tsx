@@ -165,6 +165,31 @@ function OperationsPage() {
             </div>
           )}
           <section className="mt-8 rounded-2xl p-5" style={{ border: "1px solid var(--hairline)", background: "var(--surface)" }}>
+            <div className="mb-4">
+              <h2 className="text-sm font-semibold">Recent agent activity</h2>
+              <p className="mt-1 text-xs" style={{ color: "var(--ink-3)" }}>Live job history from this workspace, not sample activity.</p>
+            </div>
+            {data?.recentJobs.length ? (
+              <div className="divide-y" style={{ borderColor: "var(--hairline)" }}>
+                {data.recentJobs.map((job) => (
+                  <div key={job.id} className="py-3 first:pt-0 last:pb-0">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-sm font-medium">{job.trigger_type.replaceAll("_", " ")}</span>
+                      <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase" style={{
+                        color: job.status === "done" ? "var(--ok)" : job.status === "failed" || job.status === "failed_invariant" || job.status === "dead_letter" ? "var(--bad)" : "var(--color-accent)",
+                        background: "var(--surface-2)",
+                      }}>{job.status.replaceAll("_", " ")}</span>
+                    </div>
+                    <p className="mt-1 text-[11px]" style={{ color: "var(--ink-3)" }}>{new Date(job.created_at).toLocaleString()}</p>
+                    {job.error_message && <p className="mt-2 text-xs leading-5" style={{ color: "var(--bad)" }}>{job.error_message}</p>}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm" style={{ color: "var(--ink-2)" }}>No agent jobs have been recorded for this workspace in the last 30 days. New imports and supported automation triggers will appear here.</p>
+            )}
+          </section>
+          <section className="mt-8 rounded-2xl p-5" style={{ border: "1px solid var(--hairline)", background: "var(--surface)" }}>
             <div className="flex items-start gap-3">
               <PauseCircle size={17} style={{ color: "var(--warn)" }} />
               <div>

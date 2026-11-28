@@ -13,10 +13,20 @@ type LocalMessage = {
 
 type DownloadProgress = { loaded: number; total?: number; percentage?: number };
 
+type NeedleJsonSchema = {
+  type?: string | readonly string[];
+  description?: string;
+  properties?: Readonly<Record<string, NeedleJsonSchema>>;
+  required?: readonly string[];
+  items?: NeedleJsonSchema;
+  enum?: readonly (string | number | boolean | null)[];
+  [keyword: string]: unknown;
+};
+
 type NeedleSession = {
   extract: (
     input: string,
-    schema: Record<string, unknown>,
+    schema: NeedleJsonSchema,
     options?: { strict?: boolean; maxNewTokens?: number; abortSignal?: AbortSignal },
   ) => Promise<unknown | null>;
 };
@@ -34,7 +44,7 @@ type NeedleBrowserModule = {
 
 let needleSessionPromise: Promise<NeedleSession> | null = null;
 
-const TRANSACTION_SCHEMA: Record<string, unknown> = {
+const TRANSACTION_SCHEMA: NeedleJsonSchema = {
   type: "object",
   additionalProperties: false,
   properties: {

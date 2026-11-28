@@ -26,6 +26,7 @@ type NeedleBrowserModule = {
     model: string;
     workerUrl: string;
     wasmUrl: string;
+    modelSha256: string;
     cache: boolean;
     onDownloadProgress?: (progress: DownloadProgress) => void;
   }) => Promise<NeedleSession>;
@@ -136,6 +137,7 @@ async function getNeedle(onDownloadProgress?: (progress: DownloadProgress) => vo
         model: "/models/needle3.cact",
         workerUrl: "/vendor/cactus-needle/dist/browser/worker.js",
         wasmUrl: "/vendor/cactus-needle/vendor/needle.wasm",
+        modelSha256: "c9d915eca282ed42d1a09b143b592adb4cc6744ffe2d294adf5cfc5548170c38",
         cache: true,
         onDownloadProgress,
       });

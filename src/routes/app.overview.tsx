@@ -183,7 +183,7 @@ function FoundSomethingSection({
         type: "ANOMALY_DETECTED",
         severity: "HIGH",
         title: `${warnFlags.length} Potential Discrepanc${warnFlags.length > 1 ? "ies" : "y"} Detected`,
-        summary: `${BRAND_NAME} identified ${warnFlags.length} transactions with reconciliation warnings that may affect your financial records.`,
+        summary: `${brandText("{{brand}} identified")} ${warnFlags.length} transactions with reconciliation warnings that may affect your financial records.`,
         confidence: 0.88,
         evidenceCount: warnFlags.length,
         actionLabel: "Review",
@@ -272,7 +272,11 @@ function MissionControl() {
     return () => { cancelled = true; };
   }, [profile?.org_id]);
 
-  const { data: transactions = [], isLoading: txLoading } = useTransactions(profile?.org_id);
+  const {
+    data: transactions = [],
+    isLoading: txLoading,
+    isReady: transactionsReady,
+  } = useTransactions(profile?.org_id);
   const { data: flags = [] } = useReconciliationFlags(profile?.org_id);
 
   const currentYear = String(new Date().getFullYear());
@@ -375,8 +379,23 @@ function MissionControl() {
     .sort((a, b) => b.count - a.count)
     .slice(0, 8);
 
-  // Empty state
-  if (!txLoading && transactions.length === 0) {
+  // Do not interpret auth/profile hydration as an empty ledger. The empty state
+  // is valid only after the first organization-scoped fetch has completed.
+  if (!transactionsReady) {
+    return (
+      <div className="mx-auto w-full max-w-[1440px] space-y-5 p-3 sm:p-6">
+        <div className="h-10 w-64 animate-pulse rounded-lg bg-surface" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[0, 1, 2, 3].map((item) => (
+            <div key={item} className="h-32 animate-pulse rounded-xl bg-surface" />
+          ))}
+        </div>
+        <div className="h-[420px] animate-pulse rounded-xl bg-surface" />
+      </div>
+    );
+  }
+
+  if (!txLoading && transactionsReady && transactions.length === 0) {
     return (
       <div className="flex min-h-[80vh] flex-col items-center justify-center p-6 text-center">
         <div

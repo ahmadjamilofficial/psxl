@@ -23,6 +23,7 @@ import { Route as SecurityRouteImport } from './routes/security'
 import { Route as SigninRouteImport } from './routes/signin'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
+import { Route as ApiFxRatesRouteImport } from './routes/api/fx-rates'
 import { Route as ApiIntelligenceRouteImport } from './routes/api/intelligence'
 import { Route as ApiMarketDataRouteImport } from './routes/api/market-data'
 import { Route as ApiSheetsImportRouteImport } from './routes/api/sheets-import'
@@ -31,11 +32,14 @@ import { Route as AppActivityRouteImport } from './routes/app.activity'
 import { Route as AppAgentRouteImport } from './routes/app.agent'
 import { Route as AppAuditTrailRouteImport } from './routes/app.audit-trail'
 import { Route as AppBillingRouteImport } from './routes/app.billing'
+import { Route as AppBrokerDeskRouteImport } from './routes/app.broker-desk'
 import { Route as AppChatRouteImport } from './routes/app.chat'
 import { Route as AppInsightsRouteImport } from './routes/app.insights'
 import { Route as AppIntegrationsRouteImport } from './routes/app.integrations'
 import { Route as AppInvestigationsRouteImport } from './routes/app.investigations'
+import { Route as AppInvestorIntelligenceRouteImport } from './routes/app.investor-intelligence'
 import { Route as AppLedgerRouteImport } from './routes/app.ledger'
+import { Route as AppMarketIntelligenceRouteImport } from './routes/app.market-intelligence'
 import { Route as AppOverviewRouteImport } from './routes/app.overview'
 import { Route as AppParserRouteImport } from './routes/app.parser'
 import { Route as AppReconciliationRouteImport } from './routes/app.reconciliation'
@@ -129,6 +133,11 @@ const ApiChatRoute = ApiChatRouteImport.update({
   path: '/api/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiFxRatesRoute = ApiFxRatesRouteImport.update({
+  id: '/api/fx-rates',
+  path: '/api/fx-rates',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiIntelligenceRoute = ApiIntelligenceRouteImport.update({
   id: '/api/intelligence',
   path: '/api/intelligence',
@@ -169,6 +178,11 @@ const AppBillingRoute = AppBillingRouteImport.update({
   path: '/billing',
   getParentRoute: () => AppRoute,
 } as any)
+const AppBrokerDeskRoute = AppBrokerDeskRouteImport.update({
+  id: '/broker-desk',
+  path: '/broker-desk',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppChatRoute = AppChatRouteImport.update({
   id: '/chat',
   path: '/chat',
@@ -189,9 +203,19 @@ const AppInvestigationsRoute = AppInvestigationsRouteImport.update({
   path: '/investigations',
   getParentRoute: () => AppRoute,
 } as any)
+const AppInvestorIntelligenceRoute = AppInvestorIntelligenceRouteImport.update({
+  id: '/investor-intelligence',
+  path: '/investor-intelligence',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppLedgerRoute = AppLedgerRouteImport.update({
   id: '/ledger',
   path: '/ledger',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMarketIntelligenceRoute = AppMarketIntelligenceRouteImport.update({
+  id: '/market-intelligence',
+  path: '/market-intelligence',
   getParentRoute: () => AppRoute,
 } as any)
 const AppOverviewRoute = AppOverviewRouteImport.update({
@@ -320,6 +344,7 @@ export interface FileRoutesByFullPath {
   '/signin': typeof SigninRoute
   '/signup': typeof SignupRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/fx-rates': typeof ApiFxRatesRoute
   '/api/intelligence': typeof ApiIntelligenceRoute
   '/api/market-data': typeof ApiMarketDataRoute
   '/api/sheets-import': typeof ApiSheetsImportRoute
@@ -327,11 +352,14 @@ export interface FileRoutesByFullPath {
   '/app/agent': typeof AppAgentRoute
   '/app/audit-trail': typeof AppAuditTrailRoute
   '/app/billing': typeof AppBillingRoute
+  '/app/broker-desk': typeof AppBrokerDeskRoute
   '/app/chat': typeof AppChatRoute
   '/app/insights': typeof AppInsightsRoute
   '/app/integrations': typeof AppIntegrationsRoute
   '/app/investigations': typeof AppInvestigationsRoute
+  '/app/investor-intelligence': typeof AppInvestorIntelligenceRoute
   '/app/ledger': typeof AppLedgerRoute
+  '/app/market-intelligence': typeof AppMarketIntelligenceRoute
   '/app/overview': typeof AppOverviewRoute
   '/app/parser': typeof AppParserRouteWithChildren
   '/app/reconciliation': typeof AppReconciliationRoute
@@ -370,6 +398,7 @@ export interface FileRoutesByTo {
   '/signin': typeof SigninRoute
   '/signup': typeof SignupRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/fx-rates': typeof ApiFxRatesRoute
   '/api/intelligence': typeof ApiIntelligenceRoute
   '/api/market-data': typeof ApiMarketDataRoute
   '/api/sheets-import': typeof ApiSheetsImportRoute
@@ -377,11 +406,14 @@ export interface FileRoutesByTo {
   '/app/agent': typeof AppAgentRoute
   '/app/audit-trail': typeof AppAuditTrailRoute
   '/app/billing': typeof AppBillingRoute
+  '/app/broker-desk': typeof AppBrokerDeskRoute
   '/app/chat': typeof AppChatRoute
   '/app/insights': typeof AppInsightsRoute
   '/app/integrations': typeof AppIntegrationsRoute
   '/app/investigations': typeof AppInvestigationsRoute
+  '/app/investor-intelligence': typeof AppInvestorIntelligenceRoute
   '/app/ledger': typeof AppLedgerRoute
+  '/app/market-intelligence': typeof AppMarketIntelligenceRoute
   '/app/overview': typeof AppOverviewRoute
   '/app/reconciliation': typeof AppReconciliationRoute
   '/app/review': typeof AppReviewRoute
@@ -421,6 +453,7 @@ export interface FileRoutesById {
   '/signin': typeof SigninRoute
   '/signup': typeof SignupRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/fx-rates': typeof ApiFxRatesRoute
   '/api/intelligence': typeof ApiIntelligenceRoute
   '/api/market-data': typeof ApiMarketDataRoute
   '/api/sheets-import': typeof ApiSheetsImportRoute
@@ -428,11 +461,14 @@ export interface FileRoutesById {
   '/app/agent': typeof AppAgentRoute
   '/app/audit-trail': typeof AppAuditTrailRoute
   '/app/billing': typeof AppBillingRoute
+  '/app/broker-desk': typeof AppBrokerDeskRoute
   '/app/chat': typeof AppChatRoute
   '/app/insights': typeof AppInsightsRoute
   '/app/integrations': typeof AppIntegrationsRoute
   '/app/investigations': typeof AppInvestigationsRoute
+  '/app/investor-intelligence': typeof AppInvestorIntelligenceRoute
   '/app/ledger': typeof AppLedgerRoute
+  '/app/market-intelligence': typeof AppMarketIntelligenceRoute
   '/app/overview': typeof AppOverviewRoute
   '/app/parser': typeof AppParserRouteWithChildren
   '/app/reconciliation': typeof AppReconciliationRoute
@@ -474,6 +510,7 @@ export interface FileRouteTypes {
     | '/signin'
     | '/signup'
     | '/api/chat'
+    | '/api/fx-rates'
     | '/api/intelligence'
     | '/api/market-data'
     | '/api/sheets-import'
@@ -481,11 +518,14 @@ export interface FileRouteTypes {
     | '/app/agent'
     | '/app/audit-trail'
     | '/app/billing'
+    | '/app/broker-desk'
     | '/app/chat'
     | '/app/insights'
     | '/app/integrations'
     | '/app/investigations'
+    | '/app/investor-intelligence'
     | '/app/ledger'
+    | '/app/market-intelligence'
     | '/app/overview'
     | '/app/parser'
     | '/app/reconciliation'
@@ -524,6 +564,7 @@ export interface FileRouteTypes {
     | '/signin'
     | '/signup'
     | '/api/chat'
+    | '/api/fx-rates'
     | '/api/intelligence'
     | '/api/market-data'
     | '/api/sheets-import'
@@ -531,11 +572,14 @@ export interface FileRouteTypes {
     | '/app/agent'
     | '/app/audit-trail'
     | '/app/billing'
+    | '/app/broker-desk'
     | '/app/chat'
     | '/app/insights'
     | '/app/integrations'
     | '/app/investigations'
+    | '/app/investor-intelligence'
     | '/app/ledger'
+    | '/app/market-intelligence'
     | '/app/overview'
     | '/app/reconciliation'
     | '/app/review'
@@ -574,6 +618,7 @@ export interface FileRouteTypes {
     | '/signin'
     | '/signup'
     | '/api/chat'
+    | '/api/fx-rates'
     | '/api/intelligence'
     | '/api/market-data'
     | '/api/sheets-import'
@@ -581,11 +626,14 @@ export interface FileRouteTypes {
     | '/app/agent'
     | '/app/audit-trail'
     | '/app/billing'
+    | '/app/broker-desk'
     | '/app/chat'
     | '/app/insights'
     | '/app/integrations'
     | '/app/investigations'
+    | '/app/investor-intelligence'
     | '/app/ledger'
+    | '/app/market-intelligence'
     | '/app/overview'
     | '/app/parser'
     | '/app/reconciliation'
@@ -626,6 +674,7 @@ export interface RootRouteChildren {
   SigninRoute: typeof SigninRoute
   SignupRoute: typeof SignupRoute
   ApiChatRoute: typeof ApiChatRoute
+  ApiFxRatesRoute: typeof ApiFxRatesRoute
   ApiIntelligenceRoute: typeof ApiIntelligenceRoute
   ApiMarketDataRoute: typeof ApiMarketDataRoute
   ApiSheetsImportRoute: typeof ApiSheetsImportRoute
@@ -743,6 +792,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiChatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/fx-rates': {
+      id: '/api/fx-rates'
+      path: '/api/fx-rates'
+      fullPath: '/api/fx-rates'
+      preLoaderRoute: typeof ApiFxRatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/intelligence': {
       id: '/api/intelligence'
       path: '/api/intelligence'
@@ -799,6 +855,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppBillingRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/broker-desk': {
+      id: '/app/broker-desk'
+      path: '/broker-desk'
+      fullPath: '/app/broker-desk'
+      preLoaderRoute: typeof AppBrokerDeskRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/chat': {
       id: '/app/chat'
       path: '/chat'
@@ -827,11 +890,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppInvestigationsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/investor-intelligence': {
+      id: '/app/investor-intelligence'
+      path: '/investor-intelligence'
+      fullPath: '/app/investor-intelligence'
+      preLoaderRoute: typeof AppInvestorIntelligenceRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/ledger': {
       id: '/app/ledger'
       path: '/ledger'
       fullPath: '/app/ledger'
       preLoaderRoute: typeof AppLedgerRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/market-intelligence': {
+      id: '/app/market-intelligence'
+      path: '/market-intelligence'
+      fullPath: '/app/market-intelligence'
+      preLoaderRoute: typeof AppMarketIntelligenceRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/overview': {
@@ -1010,11 +1087,14 @@ interface AppRouteChildren {
   AppAgentRoute: typeof AppAgentRoute
   AppAuditTrailRoute: typeof AppAuditTrailRoute
   AppBillingRoute: typeof AppBillingRoute
+  AppBrokerDeskRoute: typeof AppBrokerDeskRoute
   AppChatRoute: typeof AppChatRoute
   AppInsightsRoute: typeof AppInsightsRoute
   AppIntegrationsRoute: typeof AppIntegrationsRoute
   AppInvestigationsRoute: typeof AppInvestigationsRoute
+  AppInvestorIntelligenceRoute: typeof AppInvestorIntelligenceRoute
   AppLedgerRoute: typeof AppLedgerRoute
+  AppMarketIntelligenceRoute: typeof AppMarketIntelligenceRoute
   AppOverviewRoute: typeof AppOverviewRoute
   AppParserRoute: typeof AppParserRouteWithChildren
   AppReconciliationRoute: typeof AppReconciliationRoute
@@ -1031,11 +1111,14 @@ const AppRouteChildren: AppRouteChildren = {
   AppAgentRoute: AppAgentRoute,
   AppAuditTrailRoute: AppAuditTrailRoute,
   AppBillingRoute: AppBillingRoute,
+  AppBrokerDeskRoute: AppBrokerDeskRoute,
   AppChatRoute: AppChatRoute,
   AppInsightsRoute: AppInsightsRoute,
   AppIntegrationsRoute: AppIntegrationsRoute,
   AppInvestigationsRoute: AppInvestigationsRoute,
+  AppInvestorIntelligenceRoute: AppInvestorIntelligenceRoute,
   AppLedgerRoute: AppLedgerRoute,
+  AppMarketIntelligenceRoute: AppMarketIntelligenceRoute,
   AppOverviewRoute: AppOverviewRoute,
   AppParserRoute: AppParserRouteWithChildren,
   AppReconciliationRoute: AppReconciliationRoute,
@@ -1064,6 +1147,7 @@ const rootRouteChildren: RootRouteChildren = {
   SigninRoute: SigninRoute,
   SignupRoute: SignupRoute,
   ApiChatRoute: ApiChatRoute,
+  ApiFxRatesRoute: ApiFxRatesRoute,
   ApiIntelligenceRoute: ApiIntelligenceRoute,
   ApiMarketDataRoute: ApiMarketDataRoute,
   ApiSheetsImportRoute: ApiSheetsImportRoute,

@@ -15,7 +15,7 @@ export function useTransactions(orgId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("transactions")
-         .select("*, broker_accounts(currency)")
+        .select("*, broker_accounts(currency)")
         .eq("org_id", orgId!)
         .order("trade_date", { ascending: false });
 
@@ -36,16 +36,26 @@ export function useTransactions(orgId: string | undefined) {
         broker: row.broker,
         brokerAccountId: row.broker_account_id ?? undefined,
         exchange: row.exchange as Transaction["exchange"],
-        currency: row.currency ?? exchangeCurrency(row.exchange) ?? (row as unknown as { broker_accounts?: { currency?: string } | null }).broker_accounts?.currency ?? "USD",
+        currency:
+          row.currency ??
+          exchangeCurrency(row.exchange) ??
+          (row as unknown as { broker_accounts?: { currency?: string } | null }).broker_accounts
+            ?.currency ??
+          "USD",
       })) as Transaction[];
     },
     refetchInterval: 30_000,
     staleTime: 0,
   });
 
-  // A disabled query (while auth/profile is still resolving) is not an empty
-  // ledger. Keep every consumer in its loading state until an org is known.
-  return { ...query, isLoading: !orgId || query.isLoading };
+  // A disabled or not-yet-fetched query (while auth/profile is resolving) is not
+  // an empty ledger. Expose the fetch boundary so overview pages never turn a
+  // transient [] into fake zeroes or a misleading empty state.
+  return {
+    ...query,
+    isLoading: !orgId || query.isPending,
+    isReady: Boolean(orgId && query.isFetched),
+  };
 }
 
 export interface TransactionInput {
@@ -221,20 +231,27 @@ export interface MarketQuote {
 
 export function useMarketQuotes(orgId: string | undefined, instruments: MarketQuoteInput[]) {
   const queryClient = useQueryClient();
-  const unique = [...new Map(
-    instruments.map((item) => [`${item.exchange.toUpperCase()}:${item.ticker.toUpperCase()}`, {
-      ticker: item.ticker.toUpperCase(),
-      exchange: item.exchange.toUpperCase(),
-    }] as const),
-  ).values()].sort((a, b) => `${a.exchange}:${a.ticker}`.localeCompare(`${b.exchange}:${b.ticker}`));
+  const unique = [
+    ...new Map(
+      instruments.map(
+        (item) =>
+          [
+            `${item.exchange.toUpperCase()}:${item.ticker.toUpperCase()}`,
+            {
+              ticker: item.ticker.toUpperCase(),
+              exchange: item.exchange.toUpperCase(),
+            },
+          ] as const,
+      ),
+    ).values(),
+  ].sort((a, b) => `${a.exchange}:${a.ticker}`.localeCompare(`${b.exchange}:${b.ticker}`));
 
   const query = useQuery({
     queryKey: ["market_quotes", orgId, unique],
     enabled: !!orgId && unique.length > 0,
     queryFn: async () => {
-      const cacheKey = (instrument: MarketQuoteInput) => [
-        "market_quote", orgId, instrument.exchange, instrument.ticker,
-      ] as const;
+      const cacheKey = (instrument: MarketQuoteInput) =>
+        ["market_quote", orgId, instrument.exchange, instrument.ticker] as const;
       const now = Date.now();
       const stale = unique.filter((instrument) => {
         const cached = queryClient.getQueryData<MarketQuote | null>(cacheKey(instrument));
@@ -252,13 +269,15 @@ export function useMarketQuotes(orgId: string | undefined, instruments: MarketQu
           });
           const body = await response.json().catch(() => null);
           if (!response.ok) throw new Error(body?.error ?? "Market quote request failed.");
-          if (Array.isArray(body?.prices)) prices.push(...body.prices as MarketQuote[]);
+          if (Array.isArray(body?.prices)) prices.push(...(body.prices as MarketQuote[]));
         }
         for (const instrument of stale) {
-          const quote = prices.find((item) =>
-            item.ticker.toUpperCase() === instrument.ticker &&
-            item.exchange.toUpperCase() === instrument.exchange
-          ) ?? null;
+          const quote =
+            prices.find(
+              (item) =>
+                item.ticker.toUpperCase() === instrument.ticker &&
+                item.exchange.toUpperCase() === instrument.exchange,
+            ) ?? null;
           queryClient.setQueryData(cacheKey(instrument), quote);
         }
       }
@@ -329,7 +348,9 @@ export function useResolveFlag() {
         .maybeSingle();
       if (error) throw new Error(error.message);
       if (!data || data.status !== "resolved") {
-        throw new Error("The flag was not updated. It may already be resolved or your account lacks permission.");
+        throw new Error(
+          "The flag was not updated. It may already be resolved or your account lacks permission.",
+        );
       }
     },
     onSuccess: (_d, { orgId }) =>
@@ -743,7 +764,9 @@ export function useDecideApproval() {
         .maybeSingle();
       if (error) throw new Error(error.message);
       if (!data) {
-        throw new Error("This approval has already been decided or is no longer available. Refresh the inbox.");
+        throw new Error(
+          "This approval has already been decided or is no longer available. Refresh the inbox.",
+        );
       }
     },
     onSuccess: (_d, { orgId }) => {

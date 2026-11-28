@@ -34,19 +34,25 @@ export const Route = createFileRoute("/")({
       { title: brandText("{{brand}} — Broker Reconciliation & Trade Audit for PSX and NSE") },
       {
         name: "description",
-        content:
-          brandText("Reconcile stock trades and broker statements in minutes. {{brand}} extracts PDF, image, CSV and Excel trade records, detects missing trades and fee or WHT mismatches, and calculates traceable FIFO capital gains for supported PSX Pakistan and NSE India workflows."),
+        content: brandText(
+          "Reconcile stock trades and broker statements in minutes. {{brand}} extracts PDF, image, CSV and Excel trade records, detects missing trades and fee or WHT mismatches, and calculates traceable FIFO capital gains for supported PSX Pakistan and NSE India workflows.",
+        ),
       },
       {
         name: "keywords",
-        content:
-          brandText("broker statement reconciliation, stock trade audit, broker contract note parser, PSX Pakistan tax calculator, NSE India capital gains tax, FIFO tax engine, trade discrepancy detection, portfolio ledger, {{brand}}"),
+        content: brandText(
+          "broker statement reconciliation, stock trade audit, broker contract note parser, PSX Pakistan tax calculator, NSE India capital gains tax, FIFO tax engine, trade discrepancy detection, portfolio ledger, {{brand}}",
+        ),
       },
-      { property: "og:title", content: brandText("{{brand}} — Broker Reconciliation & Trade Audit for PSX and NSE") },
+      {
+        property: "og:title",
+        content: brandText("{{brand}} — Broker Reconciliation & Trade Audit for PSX and NSE"),
+      },
       {
         property: "og:description",
-        content:
-          brandText("{{brand}} reconciles broker records, audits trades, detects discrepancies, and calculates FIFO capital gains tax for PSX and NSE investors."),
+        content: brandText(
+          "{{brand}} reconciles broker records, audits trades, detects discrepancies, and calculates FIFO capital gains tax for PSX and NSE investors.",
+        ),
       },
       { property: "og:url", content: "https://psxl.live/" },
     ],
@@ -70,13 +76,13 @@ const reveal = {
 const features = [
   {
     icon: FileSearch,
-    title: "Multimodal Document Parser",
-    desc: "Extract transactions from PDFs, images, CSVs, XLSX files, and broker exports — automatically, the moment files arrive.",
+    title: "Bring every source into one book",
+    desc: "Connect broker feeds, bank exports, wallets, PDFs, images, CSVs, and XLSX files without rebuilding your workflow around one provider.",
   },
   {
     icon: ScanSearch,
-    title: "Anomaly & Discrepancy Detector",
-    desc: "Detect duplicate fills, fee mismatches, WHT inconsistencies, and missing records. Runs continuously without a prompt.",
+    title: "See what needs attention",
+    desc: "Agents compare source records with your ledger and surface duplicate fills, fee mismatches, WHT inconsistencies, and missing records.",
   },
   {
     icon: TrendingUp,
@@ -85,18 +91,20 @@ const features = [
   },
   {
     icon: GitMerge,
-    title: "Autonomous Reconciliation",
-    desc: "Matches transactions against source records and posts results to your ledger. Acts on your data — every change traceable and reversible.",
+    title: "Post with an evidence trail",
+    desc: "High-confidence matches can be posted to the canonical ledger. Every change keeps its source, decision, and reversible audit trail.",
   },
   {
     icon: Shield,
-    title: "Activity Feed & One-Click Revert",
-    desc: "Every autonomous action appears in a real-time feed. Revert any run with one click — full version history, zero data loss.",
+    title: "Watch the agents work",
+    desc: "Follow syncs, matching, review queues, and exceptions in a visible activity feed instead of trusting a silent background process.",
   },
   {
     icon: BarChart3,
     title: "Review Inbox",
-    desc: brandText("Low-confidence items and material decisions batch into a single inbox. Approve, reject, or skip — {{brand}} learns from each choice."),
+    desc: brandText(
+      "Low-confidence items and material decisions batch into a single inbox. Approve, reject, or skip — {{brand}} learns from each choice.",
+    ),
   },
 ];
 
@@ -106,27 +114,29 @@ const steps = [
   {
     n: "01",
     title: "Connect",
-    desc: "Link a Google Sheet, OneDrive file, or drop broker statements directly.",
+    desc: "Link a supported source or upload a broker statement. Start with the records that matter most.",
   },
   {
     n: "02",
-    title: "Watch",
-    desc: brandText("{{brand}} monitors sources continuously — no button to press, no prompt to write."),
+    title: "Sync",
+    desc: brandText(
+      "{{brand}} imports normalized records and shows freshness, provider status, and the last successful run.",
+    ),
   },
   {
     n: "03",
-    title: "Act",
-    desc: "High-confidence changes apply automatically. Uncertain ones go to your Review Inbox.",
+    title: "Review",
+    desc: "Agents resolve high-confidence matches and route uncertain or material changes to your Review Inbox.",
   },
   {
     n: "04",
-    title: "Trace",
-    desc: "Every action is logged with before/after state and a one-click revert.",
+    title: "Post",
+    desc: "Approve ledger postings with source attribution, deterministic calculations, and a clear before/after record.",
   },
   {
     n: "05",
-    title: "Report",
-    desc: "Generate a traceable, tax-ready report with a full evidence chain.",
+    title: "Monitor",
+    desc: "Return to a live overview that explains what changed, what is unresolved, and what your next action should be.",
   },
 ];
 
@@ -195,7 +205,9 @@ const faqs = [
   ],
   [
     "Which brokers are supported?",
-    brandText("{{brand}} is format-driven: any PSX or NSE contract note, dividend voucher, CSV or Excel export can be parsed — including photographed slips."),
+    brandText(
+      "{{brand}} is format-driven: any PSX or NSE contract note, dividend voucher, CSV or Excel export can be parsed — including photographed slips.",
+    ),
   ],
   [
     "Is the tax math AI-generated?",
@@ -219,7 +231,9 @@ const faqs = [
   ],
   [
     "What happens when extraction confidence is low?",
-    brandText("Fields with confidence scores below 0.75 are automatically routed for manual review. {{brand}} never silently guesses — it asks you to verify."),
+    brandText(
+      "Fields with confidence scores below 0.75 are automatically routed for manual review. {{brand}} never silently guesses — it asks you to verify.",
+    ),
   ],
 ];
 
@@ -308,9 +322,9 @@ function Home() {
               letterSpacing: "-0.02em",
             }}
           >
-            Your broker records,
+            From scattered sources
             <br />
-            reconciled while you sleep.
+            to a ledger you can trust.
           </motion.h1>
 
           {/* Sub-headline */}
@@ -322,8 +336,9 @@ function Home() {
             className="mx-auto mb-10 max-w-[560px] text-base leading-relaxed sm:text-lg"
             style={{ color: "var(--ink-2)" }}
           >
-            PSXL acts on your data continuously — extracting, reconciling, and flagging anomalies
-            without waiting for a prompt. Every change is traceable and reversible.
+            PSXL is the source-to-ledger control room for active traders and broker operations
+            teams. Connect a source, verify the import, review agent findings, and post only what
+            you can explain.
           </motion.p>
 
           {/* Composer — the primary focal point */}
@@ -336,7 +351,7 @@ function Home() {
               onAddFiles={handleAddFiles}
               onRemoveAttachment={handleRemoveAttachment}
               busy={isBusy}
-              placeholder="Ask anything about your finances, trades, documents, or financial data…"
+              placeholder="Upload a statement or ask PSXL to find a ledger discrepancy…"
               disabled={false}
             />
             <div className="mt-5 flex flex-wrap justify-center gap-2">
@@ -403,8 +418,8 @@ function Home() {
                 letterSpacing: "-0.01em",
               }}
             >
-              Autonomous by default.
-              <br className="hidden sm:block" /> Traceable by design.
+              Agents do the busywork.
+              <br className="hidden sm:block" /> You keep the final say.
             </h2>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -819,8 +834,8 @@ function Home() {
               Simple, transparent pricing
             </h2>
             <p className="mt-3 text-sm" style={{ color: "var(--ink-2)" }}>
-              Basic is $0. Standard is $5/month. Pro is $12/month. A 7-day trial is
-              only on Standard, from the trial card.
+              Basic is $0. Standard is $5/month. Pro is $12/month. A 7-day trial is only on
+              Standard, from the trial card.
             </p>
           </div>
           <div

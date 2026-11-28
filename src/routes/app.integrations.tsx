@@ -7,6 +7,7 @@ import { brandText } from "@/lib/brand";
 import { createFileRoute } from "@tanstack/react-router";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { useCallback, useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
   CheckCircle2,
@@ -93,6 +94,7 @@ async function callAction(body: Record<string, unknown>): Promise<Record<string,
 function IntegrationsPage() {
   const { profile } = useAuth();
   const canManage = Boolean(profile?.org_id);
+  const queryClient = useQueryClient();
 
   const [connections, setConnections] = useState<ConnectionRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -117,8 +119,19 @@ function IntegrationsPage() {
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (profile?.org_id) void load();
+  }, [load, profile?.org_id]);
+
+  const invalidateFinancialViews = () => {
+    const orgId = profile?.org_id;
+    if (!orgId) return;
+    void queryClient.invalidateQueries({ queryKey: ["transactions", orgId] });
+    void queryClient.invalidateQueries({ queryKey: ["ledger_entries", orgId] });
+    void queryClient.invalidateQueries({ queryKey: ["reconciliation_flags", orgId] });
+    void queryClient.invalidateQueries({ queryKey: ["portfolio_summary", orgId] });
+    void queryClient.invalidateQueries({ queryKey: ["financial_events", orgId] });
+    void queryClient.invalidateQueries({ queryKey: ["financial_insights", orgId] });
+  };
 
   async function submitCreate(providerId: string) {
     setBusyId(providerId);
@@ -145,16 +158,18 @@ function IntegrationsPage() {
       });
 
       const test = result["test"] as { ok?: boolean; message?: string } | undefined;
-      const sync = result["sync"] as { message?: string } | undefined;
+      const sync = result["sync"] as
+        { ok?: boolean; message?: string; transactionsInserted?: number } | undefined;
       const connectedLabel = provider.label;
       setNotice({
-        tone: test?.ok ? "ok" : "bad",
+        tone: test?.ok && sync?.ok !== false ? "ok" : "bad",
         text: test?.ok
-          ? `${connectedLabel} is connected. ${test.message ?? ""} ${sync?.message ?? "Live data is being pulled."}`.trim()
+          ? `${connectedLabel} verified. ${sync?.message ?? "No first sync result was returned."}`.trim()
           : (test?.message ?? "Connection could not be verified."),
       });
-      setOpenProvider(null);
+      if (test?.ok && sync?.ok !== false) setOpenProvider(null);
       setForm({});
+      if (test?.ok && sync?.ok !== false) invalidateFinancialViews();
       await load();
     } catch (error) {
       setNotice({ tone: "bad", text: (error as Error).message });
@@ -174,6 +189,7 @@ function IntegrationsPage() {
       });
       if (action === "sync") {
         setNotice({ tone: "ok", text: String(result["message"] ?? "Sync completed.") });
+        invalidateFinancialViews();
       } else if (action === "test") {
         setNotice({
           tone: result["ok"] ? "ok" : "bad",
@@ -293,7 +309,9 @@ function IntegrationsPage() {
                           className="mt-2 text-xs font-medium"
                           style={{ color: "var(--color-accent)" }}
                         >
-                          {brandText("Connected. Manual sync is ready; background refresh depends on {{brand}}")}
+                          {brandText(
+                            "Connected. Manual sync is ready; background refresh depends on {{brand}}",
+                          )}
                           Autopilot being configured. Last sync {formatWhen(c.last_sync_at)}
                           {c.last_sync_status ? ` (${c.last_sync_status})` : ""}.
                         </p>

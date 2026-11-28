@@ -2813,7 +2813,9 @@ export type Database = {
             referencedColumns: ["org_id"]
           },
         ]
-      }: {
+      }
+      ai_usage_today: {
+        Row: {
           credits_used_today: number | null
           org_id: string | null
           plan: string | null

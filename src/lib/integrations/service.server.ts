@@ -38,14 +38,20 @@ export function bindIntegrationsClient(client: SupabaseClient | null) {
 }
 
 function getDb(): SupabaseClient {
-  return (boundClient ?? (supabaseAdmin as unknown as SupabaseClient)) as SupabaseClient;
+  // The request-scoped client authenticates the caller, but derived integration
+  // tables intentionally have no authenticated INSERT policy. Use the trusted
+  // server client for all persistence after the route has checked org membership.
+  void boundClient;
+  return supabaseAdmin as unknown as SupabaseClient;
 }
 
 const db = new Proxy({} as SupabaseClient, {
   get(_target, prop) {
     const client = getDb() as unknown as Record<PropertyKey, unknown>;
     const value = client[prop];
-    return typeof value === "function" ? (value as (...args: unknown[]) => unknown).bind(client) : value;
+    return typeof value === "function"
+      ? (value as (...args: unknown[]) => unknown).bind(client)
+      : value;
   },
 });
 
@@ -238,26 +244,13 @@ export async function createConnection(input: CreateConnectionInput) {
         trigger: "manual",
       });
     } catch (error) {
-      const adapterLive = getAdapter(input.provider);
-      let accounts = 0;
-      let transactions = 0;
-      try {
-        if (adapterLive) {
-          const credentials = await loadCredentials(input.orgId, connectionId);
-          const config = publicConfig(input.config);
-          accounts = (await adapterLive.fetchAccounts({ credentials, config })).length;
-          transactions = (await adapterLive.fetchTransactions({ credentials, config })).length;
-        }
-      } catch {
-        // Live preview is best-effort; the test already confirmed the provider.
-      }
       sync = {
-        ok: true,
-        runId: "",
-        accountsUpserted: accounts,
-        transactionsInserted: transactions,
+        ok: false,
+        runId: null,
+        accountsUpserted: 0,
+        transactionsInserted: 0,
         transactionsSkipped: 0,
-        message: `Connected live: ${accounts} account(s), ${transactions} transaction(s). History will persist on the next successful sync. ${(error as Error).message}`,
+        message: `Provider verified, but the first sync could not be persisted. Retry sync now. ${(error as Error).message}`,
       };
     }
   }
@@ -414,6 +407,17 @@ export async function syncConnection(input: SyncInput): Promise<SyncResult> {
       transactions,
     );
 
+    // Provider rows are the durable ingestion layer. Project trade-like rows into
+    // the canonical tables that power overview, tax, reconciliation and ledger
+    // screens. The provider dedupe key makes retries insert-only and idempotent.
+    const ledgerPosted = await projectProviderTransactions({
+      orgId: input.orgId,
+      connectionId: input.connectionId,
+      provider: String(connection["provider"]),
+      label: String(connection["label"] ?? connection["provider"]),
+      transactions,
+    });
+
     const now = new Date().toISOString();
     await db
       .from("provider_sync_runs")
@@ -423,7 +427,11 @@ export async function syncConnection(input: SyncInput): Promise<SyncResult> {
         accounts_upserted: accounts.length,
         transactions_upserted: inserted,
         transactions_skipped: skipped,
-        metadata: { provider: connection["provider"], since: since ?? null },
+        metadata: {
+          provider: connection["provider"],
+          since: since ?? null,
+          ledger_posted: ledgerPosted,
+        },
       })
       .eq("id", runId);
 
@@ -455,7 +463,7 @@ export async function syncConnection(input: SyncInput): Promise<SyncResult> {
       accountsUpserted: accounts.length,
       transactionsInserted: inserted,
       transactionsSkipped: skipped,
-      message: `${accounts.length} account(s), ${inserted} new transaction(s), ${skipped} unchanged.`,
+      message: `${accounts.length} account(s), ${inserted} new source row(s), ${ledgerPosted} posted to the ledger, ${skipped} unchanged.`,
     };
   } catch (error) {
     const message = (error as Error).message;
@@ -543,6 +551,96 @@ async function upsertTransactions(
   }
 
   return { inserted: rows.length, skipped: keys.length - rows.length };
+}
+
+async function projectProviderTransactions(input: {
+  orgId: string;
+  connectionId: string;
+  provider: string;
+  label: string;
+  transactions: NormalizedTransaction[];
+}): Promise<number> {
+  const tradeRows = input.transactions.flatMap((tx) => {
+    const action =
+      tx.side === "buy"
+        ? "BUY"
+        : tx.side === "sell"
+          ? "SELL"
+          : tx.kind === "dividend"
+            ? "DIV"
+            : null;
+    const quantity = Number(tx.quantity ?? 0);
+    if (!action || !tx.instrument || !Number.isFinite(quantity) || quantity <= 0) return [];
+    const amount = Number(tx.amount ?? 0);
+    const price = Number(tx.price ?? (quantity ? Math.abs(amount) / quantity : 0));
+    if (!Number.isFinite(price) || price < 0) return [];
+    const dedupeKey = transactionDedupeKey(
+      input.provider,
+      `${input.connectionId}:${tx.externalId}`,
+    );
+    return [
+      {
+        org_id: input.orgId,
+        ticker: tx.instrument.split("/")[0]?.trim().toUpperCase() || tx.instrument.toUpperCase(),
+        action,
+        quantity,
+        price,
+        fees: Number(tx.fees ?? 0) || 0,
+        wht: 0,
+        trade_date: new Date(tx.occurredAt).toISOString().slice(0, 10),
+        ref_id: `provider:${dedupeKey}`,
+        confidence_score: 1,
+        status: "posted",
+        exchange: input.provider.toUpperCase(),
+        currency: tx.currency.toUpperCase(),
+        broker: input.label,
+        source: {
+          provider: input.provider,
+          connection_id: input.connectionId,
+          provider_transaction_id: tx.externalId,
+          source_ref: tx.sourceRef ?? null,
+        },
+      },
+    ];
+  });
+
+  if (!tradeRows.length) return 0;
+  const refs = tradeRows.map((row) => row.ref_id);
+  const { data: existing, error: existingError } = await db
+    .from("transactions")
+    .select("id,ref_id")
+    .eq("org_id", input.orgId)
+    .in("ref_id", refs);
+  if (existingError) throw new Error(`Could not check canonical ledger: ${existingError.message}`);
+  const existingRefs = new Set((existing ?? []).map((row) => String(row.ref_id)));
+  const newRows = tradeRows.filter((row) => !existingRefs.has(row.ref_id));
+  if (!newRows.length) return 0;
+
+  const { data: inserted, error: insertError } = await db
+    .from("transactions")
+    .insert(newRows as never)
+    .select("id,action,quantity,price,fees");
+  if (insertError)
+    throw new Error(`Could not post imported transactions to the ledger: ${insertError.message}`);
+
+  const ledgerRows = (inserted ?? []).map((row) => {
+    const gross = Number(row.quantity ?? 0) * Number(row.price ?? 0);
+    const fees = Number(row.fees ?? 0);
+    const direction = row.action === "SELL" || row.action === "DIV" ? 1 : -1;
+    return {
+      org_id: input.orgId,
+      transaction_id: row.id,
+      entry_type: row.action === "DIV" ? "dividend" : row.action === "BUY" ? "buy" : "sell",
+      amount: direction * gross - (row.action === "BUY" ? fees : -fees),
+      balance_after: 0,
+    };
+  });
+  if (ledgerRows.length) {
+    const { error: ledgerError } = await db.from("ledger_entries").insert(ledgerRows as never);
+    if (ledgerError)
+      throw new Error(`Could not post imported entries to the ledger: ${ledgerError.message}`);
+  }
+  return newRows.length;
 }
 
 // ── Disconnect ─────────────────────────────────────────────────────────────────

@@ -125,6 +125,6 @@ Apply it with the normal migration runner:
 supabase db push
 ```
 
-If applying SQL manually, run the contents of that timestamped migration in the Supabase SQL Editor after the existing autonomous-agent core tables are in place. It is idempotent and backfills the five customer-facing PSXL agents for existing organizations, provisions them for new organizations, and keeps internal marketing, customer support/success, and founder-reporting roles out of customer-readable catalog results.
+If applying SQL manually, run the contents of that timestamped migration in the Supabase SQL Editor after the existing autonomous-agent core tables are in place. It is idempotent and backfills the four customer-facing PSXL agents for existing organizations, provisions them for new organizations, and keeps internal marketing, customer support/success, and founder-reporting roles out of customer-readable catalog results.
 
 The older `006_ai_operations_control_plane.sql` in this legacy folder is retained for historical/manual setups; the timestamped migration above is the canonical CLI-discovered migration.

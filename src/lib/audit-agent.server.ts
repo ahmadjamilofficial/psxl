@@ -3,8 +3,8 @@
 // key, then proves the first one that actually answers before the chat route
 // streams with it.
 //
-// Order: Lovable AI gateway (primary) → OpenAI (fallback 1) → Gemini (fallback 2 / third tier) →
-// OpenRouter → Groq. Needle 3 is a browser-local last resort after the cloud cascade is exhausted. The cascade exists because keys expire, projects get
+// Order: Gemini (primary) → Lovable AI gateway → OpenAI → OpenRouter → Groq.
+// Needle 3 is a browser-local last resort after the cloud cascade is exhausted. The cascade exists because keys expire, projects get
 // suspended and free models get retired; without it a single dead key makes
 // every prompt fail with a generic error.
 
@@ -83,6 +83,24 @@ function isUnusableGemini(modelId: string, message?: string): boolean {
 export async function resolveAgentModel(env?: EnvBag): Promise<ResolvedModel | null> {
   const cascade: ResolvedModel["cascade"] = [];
 
+  const geminiKey =
+    serverEnv("GEMINI_API_KEY", env) ?? serverEnv("GOOGLE_GENERATIVE_AI_API_KEY", env);
+  if (geminiKey) {
+    const provider = createGoogleGenerativeAI({ apiKey: geminiKey });
+    const seen = new Set<string>();
+    for (const modelId of [geminiModelId(env), GEMINI_CHAT_MODEL]) {
+      if (seen.has(modelId) || isUnusableGemini(modelId)) continue;
+      seen.add(modelId);
+      cascade.push({
+        id: modelId,
+        model: provider(modelId) as unknown as LanguageModel,
+        provider: "gemini",
+        modelId,
+        providerOptions: DEFAULT_PROVIDER_OPTIONS as unknown as Record<string, unknown>,
+      });
+    }
+  }
+
   const lovableKey = serverEnv("LOVABLE_API_KEY", env);
   if (lovableKey) {
     const provider = createOpenAI({
@@ -111,24 +129,6 @@ export async function resolveAgentModel(env?: EnvBag): Promise<ResolvedModel | n
       modelId,
       providerOptions: DEFAULT_PROVIDER_OPTIONS as unknown as Record<string, unknown>,
     });
-  }
-
-  const geminiKey =
-    serverEnv("GEMINI_API_KEY", env) ?? serverEnv("GOOGLE_GENERATIVE_AI_API_KEY", env);
-  if (geminiKey) {
-    const provider = createGoogleGenerativeAI({ apiKey: geminiKey });
-    const seen = new Set<string>();
-    for (const modelId of [geminiModelId(env), GEMINI_CHAT_MODEL]) {
-      if (seen.has(modelId) || isUnusableGemini(modelId)) continue;
-      seen.add(modelId);
-      cascade.push({
-        id: modelId,
-        model: provider(modelId) as unknown as LanguageModel,
-        provider: "gemini",
-        modelId,
-        providerOptions: DEFAULT_PROVIDER_OPTIONS as unknown as Record<string, unknown>,
-      });
-    }
   }
 
   const openRouterKey = serverEnv("OPENROUTER_API_KEY", env);
@@ -363,7 +363,7 @@ export interface WorkingModel extends ResolvedModel {
 /**
  * Returns the first provider in the cascade that really answers. Probes all
  * providers in parallel (capped at 8s each) and returns the first healthy one
- * in cascade priority order — so Lovable beats Gemini beats OpenAI even if
+ * in cascade priority order — so Gemini beats Lovable beats OpenAI even if
  * all probes finish at the same time.
  */
 export async function selectWorkingModel(resolved: ResolvedModel | null): Promise<{
@@ -441,7 +441,7 @@ export function describeAiError(e: unknown): { status: number; message: string }
       message: "An upstream AI provider is temporarily rate-limited. PSXL is online; please try again in a moment.",
     };
   if (status === 403) return { status, message: "AI access is blocked for this workspace." };
-  return { status, message: "Wab AI is temporarily unavailable. Your data was not changed." };
+  return { status, message: "PSXL AI is temporarily unavailable. Your data was not changed." };
 }
 
 export function isProviderError(e: unknown): boolean {

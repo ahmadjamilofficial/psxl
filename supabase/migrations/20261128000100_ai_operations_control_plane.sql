@@ -2,6 +2,63 @@
 -- This timestamped migration is intentionally in supabase/migrations so Supabase CLI
 -- discovers it with the normal migration runner (unlike the legacy migrations-autonomous folder).
 
+-- The operations dashboard reads these two tenant-scoped tables. Create them
+-- idempotently here as well, so the control plane does not silently depend on
+-- the legacy migrations-autonomous folder having been discovered by the CLI.
+CREATE TABLE IF NOT EXISTS public.agent_jobs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id UUID NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
+  trigger_type TEXT NOT NULL,
+  trigger_payload JSONB NOT NULL DEFAULT '{}',
+  status TEXT NOT NULL DEFAULT 'pending'
+    CHECK (status IN ('pending','running','done','failed','failed_invariant','dead_letter')),
+  run_id UUID,
+  idempotency_key TEXT NOT NULL UNIQUE,
+  attempt_count INT NOT NULL DEFAULT 0,
+  max_attempts INT NOT NULL DEFAULT 3,
+  next_run_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  error_message TEXT,
+  result_summary JSONB,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS agent_jobs_org_created_idx
+  ON public.agent_jobs (org_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS public.agent_approvals (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id UUID NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
+  job_id UUID REFERENCES public.agent_jobs(id) ON DELETE SET NULL,
+  run_id UUID,
+  action_type TEXT NOT NULL,
+  action_payload JSONB NOT NULL DEFAULT '{}',
+  policy_tier TEXT NOT NULL DEFAULT 'STOP'
+    CHECK (policy_tier IN ('REVIEW','STOP')),
+  status TEXT NOT NULL DEFAULT 'pending'
+    CHECK (status IN ('pending','approved','rejected','skipped')),
+  decided_by UUID REFERENCES auth.users(id),
+  decided_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.agent_jobs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.agent_approvals ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "agent_jobs_select" ON public.agent_jobs;
+CREATE POLICY "agent_jobs_select" ON public.agent_jobs FOR SELECT
+USING (EXISTS (
+  SELECT 1 FROM public.profiles p
+  WHERE p.user_id = auth.uid() AND p.org_id = agent_jobs.org_id
+));
+
+DROP POLICY IF EXISTS "approvals_select" ON public.agent_approvals;
+CREATE POLICY "approvals_select" ON public.agent_approvals FOR SELECT
+USING (EXISTS (
+  SELECT 1 FROM public.profiles p
+  WHERE p.user_id = auth.uid() AND p.org_id = agent_approvals.org_id
+));
+
 CREATE TABLE IF NOT EXISTS public.agent_role_catalog (
   role_code TEXT PRIMARY KEY,
   display_name TEXT NOT NULL,

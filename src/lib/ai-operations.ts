@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 
-export type AgentPolicyTier = "AUTO" | "NOTIFY" | "REVIEW" | "STOP";
+export type AgentPolicyTier = "AUTO" | "NOTIFY" | "REVIEW" | "STOP";\n\n// Only product agents are exposed in a customer workspace. Internal company\n// operations (marketing, support, customer success and founder reporting) stay private.\nexport const CUSTOMER_AGENT_ROLE_CODES = [\n  "ingestion_sync",\n  "reconciliation",\n  "exception_triage",\n  "compliance_audit",\n  "reliability_maintenance",\n] as const;
 
 export interface AgentRole {
   role_code: string;
@@ -35,7 +35,7 @@ export async function fetchAgentOperations(orgId: string): Promise<{
     supabase
       .from("agent_role_catalog" as never)
       .select("*")
-      .order("display_name"),
+      .in("role_code", [...CUSTOMER_AGENT_ROLE_CODES])\n      .order("display_name"),
     supabase
       .from("agent_role_configs" as never)
       .select("role_code, enabled, policy_override, priority")

@@ -27,7 +27,16 @@ export interface AgentRole {
   priority: number;
 }
 
-export interface AgentJobSummary {\n  id: string;\n  trigger_type: string;\n  status: string;\n  created_at: string;\n  error_message: string | null;\n  result_summary: Record<string, unknown> | null;\n}\n\nexport interface OperationsHealth {
+export interface AgentJobSummary {
+  id: string;
+  trigger_type: string;
+  status: string;
+  created_at: string;
+  error_message: string | null;
+  result_summary: Record<string, unknown> | null;
+}
+
+export interface OperationsHealth {
   total: number;
   queued: number;
   running: number;
@@ -39,34 +48,41 @@ export interface AgentJobSummary {\n  id: string;\n  trigger_type: string;\n  st
 
 export async function fetchAgentOperations(orgId: string): Promise<{
   roles: AgentRole[];
+  recentJobs: AgentJobSummary[];
   health: OperationsHealth;
 }> {
-  const [rolesResult, configsResult, jobsResult, approvalsResult] = await Promise.all([
-    supabase
-      .from("agent_role_catalog" as never)
-      .select("*")
-      .in("role_code", [...CUSTOMER_AGENT_ROLE_CODES])
-      .order("display_name"),
-    supabase
-      .from("agent_role_configs" as never)
-      .select("role_code, enabled, policy_override, priority")
-      .eq("org_id", orgId)
-      .in("role_code", [...CUSTOMER_AGENT_ROLE_CODES]),
-    supabase
-      .from("agent_jobs")
-      .select("status")
-      .eq("org_id", orgId)
-      .gte("created_at", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()),
-    supabase
-      .from("agent_approvals")
-      .select("id", { count: "exact", head: true })
-      .eq("org_id", orgId)
-      .eq("status", "pending"),
-  ]);
+  const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const [rolesResult, configsResult, jobsResult, recentJobsResult, approvalsResult] =
+    await Promise.all([
+      supabase
+        .from("agent_role_catalog" as never)
+        .select("*")
+        .in("role_code", [...CUSTOMER_AGENT_ROLE_CODES])
+        .order("display_name"),
+      supabase
+        .from("agent_role_configs" as never)
+        .select("role_code, enabled, policy_override, priority")
+        .eq("org_id", orgId)
+        .in("role_code", [...CUSTOMER_AGENT_ROLE_CODES]),
+      supabase.from("agent_jobs").select("status").eq("org_id", orgId).gte("created_at", since),
+      supabase
+        .from("agent_jobs")
+        .select("id, trigger_type, status, created_at, error_message, result_summary")
+        .eq("org_id", orgId)
+        .gte("created_at", since)
+        .order("created_at", { ascending: false })
+        .limit(10),
+      supabase
+        .from("agent_approvals")
+        .select("id", { count: "exact", head: true })
+        .eq("org_id", orgId)
+        .eq("status", "pending"),
+    ]);
 
   if (rolesResult.error) throw new Error(`Agent catalog: ${rolesResult.error.message}`);
   if (configsResult.error) throw new Error(`Workspace agent settings: ${configsResult.error.message}`);
   if (jobsResult.error) throw new Error(`Agent job history: ${jobsResult.error.message}`);
+  if (recentJobsResult.error) throw new Error(`Recent agent activity: ${recentJobsResult.error.message}`);
   if (approvalsResult.error) throw new Error(`Pending approvals: ${approvalsResult.error.message}`);
 
   const configs = new Map(
@@ -93,10 +109,11 @@ export async function fetchAgentOperations(orgId: string): Promise<{
       priority: Number(config.priority ?? 50),
     } satisfies AgentRole;
   });
-  const recentJobs = (jobsResult.data ?? []) as AgentJobSummary[];\n  const statuses = recentJobs.length === 10\n    ? recentJobs.map((job) => job.status)\n    : ((jobsResult.data ?? []) as Array<{ status: string }>).map((job) => job.status);
+  const statuses = ((jobsResult.data ?? []) as Array<{ status: string }>).map((job) => job.status);
 
   return {
     roles,
+    recentJobs: (recentJobsResult.data ?? []) as AgentJobSummary[],
     health: {
       total: statuses.length,
       queued: statuses.filter((status) => status === "pending").length,

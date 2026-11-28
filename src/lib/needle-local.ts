@@ -1,5 +1,3 @@
-import { SPECIALISTS, type SpecialistAgent } from "@/lib/agent-prompts";
-
 type LocalMessagePart = {
   type?: string;
   text?: string;
@@ -81,18 +79,6 @@ const TRANSACTION_SCHEMA: NeedleJsonSchema = {
   required: ["intent", "transactions", "notes"],
 };
 
-
-function inferSpecialistAgent(prompt: string): SpecialistAgent {
-  const value = prompt.toLowerCase();
-  if (/reconcil|unmatched|discrepanc|match(?:ing)? (?:the )?(?:statement|trades|records)/.test(value)) return "reconciliation";
-  if (/tax|capital gain|withholding|wht|fifo|taxable/.test(value)) return "calculation";
-  if (/portfolio|holdings|exposure|performance|allocation|risk/.test(value)) return "analysis";
-  if (/anomal|duplicate|surcharge|fee mismatch|compliance|audit|suspicious/.test(value)) return "compliance";
-  if (/evidence|verify|source|prove|support(?:ed)? claim/.test(value)) return "evidence";
-  if (/research|market|broker format|exchange rules/.test(value)) return "research";
-  if (/quality|review|validate|check (?:the )?(?:result|analysis|calculation)/.test(value)) return "quality";
-  return "extraction";
-}
 
 function latestUserMessage(messages: readonly LocalMessage[]): LocalMessage | undefined {
   return [...messages].reverse().find((message) => message.role === "user");

@@ -5,6 +5,7 @@ import { parseDocument, parseTextDocument } from "./ai-service";
 import { supabase } from "./supabase";
 import type { Transaction } from "./demo-data";
 import { exchangeCurrency } from "./market-currency";
+import { fetchAgentOperations } from "./ai-operations";
 
 // ── Transactions ──────────────────────────────────────────────────────────────
 
@@ -918,5 +919,18 @@ export function useOrgFeatureFlags(orgId: string | undefined) {
       return data;
     },
     staleTime: 60_000,
+  });
+}
+
+
+// ── AI Operations control plane ───────────────────────────────────────────────
+
+export function useAiOperations(orgId: string | undefined) {
+  return useQuery({
+    queryKey: ["ai_operations", orgId],
+    enabled: !!orgId,
+    queryFn: () => fetchAgentOperations(orgId!),
+    refetchInterval: 15_000,
+    staleTime: 5_000,
   });
 }

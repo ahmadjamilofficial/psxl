@@ -1,10 +1,18 @@
-# PSXL production-readiness plan
+# PSXL scalable AI-operations plan
 
 ## Product direction
 
-PSXL should win a narrow, painful workflow first: turning fragmented broker, bank, wallet, and document records into a verified, explainable ledger for active traders and broker-operations teams. The product workflow is Connect → Verify → Sync → Review → Post → Monitor. Autonomous agents handle extraction, matching, anomaly detection, and recurring monitoring, while deterministic code performs ledger and tax arithmetic and material or low-confidence decisions remain reviewable.
+PSXL wins a narrow, painful workflow first: turning fragmented broker, bank, wallet, and document records into a verified, explainable ledger for active traders and broker-operations teams. The product workflow is Connect → Verify → Sync → Review → Post → Monitor. Autonomous agents handle extraction, matching, anomaly detection, support triage, maintenance, onboarding, growth drafts, and recurring reporting, while deterministic code performs ledger and tax arithmetic and material or low-confidence decisions remain reviewable.
 
-The homepage and dashboard emphasize source attribution, freshness, confidence, reversible actions, and measurable time saved. They do not promise investment returns, universal provider coverage, or unsupervised financial decisions. Traction should come from making the first supported workflow excellent for users with messy records today.
+The homepage and dashboard emphasize source attribution, freshness, confidence, reversible actions, and measurable time saved. They do not promise investment returns, universal provider coverage, or unsupervised financial decisions.
+
+## AI operations operating model
+
+The existing `agent_jobs` queue remains the execution backbone. Migration `006_ai_operations_control_plane.sql` adds a durable catalog of nine bounded roles plus organization-scoped configuration: Ingestion & Sync, Reconciliation, Exception Triage, Compliance & Audit, Customer Support, Reliability & Maintenance, Customer Success & Onboarding, Marketing & Growth, and Founder Metrics & Reporting.
+
+Each role has a narrow mission, allowed tool families, trigger sources, default approval tier, success metrics, and escalation path. `AUTO` is limited to bounded and reversible work; `NOTIFY` informs an operator; `REVIEW` drafts or proposes material changes; `STOP` requires owner/admin approval. Queue retries, dead-letter state, audit history, tenant RLS, and heartbeat wake-up are reused rather than duplicated.
+
+The `/app/operations` control center makes the operating model visible: role roster, policy tiers, triggers, escalation language, 30-day queue health, failed/dead-letter pressure, and pending approvals. Activity Feed and Review Inbox remain the detailed evidence and decision surfaces.
 
 ## Implementation approach
 
@@ -14,26 +22,22 @@ After normalized persistence, trade-like records are projected into canonical `t
 
 React Query views distinguish authentication/profile hydration from a completed empty query. Overview waits for the first organization-scoped transaction fetch before rendering zero-state content. Integration syncs invalidate transactions, ledger entries, reconciliation flags, portfolio summaries, events, and insights so the dashboard reflects a successful import without a route round trip.
 
-Agent workflows are visible through activity, review inbox, confidence, evidence, and reversible-action components. Autonomous work is bounded by provider permissions, idempotency, deterministic calculations, audit logging, and human review for uncertain changes. Background scheduling reports freshness and failure state when it is not configured.
+## Production scaling gates
+
+1. Apply and verify migrations 001–006 in every deployment environment; provision role configs for newly created organizations.
+2. Connect each role to an explicit runner handler with structured inputs/outputs, bounded retries/concurrency, model configuration from the live model catalog, and programmatic validation. No role may invent ledger arithmetic.
+3. Add event-to-role routing and operation-level evidence references without bypassing `agent_jobs`, approvals, or audit logging.
+4. Add durable source freshness/next-run status and provider circuit-breaker metrics to the operations view.
+5. Instrument the wedge metrics: time-to-first-ledger, match precision, exception resolution time, ingestion reliability, activation, weekly retention, qualified conversion, and support resolution.
+6. Validate the first-run funnel with real users; prioritize observed connection failures and time-to-value over broad provider count.
 
 ## Project structure
 
-- `src/routes/`: public acquisition pages, authenticated dashboard routes, and integration actions.
-- `src/lib/integrations/`: provider contracts, catalog, adapters, encryption, registry, and lifecycle service.
+- `src/routes/app.operations.tsx`: visible cross-functional AI operations control center.
+- `src/lib/ai-operations.ts`: tenant-scoped operations catalog and queue health query.
+- `src/lib/agent-queue.ts`: durable queue, approvals, retries, and worker wake-up.
 - `src/lib/data-hooks.ts`: organization-scoped React Query hooks and invalidation behavior.
-- `src/lib/financial-intelligence-hooks.ts`: derived health, priorities, events, insights, and portfolio summaries.
+- `src/lib/integrations/`: provider contracts, catalog, adapters, encryption, registry, and lifecycle service.
 - `src/components/intelligence/` and `src/components/agent/`: visible agent activity, evidence, review, and explanation surfaces.
-- `supabase/migrations/`: source connections, normalized ingestion, canonical ledger, realtime, and autonomous-agent persistence.
+- `supabase/migrations-autonomous/`: autonomous-agent persistence, policies, functions, schedules, storage, and operations control plane.
 - `docs/`: founder guidance and product/architecture context.
-
-## Design direction
-
-Three directions were considered: “Audit-room control surface” (0.06), “Quiet financial operations desk” (0.08), and “Signal console” (0.07). PSXL uses **Audit-room control surface**.
-
-The movement is restrained editorial operations software: calm sheets, dense but legible evidence, and clear status language. Core principles are provenance first, high information density without visual noise, visible agent state, and reversible action. The palette uses warm neutral surfaces with one ownable accent for verified flow, amber for review, and red only for blocked or failed states. The layout favors a wide working surface with a left-to-right workflow rather than generic centered marketing grids.
-
-Signature elements are source chips with freshness timestamps, an agent activity rail with confidence states, and provenance links connecting source row → decision → canonical ledger row. Interactions show progress and consequences before completion. Animation is short and functional: skeletons during readiness and restrained transitions for agent state. Typography uses the existing heading/body system with tabular numerals for financial values. Brand voice is direct, calm, and evidence-led: “See exactly what entered your ledger” and “Agents do the busywork. You keep the final say.”
-
-## Required production behavior
-
-A connection is not presented as fully successful merely because credentials were accepted. Provider verification and source sync are separate states. A failed first persistence attempt remains visible with a retry path. Successful sync responses report normalized rows and canonical ledger rows posted. All derived dashboard views use organization-scoped live data and show loading state until the first fetch completes.

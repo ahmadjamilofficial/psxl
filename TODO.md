@@ -29,6 +29,17 @@
 - [x] Homepage positioning explains that agents do the busywork while the user keeps final control.
 - [ ] Complete production scheduling and retry configuration for background sync/autopilot per deployment environment, with visible failure state when secrets or schedules are missing.
 
+## Scalable AI operations
+
+- [x] Define a durable cross-functional agent catalog covering ingestion, reconciliation, triage, compliance, support, maintenance, onboarding, growth, and founder metrics.
+- [x] Define per-role mission, allowed tool families, triggers, policy tier, success metrics, and human escalation path.
+- [x] Add organization-scoped role configuration with RLS and safe backfill for existing organizations.
+- [x] Add a visible AI Operations control center with roster, policy tiers, queue health, failed work, and pending approvals.
+- [ ] Connect each role to a production runner handler with structured outputs, bounded model calls, and operation-level evidence references.
+- [ ] Add event-to-role routing and role-level daily budgets without bypassing the existing durable queue.
+- [ ] Add provider circuit breakers, source freshness SLAs, and role-specific dashboards.
+- [ ] Measure time-to-first-ledger, match precision, exception resolution time, activation, retention, and support quality before expanding scope.
+
 ## Homepage and user traction
 
 - [x] Homepage messaging leads with the focused source-to-ledger reconciliation wedge instead of generic AI finance claims.

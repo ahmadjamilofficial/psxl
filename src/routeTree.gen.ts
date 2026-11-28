@@ -40,6 +40,7 @@ import { Route as AppInvestigationsRouteImport } from './routes/app.investigatio
 import { Route as AppInvestorIntelligenceRouteImport } from './routes/app.investor-intelligence'
 import { Route as AppLedgerRouteImport } from './routes/app.ledger'
 import { Route as AppMarketIntelligenceRouteImport } from './routes/app.market-intelligence'
+import { Route as AppOperationsRouteImport } from './routes/app.operations'
 import { Route as AppOverviewRouteImport } from './routes/app.overview'
 import { Route as AppParserRouteImport } from './routes/app.parser'
 import { Route as AppReconciliationRouteImport } from './routes/app.reconciliation'
@@ -218,6 +219,11 @@ const AppMarketIntelligenceRoute = AppMarketIntelligenceRouteImport.update({
   path: '/market-intelligence',
   getParentRoute: () => AppRoute,
 } as any)
+const AppOperationsRoute = AppOperationsRouteImport.update({
+  id: '/operations',
+  path: '/operations',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppOverviewRoute = AppOverviewRouteImport.update({
   id: '/overview',
   path: '/overview',
@@ -360,6 +366,7 @@ export interface FileRoutesByFullPath {
   '/app/investor-intelligence': typeof AppInvestorIntelligenceRoute
   '/app/ledger': typeof AppLedgerRoute
   '/app/market-intelligence': typeof AppMarketIntelligenceRoute
+  '/app/operations': typeof AppOperationsRoute
   '/app/overview': typeof AppOverviewRoute
   '/app/parser': typeof AppParserRouteWithChildren
   '/app/reconciliation': typeof AppReconciliationRoute
@@ -414,6 +421,7 @@ export interface FileRoutesByTo {
   '/app/investor-intelligence': typeof AppInvestorIntelligenceRoute
   '/app/ledger': typeof AppLedgerRoute
   '/app/market-intelligence': typeof AppMarketIntelligenceRoute
+  '/app/operations': typeof AppOperationsRoute
   '/app/overview': typeof AppOverviewRoute
   '/app/reconciliation': typeof AppReconciliationRoute
   '/app/review': typeof AppReviewRoute
@@ -469,6 +477,7 @@ export interface FileRoutesById {
   '/app/investor-intelligence': typeof AppInvestorIntelligenceRoute
   '/app/ledger': typeof AppLedgerRoute
   '/app/market-intelligence': typeof AppMarketIntelligenceRoute
+  '/app/operations': typeof AppOperationsRoute
   '/app/overview': typeof AppOverviewRoute
   '/app/parser': typeof AppParserRouteWithChildren
   '/app/reconciliation': typeof AppReconciliationRoute
@@ -526,6 +535,7 @@ export interface FileRouteTypes {
     | '/app/investor-intelligence'
     | '/app/ledger'
     | '/app/market-intelligence'
+    | '/app/operations'
     | '/app/overview'
     | '/app/parser'
     | '/app/reconciliation'
@@ -580,6 +590,7 @@ export interface FileRouteTypes {
     | '/app/investor-intelligence'
     | '/app/ledger'
     | '/app/market-intelligence'
+    | '/app/operations'
     | '/app/overview'
     | '/app/reconciliation'
     | '/app/review'
@@ -634,6 +645,7 @@ export interface FileRouteTypes {
     | '/app/investor-intelligence'
     | '/app/ledger'
     | '/app/market-intelligence'
+    | '/app/operations'
     | '/app/overview'
     | '/app/parser'
     | '/app/reconciliation'
@@ -911,6 +923,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMarketIntelligenceRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/operations': {
+      id: '/app/operations'
+      path: '/operations'
+      fullPath: '/app/operations'
+      preLoaderRoute: typeof AppOperationsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/overview': {
       id: '/app/overview'
       path: '/overview'
@@ -1095,6 +1114,7 @@ interface AppRouteChildren {
   AppInvestorIntelligenceRoute: typeof AppInvestorIntelligenceRoute
   AppLedgerRoute: typeof AppLedgerRoute
   AppMarketIntelligenceRoute: typeof AppMarketIntelligenceRoute
+  AppOperationsRoute: typeof AppOperationsRoute
   AppOverviewRoute: typeof AppOverviewRoute
   AppParserRoute: typeof AppParserRouteWithChildren
   AppReconciliationRoute: typeof AppReconciliationRoute
@@ -1119,6 +1139,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppInvestorIntelligenceRoute: AppInvestorIntelligenceRoute,
   AppLedgerRoute: AppLedgerRoute,
   AppMarketIntelligenceRoute: AppMarketIntelligenceRoute,
+  AppOperationsRoute: AppOperationsRoute,
   AppOverviewRoute: AppOverviewRoute,
   AppParserRoute: AppParserRouteWithChildren,
   AppReconciliationRoute: AppReconciliationRoute,

@@ -1,0 +1,97 @@
+import { supabase } from "./supabase";
+
+export type AgentPolicyTier = "AUTO" | "NOTIFY" | "REVIEW" | "STOP";
+
+export interface AgentRole {
+  role_code: string;
+  display_name: string;
+  mission: string;
+  description: string;
+  allowed_tools: string[];
+  trigger_types: string[];
+  default_policy_tier: AgentPolicyTier;
+  success_metrics: string[];
+  escalation_path: string;
+  enabled: boolean;
+  policy_override: AgentPolicyTier | null;
+  priority: number;
+}
+
+export interface OperationsHealth {
+  total: number;
+  queued: number;
+  running: number;
+  completed: number;
+  failed: number;
+  deadLetter: number;
+  approvalCount: number;
+}
+
+export async function fetchAgentOperations(orgId: string): Promise<{
+  roles: AgentRole[];
+  health: OperationsHealth;
+}> {
+  const [rolesResult, configsResult, jobsResult, approvalsResult] = await Promise.all([
+    supabase
+      .from("agent_role_catalog" as never)
+      .select("*")
+      .order("display_name"),
+    supabase
+      .from("agent_role_configs" as never)
+      .select("role_code, enabled, policy_override, priority")
+      .eq("org_id", orgId),
+    supabase
+      .from("agent_jobs")
+      .select("status")
+      .eq("org_id", orgId)
+      .gte("created_at", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()),
+    supabase
+      .from("agent_approvals")
+      .select("id", { count: "exact", head: true })
+      .eq("org_id", orgId)
+      .eq("status", "pending"),
+  ]);
+
+  if (rolesResult.error) throw new Error(rolesResult.error.message);
+  if (configsResult.error) throw new Error(configsResult.error.message);
+  if (jobsResult.error) throw new Error(jobsResult.error.message);
+  if (approvalsResult.error) throw new Error(approvalsResult.error.message);
+
+  const configs = new Map(
+    ((configsResult.data ?? []) as Array<Record<string, unknown>>).map((config) => [
+      String(config.role_code),
+      config,
+    ]),
+  );
+  const roles = ((rolesResult.data ?? []) as unknown[]).map((raw) => {
+    const row = raw as Record<string, unknown>;
+    const config = configs.get(String(row.role_code)) ?? {};
+    return {
+      role_code: String(row.role_code),
+      display_name: String(row.display_name),
+      mission: String(row.mission),
+      description: String(row.description),
+      allowed_tools: (row.allowed_tools as string[] | null) ?? [],
+      trigger_types: (row.trigger_types as string[] | null) ?? [],
+      default_policy_tier: String(row.default_policy_tier) as AgentPolicyTier,
+      success_metrics: (row.success_metrics as string[] | null) ?? [],
+      escalation_path: String(row.escalation_path),
+      enabled: config.enabled !== false,
+      policy_override: (config.policy_override as AgentPolicyTier | null) ?? null,
+      priority: Number(config.priority ?? 50),
+    } satisfies AgentRole;
+  });
+  const statuses = ((jobsResult.data ?? []) as Array<{ status: string }>).map((job) => job.status);
+  return {
+    roles,
+    health: {
+      total: statuses.length,
+      queued: statuses.filter((s) => s === "pending").length,
+      running: statuses.filter((s) => s === "running").length,
+      completed: statuses.filter((s) => s === "done").length,
+      failed: statuses.filter((s) => s === "failed" || s === "failed_invariant").length,
+      deadLetter: statuses.filter((s) => s === "dead_letter").length,
+      approvalCount: approvalsResult.count ?? 0,
+    },
+  };
+}

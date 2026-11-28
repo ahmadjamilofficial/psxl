@@ -26,6 +26,7 @@
     { "path": "/app/ledger", "title": "Ledger" },
     { "path": "/app/market-intelligence", "title": "Market intelligence" },
     { "path": "/app/overview", "title": "Overview" },
+    { "path": "/app/operations", "title": "AI Operations" },
     { "path": "/app/parser", "title": "Ask Wab" },
     { "path": "/app/parser/:threadId", "title": "Ask Wab conversation" },
     { "path": "/app/reconciliation", "title": "Reconciliation" },

@@ -74,6 +74,7 @@ const navGroups = [
   {
     title: "Autonomous",
     items: [
+      { label: "AI Operations", icon: Sparkles, to: "/app/operations" },
       { label: "Activity Feed", icon: Radio, to: "/app/activity" },
       { label: "Review Inbox", icon: Inbox, to: "/app/review" },
     ],

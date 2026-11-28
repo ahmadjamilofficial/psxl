@@ -100,6 +100,19 @@ export async function resolveAgentModel(env?: EnvBag): Promise<ResolvedModel | n
     });
   }
 
+  const openAIKey = serverEnv("OPENAI_API_KEY", env);
+  if (openAIKey) {
+    const modelId = serverEnv("OPENAI_MODEL", env) ?? "gpt-4o-mini";
+    const provider = createOpenAI({ apiKey: openAIKey });
+    cascade.push({
+      id: modelId,
+      model: provider.chat(modelId) as unknown as LanguageModel,
+      provider: "openai",
+      modelId,
+      providerOptions: DEFAULT_PROVIDER_OPTIONS as unknown as Record<string, unknown>,
+    });
+  }
+
   const geminiKey =
     serverEnv("GEMINI_API_KEY", env) ?? serverEnv("GOOGLE_GENERATIVE_AI_API_KEY", env);
   if (geminiKey) {
@@ -116,19 +129,6 @@ export async function resolveAgentModel(env?: EnvBag): Promise<ResolvedModel | n
         providerOptions: DEFAULT_PROVIDER_OPTIONS as unknown as Record<string, unknown>,
       });
     }
-  }
-
-  const openAIKey = serverEnv("OPENAI_API_KEY", env);
-  if (openAIKey) {
-    const modelId = serverEnv("OPENAI_MODEL", env) ?? "gpt-4o-mini";
-    const provider = createOpenAI({ apiKey: openAIKey });
-    cascade.push({
-      id: modelId,
-      model: provider.chat(modelId) as unknown as LanguageModel,
-      provider: "openai",
-      modelId,
-      providerOptions: DEFAULT_PROVIDER_OPTIONS as unknown as Record<string, unknown>,
-    });
   }
 
   const openRouterKey = serverEnv("OPENROUTER_API_KEY", env);

@@ -9,7 +9,6 @@ export const CUSTOMER_AGENT_ROLE_CODES = [
   "reconciliation",
   "exception_triage",
   "compliance_audit",
-  "reliability_maintenance",
 ] as const;
 
 export interface AgentRole {

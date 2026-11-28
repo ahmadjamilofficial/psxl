@@ -59,7 +59,7 @@ export function deterministicAssistantAnswer(messages: unknown[]): string | null
   }
 
   if (/^(who are you|what are you|what is your name|which model are you|what model are you|which ai are you|what ai are you)$/.test(normalized)) {
-    return `I’m ${ASSISTANT_NAME}, your assistant inside ${BRAND_NAME}.`;
+    return `I’m ${ASSISTANT_NAME}.`;
   }
 
   return null;

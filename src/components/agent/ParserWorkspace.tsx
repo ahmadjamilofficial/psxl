@@ -922,7 +922,6 @@ function Chat({
           setNeedleFallbackLoading(false);
           setNeedleFallbackProgress(null);
         });
-    }
     },
   });
 

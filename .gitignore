@@ -17,6 +17,10 @@ dist-ssr
 .nitro
 *.local
 
+# Build-downloaded local AI assets — provisioned by the production build, never commit
+/public/models/needle3.cact
+/public/vendor/cactus-needle/
+
 # Environment secrets — never commit
 .env
 .env.local

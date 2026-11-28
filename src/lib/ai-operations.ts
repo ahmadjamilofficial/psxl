@@ -1,6 +1,16 @@
 import { supabase } from "./supabase";
 
-export type AgentPolicyTier = "AUTO" | "NOTIFY" | "REVIEW" | "STOP";\n\n// Only product agents are exposed in a customer workspace. Internal company\n// operations (marketing, support, customer success and founder reporting) stay private.\nexport const CUSTOMER_AGENT_ROLE_CODES = [\n  "ingestion_sync",\n  "reconciliation",\n  "exception_triage",\n  "compliance_audit",\n  "reliability_maintenance",\n] as const;
+export type AgentPolicyTier = "AUTO" | "NOTIFY" | "REVIEW" | "STOP";
+
+// Customer workspaces only receive agents that operate on their PSXL data.
+// Marketing, customer support/success, and founder reporting are internal roles.
+export const CUSTOMER_AGENT_ROLE_CODES = [
+  "ingestion_sync",
+  "reconciliation",
+  "exception_triage",
+  "compliance_audit",
+  "reliability_maintenance",
+] as const;
 
 export interface AgentRole {
   role_code: string;
@@ -35,11 +45,13 @@ export async function fetchAgentOperations(orgId: string): Promise<{
     supabase
       .from("agent_role_catalog" as never)
       .select("*")
-      .in("role_code", [...CUSTOMER_AGENT_ROLE_CODES])\n      .order("display_name"),
+      .in("role_code", [...CUSTOMER_AGENT_ROLE_CODES])
+      .order("display_name"),
     supabase
       .from("agent_role_configs" as never)
       .select("role_code, enabled, policy_override, priority")
-      .eq("org_id", orgId),
+      .eq("org_id", orgId)
+      .in("role_code", [...CUSTOMER_AGENT_ROLE_CODES]),
     supabase
       .from("agent_jobs")
       .select("status")
@@ -52,10 +64,10 @@ export async function fetchAgentOperations(orgId: string): Promise<{
       .eq("status", "pending"),
   ]);
 
-  if (rolesResult.error) throw new Error(rolesResult.error.message);
-  if (configsResult.error) throw new Error(configsResult.error.message);
-  if (jobsResult.error) throw new Error(jobsResult.error.message);
-  if (approvalsResult.error) throw new Error(approvalsResult.error.message);
+  if (rolesResult.error) throw new Error(`Agent catalog: ${rolesResult.error.message}`);
+  if (configsResult.error) throw new Error(`Workspace agent settings: ${configsResult.error.message}`);
+  if (jobsResult.error) throw new Error(`Agent job history: ${jobsResult.error.message}`);
+  if (approvalsResult.error) throw new Error(`Pending approvals: ${approvalsResult.error.message}`);
 
   const configs = new Map(
     ((configsResult.data ?? []) as Array<Record<string, unknown>>).map((config) => [
@@ -82,15 +94,16 @@ export async function fetchAgentOperations(orgId: string): Promise<{
     } satisfies AgentRole;
   });
   const statuses = ((jobsResult.data ?? []) as Array<{ status: string }>).map((job) => job.status);
+
   return {
     roles,
     health: {
       total: statuses.length,
-      queued: statuses.filter((s) => s === "pending").length,
-      running: statuses.filter((s) => s === "running").length,
-      completed: statuses.filter((s) => s === "done").length,
-      failed: statuses.filter((s) => s === "failed" || s === "failed_invariant").length,
-      deadLetter: statuses.filter((s) => s === "dead_letter").length,
+      queued: statuses.filter((status) => status === "pending").length,
+      running: statuses.filter((status) => status === "running").length,
+      completed: statuses.filter((status) => status === "done").length,
+      failed: statuses.filter((status) => status === "failed" || status === "failed_invariant").length,
+      deadLetter: statuses.filter((status) => status === "dead_letter").length,
       approvalCount: approvalsResult.count ?? 0,
     },
   };

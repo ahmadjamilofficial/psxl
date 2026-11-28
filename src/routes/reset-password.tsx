@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";\nimport { brandText } from "@/lib/brand";
 import { useState } from "react";
 import { Logo } from "@/components/brand/Logo";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,10 +6,10 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/reset-password")({
   head: () => ({
     meta: [
-      { title: "Reset password — Wab" },
-      { name: "description", content: "Choose a new password for your Wab account." },
-      { property: "og:title", content: "Reset password — Wab" },
-      { property: "og:description", content: "Choose a new password for your Wab account." },
+      { title: brandText("Reset password — {{brand}}") },
+      { name: "description", content: brandText("Choose a new password for your {{brand}} account.") },
+      { property: "og:title", content: brandText("Reset password — {{brand}}") },
+      { property: "og:description", content: brandText("Choose a new password for your {{brand}} account.") },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],

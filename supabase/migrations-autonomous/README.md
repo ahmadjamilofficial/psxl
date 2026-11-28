@@ -112,3 +112,19 @@ npm run test:watch
 ```
 
 Tests cover: policy tier decisions, FIFO determinism, schema validation, invariant checks, idempotency keys, loop prevention, debounce, policy learning.
+
+## PSXL AI Operations control plane
+
+The customer-facing AI Operations metadata is now installed through the standard Supabase migration directory:
+
+- `supabase/migrations/20261128000100_ai_operations_control_plane.sql`
+
+Apply it with the normal migration runner:
+
+```bash
+supabase db push
+```
+
+If applying SQL manually, run the contents of that timestamped migration in the Supabase SQL Editor after the existing autonomous-agent core tables are in place. It is idempotent and backfills the five customer-facing PSXL agents for existing organizations, provisions them for new organizations, and keeps internal marketing, customer support/success, and founder-reporting roles out of customer-readable catalog results.
+
+The older `006_ai_operations_control_plane.sql` in this legacy folder is retained for historical/manual setups; the timestamped migration above is the canonical CLI-discovered migration.

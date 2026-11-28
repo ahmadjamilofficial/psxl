@@ -148,7 +148,7 @@ async function attachmentText(parts: LocalMessagePart[]): Promise<{ text: string
       unsupported.push(name);
     }
   }
-  return { text: sections.join("\n\n").slice(0, 16_000), unsupported };
+  return { text: sections.join("\n\n").slice(0, 5_000), unsupported };
 }
 
 async function getNeedle(onDownloadProgress?: (progress: DownloadProgress) => void): Promise<NeedleSession> {
@@ -254,9 +254,9 @@ export async function runNeedleLocalFallback(
     sourceText,
   ].join("\n\n");
 
-  const extracted = await needle.extract(input, TRANSACTION_SCHEMA, { strict: true, maxNewTokens: 1024 });
+  const extracted = await needle.extract(input, TRANSACTION_SCHEMA, { strict: true, maxNewTokens: 256 });
   if (!extracted || typeof extracted !== "object") {
-    return "Needle 3 loaded locally, but it could not produce a source-grounded extraction for this document. No ledger changes were made. Try again with a clearer CSV, XLSX, or text statement.";
+    return "I could not confidently extract transaction details. Please try a clearer statement. Your ledger has not been changed.";
   }
 
   const result = extracted as { intent?: unknown; transactions?: unknown; notes?: unknown };
@@ -264,7 +264,7 @@ export async function runNeedleLocalFallback(
   const notes = Array.isArray(result.notes) ? result.notes.filter((item): item is string => typeof item === "string") : [];
   if (attached.unsupported.length) notes.push("Could not inspect unsupported attachment(s): " + attached.unsupported.join(", "));
   if (transactions.length === 0) {
-    return "Needle 3 processed the supplied text locally but did not confidently extract any transaction rows. " + notes.join(" ") + " No values were invented and no ledger changes were made.";
+    return "I could not confidently identify transaction rows. " + notes.join(" ") + " No values were invented, and your ledger has not been changed.";
   }
 
   const safeTransactions = transactions.slice(0, 40).map((item) => {
@@ -287,7 +287,7 @@ export async function runNeedleLocalFallback(
   });
 
   return [
-    "### Local extraction — Needle 3",
+    "Extracted transactions",
     "Extracted " + safeTransactions.length + " transaction row(s) from the supplied source.",
     String.fromCharCode(96, 96, 96) + "json",
     JSON.stringify({ intent: result.intent ?? "statement_extraction", transactions: safeTransactions, notes }, null, 2),

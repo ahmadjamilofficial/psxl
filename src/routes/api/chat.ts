@@ -28,7 +28,7 @@ import { computeTax } from "@/lib/tax";
 import { computePortfolioSummary } from "@/lib/financial-intelligence";
 import type { Transaction } from "@/lib/demo-data";
 import { deterministicAssistantAnswer } from "@/lib/deterministic-ai";
-import { SPECIALISTS } from "@/lib/agent-prompts";
+import { buildSpecialistSystemPrompt } from "@/lib/agent-prompts";
 
 type ChatBody = { id?: unknown; messages?: unknown };
 
@@ -761,7 +761,7 @@ export const Route = createFileRoute("/api/chat")({
                   const sub = await generateText({
                     model,
                     providerOptions: chosenModel.providerOptions as never,
-                    system: `${SPECIALISTS[agent]}\n\nYou are read-only. Work only from the supplied data. Return compact markdown under 350 words with findings, evidence references, and confidence; never expose hidden reasoning.`,
+                    system: buildSpecialistSystemPrompt(agent),
                     prompt: `Objective:\n${objective}\n\nData and context:\n${context.slice(0, 12000)}`,
                     maxOutputTokens: 500,
                     maxRetries: 1,
@@ -839,7 +839,7 @@ export const Route = createFileRoute("/api/chat")({
                     const worker = await generateText({
                       model,
                       providerOptions: chosenModel.providerOptions as never,
-                      system: `${SPECIALISTS[agent]}\n\nYou are a read-only worker. You cannot access tools or perform actions. Work only from the explicit context below. Distinguish observed evidence from assumptions. Return compact markdown under 350 words with findings and confidence; do not reveal hidden reasoning.`,
+                      system: buildSpecialistSystemPrompt(agent, "parallel"),
                       prompt: `Objective (only this subtask):\n${objective}\n\nEvidence supplied by the lead agent:\n${context.slice(0, 12000)}`,
                       maxOutputTokens: 500,
                       maxRetries: 1,

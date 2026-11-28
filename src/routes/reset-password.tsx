@@ -1,4 +1,5 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";\nimport { brandText } from "@/lib/brand";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { brandText } from "@/lib/brand";
 import { useState } from "react";
 import { Logo } from "@/components/brand/Logo";
 import { supabase } from "@/integrations/supabase/client";

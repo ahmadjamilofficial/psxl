@@ -219,7 +219,7 @@ async function streamWithCascade(
       throw e;
     }
   }
-  throw new Error("All AI models quota-exhausted. Please wait a minute and try again.");
+  throw new Error("All configured AI providers are temporarily rate-limited. PSXL is online; please try again in a moment.");
 }
 
 // ── Analyst system prompt ─────────────────────────────────────────────────────

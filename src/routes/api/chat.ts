@@ -27,6 +27,7 @@ import { pickCascadeForPlan, planOf } from "@/lib/plans";
 import { computeTax } from "@/lib/tax";
 import { computePortfolioSummary } from "@/lib/financial-intelligence";
 import type { Transaction } from "@/lib/demo-data";
+import { deterministicAssistantAnswer } from "@/lib/deterministic-ai";
 
 type ChatBody = { id?: unknown; messages?: unknown };
 
@@ -67,9 +68,6 @@ function isSimpleGreeting(messages: unknown[]): boolean {
     value,
   );
 }
-
-const DETERMINISTIC_GREETING =
-  `Hi — I’m ${ASSISTANT_NAME}, your financial operations copilot. Ask me about your ledger, upload a broker statement, or connect a source and I’ll help you investigate it.`;
 
 function replayIteratorStream<T>(
   first: IteratorResult<T>,
@@ -412,8 +410,11 @@ export const Route = createFileRoute("/api/chat")({
             return new Response("A thread id and messages are required", { status: 400 });
           }
 
-          // Greetings should remain available even if every external provider is down.
-          if (isSimpleGreeting(body.messages)) {
+          // Greetings and basic product/identity questions should remain fast and
+          // available even if every external provider is down. They do not need
+          // tools, model inference, quota credits, or a Gemini/provider round trip.
+          const deterministicAnswer = deterministicAssistantAnswer(body.messages);
+          if (deterministicAnswer) {
             const greetingConfig = supabaseServerConfig();
             if (!greetingConfig)
               return new Response("Database configuration is missing", { status: 500 });
@@ -440,7 +441,7 @@ export const Route = createFileRoute("/api/chat")({
                 writer.write({
                   type: "text-delta",
                   id: "wab-greeting",
-                  delta: DETERMINISTIC_GREETING,
+                  delta: deterministicAnswer,
                 });
                 writer.write({ type: "text-end", id: "wab-greeting" });
               },
@@ -461,7 +462,10 @@ export const Route = createFileRoute("/api/chat")({
                 );
                 await greetingDb
                   .from("chat_threads")
-                  .update({ title: "Hello", updated_at: new Date().toISOString() })
+                  .update({
+                    title: isSimpleGreeting(body.messages) ? "Hello" : "About PSXL",
+                    updated_at: new Date().toISOString(),
+                  })
                   .eq("id", greetingThread.id);
               },
             });
@@ -2098,7 +2102,7 @@ NEW TOOLS ADDED:
             if (st === 403)
               return "AI access is blocked for this workspace. Please check the provider settings.";
             if (isCapacityError(e) || st === 429 || lowerMessage.includes("rate limit")) {
-              return brandText("{{brand}} AI has temporarily hit a provider rate limit. Your data was not changed — please retry shortly.");
+              return "An upstream AI provider is temporarily rate-limited. PSXL is online, your data was not changed — please retry shortly.";
             }
             if (st === 404 || lowerMessage.includes("model not found"))
               return "The configured AI model is unavailable from its provider. Please try again shortly.";
@@ -2183,7 +2187,7 @@ NEW TOOLS ADDED:
               }
               throw lastError instanceof Error
                 ? lastError
-                : new Error("Every AI provider is busy. Please try again in a moment.");
+                : new Error("All configured AI providers are temporarily unavailable. PSXL is online; please try again in a moment.");
             },
             onError: (e) => {
               void supabase.from("ai_usage").update({

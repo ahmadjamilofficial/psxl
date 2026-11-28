@@ -10,6 +10,7 @@ export default defineConfig({
     // here because those require a running database. Use `vitest --run` for CI.
     include: [
       "src/lib/policy-engine.test.ts",
+      "src/lib/deterministic-ai.test.ts",
       "src/lib/model-routing.test.ts",
       "src/lib/schema-validator.test.ts",
       "src/lib/invariant-checks.test.ts",

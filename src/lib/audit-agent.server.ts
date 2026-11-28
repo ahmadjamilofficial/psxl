@@ -436,7 +436,10 @@ export function describeAiError(e: unknown): { status: number; message: string }
       message: "AI credits are used up. Add credits in your workspace settings to continue.",
     };
   if (status === 429)
-    return { status, message: "Wab AI is busy right now. Please try again in a moment." };
+    return {
+      status,
+      message: "An upstream AI provider is temporarily rate-limited. PSXL is online; please try again in a moment.",
+    };
   if (status === 403) return { status, message: "AI access is blocked for this workspace." };
   return { status, message: "Wab AI is temporarily unavailable. Your data was not changed." };
 }

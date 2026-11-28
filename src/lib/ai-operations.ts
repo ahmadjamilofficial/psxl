@@ -27,7 +27,7 @@ export interface AgentRole {
   priority: number;
 }
 
-export interface OperationsHealth {
+export interface AgentJobSummary {\n  id: string;\n  trigger_type: string;\n  status: string;\n  created_at: string;\n  error_message: string | null;\n  result_summary: Record<string, unknown> | null;\n}\n\nexport interface OperationsHealth {
   total: number;
   queued: number;
   running: number;
@@ -93,7 +93,7 @@ export async function fetchAgentOperations(orgId: string): Promise<{
       priority: Number(config.priority ?? 50),
     } satisfies AgentRole;
   });
-  const statuses = ((jobsResult.data ?? []) as Array<{ status: string }>).map((job) => job.status);
+  const recentJobs = (jobsResult.data ?? []) as AgentJobSummary[];\n  const statuses = recentJobs.length === 10\n    ? recentJobs.map((job) => job.status)\n    : ((jobsResult.data ?? []) as Array<{ status: string }>).map((job) => job.status);
 
   return {
     roles,

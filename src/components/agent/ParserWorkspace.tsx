@@ -23,7 +23,6 @@ import {
   Plus,
   Trash2,
   X,
-  Zap,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
@@ -882,7 +881,6 @@ function Chat({
   const [activityOpen, setActivityOpen] = useState(false);
   const [needleFallback, setNeedleFallback] = useState<string | null>(null);
   const [needleFallbackLoading, setNeedleFallbackLoading] = useState(false);
-  const [needleFallbackProgress, setNeedleFallbackProgress] = useState<number | null>(null);
   const messagesRef = useRef<UIMessage[]>(initial);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -907,20 +905,16 @@ function Chat({
       if (!shouldUseNeedleFallback(cause)) return;
       setNeedleFallback(null);
       setNeedleFallbackLoading(true);
-      setNeedleFallbackProgress(null);
-      void runNeedleLocalFallback(messagesRef.current, (progress) => {
-        setNeedleFallbackProgress(progress.percentage ?? null);
-      })
+      void runNeedleLocalFallback(messagesRef.current)
         .then(setNeedleFallback)
         .catch((fallbackError) => {
-          const detail = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
+          console.warn("[PSXL] Local response fallback failed", fallbackError);
           setNeedleFallback(
-            "Needle 3 could not start locally: " + detail + ". No ledger changes were made. You can retry the cloud AI when its provider recovers.",
+            "I couldn't complete that response just now. Please try again shortly. Your ledger has not been changed.",
           );
         })
         .finally(() => {
           setNeedleFallbackLoading(false);
-          setNeedleFallbackProgress(null);
         });
     },
   });
@@ -1214,29 +1208,9 @@ function Chat({
             </div>
           )}
 
-          {/* Local Needle 3 is a structured-extraction fallback, not a general chat model. */}
-          {needleFallbackLoading && (
-            <div
-              className="mx-auto my-3 max-w-[48rem] rounded-2xl border px-4 py-3 text-xs"
-              style={{ borderColor: "var(--hairline)", background: "var(--surface)", color: "var(--ink-2)" }}
-              role="status"
-              aria-live="polite"
-            >
-              <p className="font-semibold" style={{ color: "var(--color-text)" }}>Cloud AI unavailable — starting local Needle 3</p>
-              <p className="mt-1">
-                {needleFallbackProgress === null
-                  ? "Preparing the on-device model. Its first download is approximately 35 MB and is cached on this device."
-                  : "Downloading and verifying Needle 3: " + Math.round(needleFallbackProgress) + "%"}
-              </p>
-            </div>
-          )}
           {needleFallback && (
             <Message from="assistant" className="wab-msg-in">
               <MessageContent>
-                <div className="mb-2 inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[10px] font-semibold"
-                  style={{ borderColor: "var(--hairline)", color: "var(--color-accent)" }}>
-                  <Zap size={11} /> Local Needle 3
-                </div>
                 <MessageResponse>{needleFallback}</MessageResponse>
               </MessageContent>
             </Message>

@@ -17,7 +17,7 @@ type NeedleSession = {
   extract: (
     input: string,
     schema: Record<string, unknown>,
-    options?: { strict?: boolean; abortSignal?: AbortSignal },
+    options?: { strict?: boolean; maxNewTokens?: number; abortSignal?: AbortSignal },
   ) => Promise<unknown | null>;
 };
 
@@ -192,7 +192,7 @@ export async function runNeedleLocalFallback(
     sourceText,
   ].join("\n\n");
 
-  const extracted = await needle.extract(input, TRANSACTION_SCHEMA, { strict: true });
+  const extracted = await needle.extract(input, TRANSACTION_SCHEMA, { strict: true, maxNewTokens: 1024 });
   if (!extracted || typeof extracted !== "object") {
     return "Needle 3 loaded locally, but it could not produce a source-grounded extraction for this document. No ledger changes were made. Try again with a clearer CSV, XLSX, or text statement.";
   }
@@ -204,7 +204,7 @@ export async function runNeedleLocalFallback(
     return "Needle 3 processed the supplied text locally but did not confidently extract any transaction rows. " + notes.join(" ") + " No values were invented and no ledger changes were made.";
   }
 
-  const safeTransactions = transactions.slice(0, 100).map((item) => {
+  const safeTransactions = transactions.slice(0, 40).map((item) => {
     if (!item || typeof item !== "object") return item;
     const row = item as Record<string, unknown>;
     return {

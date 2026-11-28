@@ -3,8 +3,8 @@
 // key, then proves the first one that actually answers before the chat route
 // streams with it.
 //
-// Order: Lovable AI gateway (hosted default) → Google Gemini → OpenAI →
-// OpenRouter → Groq. The cascade exists because keys expire, projects get
+// Order: Lovable AI gateway (primary) → OpenAI (fallback 1) → Gemini (fallback 2 / third tier) →
+// OpenRouter → Groq. Needle 3 is a browser-local last resort after the cloud cascade is exhausted. The cascade exists because keys expire, projects get
 // suspended and free models get retired; without it a single dead key makes
 // every prompt fail with a generic error.
 
@@ -100,19 +100,6 @@ export async function resolveAgentModel(env?: EnvBag): Promise<ResolvedModel | n
     });
   }
 
-  const openAIKey = serverEnv("OPENAI_API_KEY", env);
-  if (openAIKey) {
-    const modelId = serverEnv("OPENAI_MODEL", env) ?? "gpt-4o-mini";
-    const provider = createOpenAI({ apiKey: openAIKey });
-    cascade.push({
-      id: modelId,
-      model: provider.chat(modelId) as unknown as LanguageModel,
-      provider: "openai",
-      modelId,
-      providerOptions: DEFAULT_PROVIDER_OPTIONS as unknown as Record<string, unknown>,
-    });
-  }
-
   const geminiKey =
     serverEnv("GEMINI_API_KEY", env) ?? serverEnv("GOOGLE_GENERATIVE_AI_API_KEY", env);
   if (geminiKey) {
@@ -129,6 +116,19 @@ export async function resolveAgentModel(env?: EnvBag): Promise<ResolvedModel | n
         providerOptions: DEFAULT_PROVIDER_OPTIONS as unknown as Record<string, unknown>,
       });
     }
+  }
+
+  const openAIKey = serverEnv("OPENAI_API_KEY", env);
+  if (openAIKey) {
+    const modelId = serverEnv("OPENAI_MODEL", env) ?? "gpt-4o-mini";
+    const provider = createOpenAI({ apiKey: openAIKey });
+    cascade.push({
+      id: modelId,
+      model: provider.chat(modelId) as unknown as LanguageModel,
+      provider: "openai",
+      modelId,
+      providerOptions: DEFAULT_PROVIDER_OPTIONS as unknown as Record<string, unknown>,
+    });
   }
 
   const openRouterKey = serverEnv("OPENROUTER_API_KEY", env);

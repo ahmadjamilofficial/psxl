@@ -236,6 +236,11 @@ export function kelviqCheckoutUrl(opts: {
 export function pickCascadeForPlan<
   T extends { modelId: string },
 >(cascade: T[], plan: string | null | undefined, fallback: T): T {
+  // Gemini is the product's primary AI provider on every plan.
+  // Plan tiers may constrain features/usage, but must never silently replace
+  // the configured primary provider with a different vendor.
+  const gemini = cascade.find((entry) => /^gemini-/i.test(entry.modelId));
+  if (gemini) return gemini;
   const id = normalizePlanId(plan);
   if (id === "pro" || cascade.length === 0) return fallback;
   const lowCost = (m: string) =>
